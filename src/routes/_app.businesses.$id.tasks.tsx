@@ -37,6 +37,7 @@ function fmtDay(iso: string, lang: Lang = "en") {
 function Tasks() {
   const { id } = Route.useParams();
   const { me } = Route.useRouteContext() as any;
+  const { t, lang } = useI18n();
   const listT = useServerFn(listBusinessTasksFn);
   const listM = useServerFn(listMembersFn);
   const create = useServerFn(createTaskFn);
