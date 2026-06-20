@@ -29,6 +29,8 @@ function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
   const { lang, setLang, t } = useI18n();
+  const { theme, setTheme } = useTheme();
+  const activeTheme = THEMES.find((tt) => tt.id === theme) ?? THEMES[0];
 
   // close mobile drawer on route change
   useEffect(() => { setOpen(false); }, [pathname]);
