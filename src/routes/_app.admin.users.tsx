@@ -27,17 +27,17 @@ export const Route = createFileRoute("/_app/admin/users")({
 const ROLES = ["admin", "owner", "investor", "member"] as const;
 type Role = typeof ROLES[number];
 
-function validateUsername(v: string) {
-  if (!v.trim()) return "Username is required";
-  if (v.length < 2) return "At least 2 characters";
-  if (v.length > 64) return "Max 64 characters";
-  if (!/^[a-zA-Z0-9_.-]+$/.test(v)) return "Letters, numbers, . _ - only";
+function validateUsername(v: string, t: (k: string) => string) {
+  if (!v.trim()) return t("users.err.uReq");
+  if (v.length < 2) return t("users.err.uMin");
+  if (v.length > 64) return t("users.err.uMax");
+  if (!/^[a-zA-Z0-9_.-]+$/.test(v)) return t("users.err.uChars");
   return null;
 }
-function validatePassword(v: string, optional = false) {
+function validatePassword(v: string, t: (k: string) => string, optional = false) {
   if (optional && !v) return null;
-  if (v.length < 4) return "Password must be at least 4 characters";
-  if (v.length > 200) return "Password too long";
+  if (v.length < 4) return t("users.err.pMin");
+  if (v.length > 200) return t("users.err.pMax");
   return null;
 }
 
