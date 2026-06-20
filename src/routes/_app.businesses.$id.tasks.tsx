@@ -269,17 +269,17 @@ function Tasks() {
       {!noMembers && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Week summary</CardTitle>
-            <CardDescription>Completion by assignee</CardDescription>
+            <CardTitle className="text-base">{t("tasks.weekSummary")}</CardTitle>
+            <CardDescription>{t("tasks.weekSummaryDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {(members.data ?? []).map((mem: any) => {
-              const mine = (tasks.data ?? []).filter((t: any) => t.assignee_user_id === mem.user_id);
-              const done = mine.filter((t: any) => t.status === "done").length;
+              const mine = (tasks.data ?? []).filter((x: any) => x.assignee_user_id === mem.user_id);
+              const done = mine.filter((x: any) => x.status === "done").length;
               const pct = mine.length ? Math.round((done / mine.length) * 100) : 0;
               return (
                 <div key={mem.id} className="flex items-center gap-3 text-sm">
-                  <div className="w-32 truncate font-medium">{mem.user?.username}</div>
+                  <div className="w-32 min-w-0 truncate font-medium">{mem.user?.username}</div>
                   <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                     <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
                   </div>
@@ -296,37 +296,37 @@ function Tasks() {
       <Dialog open={!!adding} onOpenChange={(o) => !o && setAdding(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>New task</DialogTitle>
-            <DialogDescription>{adding ? fmtDay(adding.date) : ""}</DialogDescription>
+            <DialogTitle>{t("tasks.newTask")}</DialogTitle>
+            <DialogDescription>{adding ? fmtDay(adding.date, lang) : ""}</DialogDescription>
           </DialogHeader>
           <form onSubmit={submitTask} className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Assignee</Label>
+              <Label>{t("tasks.assignee")}</Label>
               <Select value={form.assigneeUserId} onValueChange={(v) => setForm({ ...form, assigneeUserId: v })}>
-                <SelectTrigger><SelectValue placeholder="Choose…" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("tasks.chooseAssignee")} /></SelectTrigger>
                 <SelectContent>
                   {(members.data ?? []).map((m: any) => (
                     <SelectItem key={m.user_id} value={m.user_id}>
-                      {m.user?.username} ({m.role_in_business})
+                      {m.user?.username} ({roleLabel(m.role_in_business, t)})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Title</Label>
+              <Label>{t("tasks.title")}</Label>
               <Input autoFocus required maxLength={200} value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </div>
             <div className="space-y-1.5">
-              <Label>Details</Label>
+              <Label>{t("tasks.details")}</Label>
               <Textarea rows={3} maxLength={1000} value={form.details}
                 onChange={(e) => setForm({ ...form, details: e.target.value })} />
             </div>
             {formErr && <p className="text-xs text-destructive">{formErr}</p>}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setAdding(null)}>Cancel</Button>
-              <Button type="submit" disabled={addM.isPending}>Create task</Button>
+              <Button type="button" variant="outline" onClick={() => setAdding(null)}>{t("common.cancel")}</Button>
+              <Button type="submit" disabled={addM.isPending}>{t("tasks.createTask")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
