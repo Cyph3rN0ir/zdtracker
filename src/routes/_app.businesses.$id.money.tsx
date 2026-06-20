@@ -161,36 +161,37 @@ function Money() {
 }
 
 function Section({ title, rows, onDelete }: { title: string; rows: any[]; onDelete?: (id: string) => void }) {
+  const { t } = useI18n();
   const total = rows.reduce((s, t) => s + Number(t.amount), 0);
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="capitalize text-base">{title}s</CardTitle>
-        <div className="text-sm font-mono">Total: {fmt(total)}</div>
+      <CardHeader className="flex-row items-center justify-between space-y-0 gap-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <div className="text-sm font-mono whitespace-nowrap">{t("common.total")}: {fmt(total)}</div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-32 pl-6">Date</TableHead>
-              <TableHead className="w-40">Party</TableHead>
-              <TableHead>Note</TableHead>
-              <TableHead className="text-right w-32">Amount</TableHead>
+              <TableHead className="w-32 pl-6">{t("common.date")}</TableHead>
+              <TableHead className="w-40">{t("money.party")}</TableHead>
+              <TableHead>{t("common.note")}</TableHead>
+              <TableHead className="text-right w-32">{t("common.amount")}</TableHead>
               {onDelete && <TableHead className="w-12 pr-6"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
-              <TableRow><TableCell colSpan={onDelete ? 5 : 4} className="text-center py-6 text-muted-foreground text-xs">None.</TableCell></TableRow>
-            ) : rows.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="font-mono text-xs pl-6">{t.occurred_on}</TableCell>
-                <TableCell>{t.party?.username ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                <TableCell>{t.note}</TableCell>
-                <TableCell className="text-right font-mono">{fmt(t.amount)}</TableCell>
+              <TableRow><TableCell colSpan={onDelete ? 5 : 4} className="text-center py-6 text-muted-foreground text-xs">{t("common.none")}</TableCell></TableRow>
+            ) : rows.map((tx) => (
+              <TableRow key={tx.id}>
+                <TableCell className="font-mono text-xs pl-6">{tx.occurred_on}</TableCell>
+                <TableCell>{tx.party?.username ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                <TableCell>{tx.note}</TableCell>
+                <TableCell className="text-right font-mono">{fmt(tx.amount)}</TableCell>
                 {onDelete && (
                   <TableCell className="text-right pr-6">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(t.id)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(tx.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </TableCell>
