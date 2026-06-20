@@ -78,6 +78,8 @@ function Tasks() {
   }, [members.data]);
 
   const canAssign = me.role === "admin" || me.role === "owner";
+  const canDelete = me.role === "admin";
+  const canCreate = !!me.userId; // any signed-in user can create (self-assigned if not admin/owner)
 
   const [adding, setAdding] = useState<{ date: string } | null>(null);
   const [form, setForm] = useState({ title: "", details: "", assigneeUserId: "" });
@@ -87,7 +89,7 @@ function Tasks() {
     mutationFn: () => create({
       data: {
         businessId: id,
-        assigneeUserId: form.assigneeUserId,
+        assigneeUserId: canAssign ? form.assigneeUserId : me.userId,
         title: form.title.trim(),
         details: form.details,
         dueDate: adding!.date,
@@ -120,7 +122,7 @@ function Tasks() {
     e.preventDefault();
     if (!form.title.trim()) return setFormErr(t("tasks.err.title"));
     if (form.title.trim().length > 200) return setFormErr(t("tasks.err.titleLong"));
-    if (!form.assigneeUserId) return setFormErr(t("tasks.err.assignee"));
+    if (canAssign && !form.assigneeUserId) return setFormErr(t("tasks.err.assignee"));
     setFormErr(null);
     addM.mutate();
   }
@@ -191,7 +193,7 @@ function Tasks() {
                 : t("tasks.summary", { done: dayDone, total: dayTasks.length })}
             </CardDescription>
           </div>
-          {canAssign && !noMembers && (
+          {canCreate && !noMembers && (
             <Button size="sm" onClick={() => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); }}>
               <Plus className="h-4 w-4" /> {t("tasks.addTask")}
             </Button>
@@ -214,14 +216,14 @@ function Tasks() {
             <EmptyCTA
               title={t("tasks.empty.noTasks.title")}
               message={t("tasks.empty.noTasks.msg")}
-              action={canAssign ? { label: t("tasks.empty.addOne"), onClick: () => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); } } : undefined}
+              action={canCreate ? { label: t("tasks.empty.addOne"), onClick: () => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); } } : undefined}
             />
           ) : (
             <ul className="divide-y divide-border">
               {dayTasks.map((task: any) => {
                 const u = userById[task.assignee_user_id];
                 const isMine = task.assignee_user_id === me.userId;
-                const canToggle = canAssign || isMine;
+                const canToggle = isMine; // only the assignee may mark the task done
                 const done = task.status === "done";
                 return (
                   <li key={task.id} className="flex items-start gap-3 px-4 sm:px-6 py-3">
@@ -251,7 +253,7 @@ function Tasks() {
                         )}
                       </div>
                     </div>
-                    {canAssign && (
+                    {canDelete && (
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={() => dm.mutate(task.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
@@ -300,19 +302,23 @@ function Tasks() {
             <DialogDescription>{adding ? fmtDay(adding.date, lang) : ""}</DialogDescription>
           </DialogHeader>
           <form onSubmit={submitTask} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>{t("tasks.assignee")}</Label>
-              <Select value={form.assigneeUserId} onValueChange={(v) => setForm({ ...form, assigneeUserId: v })}>
-                <SelectTrigger><SelectValue placeholder={t("tasks.chooseAssignee")} /></SelectTrigger>
-                <SelectContent>
-                  {(members.data ?? []).map((m: any) => (
-                    <SelectItem key={m.user_id} value={m.user_id}>
-                      {m.user?.username} ({roleLabel(m.role_in_business, t)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canAssign ? (
+              <div className="space-y-1.5">
+                <Label>{t("tasks.assignee")}</Label>
+                <Select value={form.assigneeUserId} onValueChange={(v) => setForm({ ...form, assigneeUserId: v })}>
+                  <SelectTrigger><SelectValue placeholder={t("tasks.chooseAssignee")} /></SelectTrigger>
+                  <SelectContent>
+                    {(members.data ?? []).map((m: any) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.user?.username} ({roleLabel(m.role_in_business, t)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">{t("tasks.assignee")}: <span className="font-medium text-foreground">{t("common.you") ?? "You"}</span></p>
+            )}
             <div className="space-y-1.5">
               <Label>{t("tasks.title")}</Label>
               <Input autoFocus required maxLength={200} value={form.title}

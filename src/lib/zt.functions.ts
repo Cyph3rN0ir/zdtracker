@@ -360,11 +360,13 @@ export const createTaskFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const me = await requireSession();
-    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
+    // Non-admin/owner users can only create tasks assigned to themselves.
+    const canAssignOthers = me.role === "admin" || me.role === "owner";
+    const assignee = canAssignOthers ? data.assigneeUserId : me.userId!;
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { error } = await getSupabaseAdmin().from("tasks").insert({
       business_id: data.businessId,
-      assignee_user_id: data.assigneeUserId,
+      assignee_user_id: assignee,
       title: data.title,
       details: data.details,
       due_date: data.dueDate,
@@ -382,8 +384,9 @@ export const toggleTaskFn = createServerFn({ method: "POST" })
     const supa = getSupabaseAdmin();
     const { data: t } = await supa.from("tasks").select("assignee_user_id").eq("id", data.id).maybeSingle();
     if (!t) throw new Error("Task not found");
-    if (me.role !== "admin" && me.role !== "owner" && t.assignee_user_id !== me.userId) {
-      throw new Error("Forbidden");
+    // Only the assignee can mark their own task complete.
+    if (t.assignee_user_id !== me.userId) {
+      throw new Error("Only the assignee can change this task's status");
     }
     const { error } = await supa
       .from("tasks")
@@ -397,7 +400,8 @@ export const deleteTaskFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const me = await requireSession();
-    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
+    // Only admins can delete tasks.
+    if (me.role !== "admin") throw new Error("Only admins can delete tasks");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { error } = await getSupabaseAdmin().from("tasks").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
