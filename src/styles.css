@@ -140,5 +140,9 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "tnum" 1, "cv11" 1;
   }
+
+  table { font-variant-numeric: tabular-nums; }
 }
