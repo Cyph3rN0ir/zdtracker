@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Trash2, UserPlus, Pencil } from "lucide-react";
+import { useI18n, roleLabel } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_app/admin/users")({
   beforeLoad: ({ context }) => {
