@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Plus, Wallet, UserPlus } from "lucide-react";
+import { useI18n, roleLabel } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_app/businesses/$id/money")({
   component: Money,
