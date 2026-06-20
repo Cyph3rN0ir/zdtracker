@@ -111,3 +111,47 @@ export const adminDeleteUserFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+const updateUserSchema = z.object({
+  id: z.string().uuid(),
+  username: z
+    .string()
+    .trim()
+    .min(2)
+    .max(64)
+    .regex(/^[a-zA-Z0-9_.-]+$/, "Letters, numbers, . _ - only")
+    .optional(),
+  password: z.string().min(4).max(200).optional().or(z.literal("")),
+  displayName: z.string().trim().max(120).optional(),
+  role: z.enum(["admin", "owner", "investor", "member"]).optional(),
+});
+export const adminUpdateUserFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => updateUserSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { getSession } = await import("@/lib/session.server");
+    const s = await getSession();
+    if (s.data.role !== "admin") throw new Error("Forbidden");
+    const [{ getSupabaseAdmin }, bcrypt] = await Promise.all([
+      import("@/lib/supabase.server"),
+      import("bcryptjs"),
+    ]);
+    const patch: Record<string, any> = {};
+    if (data.username) patch.username = data.username;
+    if (typeof data.displayName === "string") patch.display_name = data.displayName;
+    if (data.role) {
+      if (s.data.userId === data.id && data.role !== "admin") {
+        throw new Error("Cannot demote yourself");
+      }
+      patch.role = data.role;
+    }
+    if (data.password && data.password.length > 0) {
+      patch.password_hash = await bcrypt.default.hash(data.password, 10);
+    }
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await getSupabaseAdmin().from("app_users").update(patch).eq("id", data.id);
+    if (error) {
+      if (error.code === "23505") throw new Error("Username already taken");
+      throw new Error(error.message);
+    }
+    return { ok: true };
+  });
