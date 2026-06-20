@@ -71,12 +71,12 @@ function People() {
                 setFormErr(null);
                 m.mutate();
               }}
-              className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3 items-end"
+              className="flex flex-col md:flex-row md:items-end gap-3"
             >
-              <div className="space-y-1.5 min-w-0">
-                <Label>User</Label>
+              <div className="space-y-1.5 min-w-0 flex-1">
+                <Label htmlFor="add-user">User</Label>
                 <Select value={sel.userId} onValueChange={(v) => setSel({ ...sel, userId: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select a user…" /></SelectTrigger>
+                  <SelectTrigger id="add-user" className="h-9"><SelectValue placeholder="Select a user…" /></SelectTrigger>
                   <SelectContent>
                     {(users.data ?? []).map((u: any) => (
                       <SelectItem key={u.id} value={u.id}>
@@ -86,22 +86,19 @@ function People() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label>Role</Label>
+              <div className="space-y-1.5 md:w-44">
+                <Label htmlFor="add-role">Role</Label>
                 <Select value={sel.role} onValueChange={(v) => setSel({ ...sel, role: v as any })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="add-role" className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="invisible select-none" aria-hidden>·</Label>
-                <Button type="submit" disabled={m.isPending || !sel.userId} className="w-full md:w-auto">
-                  <UserPlus className="h-4 w-4" /> Add
-                </Button>
-              </div>
-              {formErr && <p className="md:col-span-3 text-xs text-destructive">{formErr}</p>}
+              <Button type="submit" disabled={m.isPending || !sel.userId} className="h-9 w-full md:w-auto shrink-0">
+                <UserPlus className="h-4 w-4" /> Add
+              </Button>
+              {formErr && <p className="text-xs text-destructive md:basis-full">{formErr}</p>}
             </form>
           </CardContent>
         </Card>
