@@ -95,9 +95,12 @@ function People() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" disabled={m.isPending || !sel.userId}>
-                <UserPlus className="h-4 w-4" /> Add
-              </Button>
+              <div className="space-y-1.5">
+                <Label className="invisible select-none" aria-hidden>·</Label>
+                <Button type="submit" disabled={m.isPending || !sel.userId} className="w-full md:w-auto">
+                  <UserPlus className="h-4 w-4" /> Add
+                </Button>
+              </div>
               {formErr && <p className="md:col-span-3 text-xs text-destructive">{formErr}</p>}
             </form>
           </CardContent>
