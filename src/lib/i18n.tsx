@@ -4,7 +4,7 @@ export type Lang = "en" | "bn";
 
 const DICT: Record<string, { en: string; bn: string }> = {
   // Brand & nav
-  "brand": { en: "ZeroTrack", bn: "জিরোট্র্যাক" },
+  "brand": { en: "ZeroSync", bn: "জিরোসিঙ্ক" },
   "nav.dashboard": { en: "Dashboard", bn: "ড্যাশবোর্ড" },
   "nav.myTasks": { en: "My tasks", bn: "আমার কাজ" },
   "nav.personal": { en: "Personal", bn: "ব্যক্তিগত" },
@@ -59,7 +59,7 @@ const DICT: Record<string, { en: string; bn: string }> = {
   "auth.displayName": { en: "Display name", bn: "প্রদর্শিত নাম" },
   "auth.subtitle": { en: "Accounts are created by the administrator.", bn: "অ্যাকাউন্ট অ্যাডমিনিস্ট্রেটর তৈরি করেন।" },
   "auth.failed": { en: "Sign in failed", bn: "সাইন ইন ব্যর্থ হয়েছে" },
-  "auth.titleHead": { en: "Sign in — ZeroTrack", bn: "সাইন ইন — জিরোট্র্যাক" },
+  "auth.titleHead": { en: "Sign in — ZeroSync", bn: "সাইন ইন — জিরোসিঙ্ক" },
 
   // Business tabs
   "biz.overview": { en: "Overview", bn: "সারসংক্ষেপ" },

@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_app/admin/users")({
     if ((context as any).me?.role !== "admin") throw new Error("Forbidden");
   },
   component: UsersPage,
-  head: () => ({ meta: [{ title: "Users — ZeroTrack" }] }),
+  head: () => ({ meta: [{ title: "Users — ZeroSync" }] }),
 });
 
 const ROLES = ["admin", "owner", "investor", "member"] as const;
