@@ -185,20 +185,8 @@ function UsersPage() {
 
 function EditUserDialog({ user, onClose, onSaved }: { user: any | null; onClose: () => void; onSaved: () => void }) {
   const update = useServerFn(adminUpdateUserFn);
-  const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [role, setRole] = useState<Role>("member");
-  const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
-
-  // reset state on open
   const open = !!user;
-  const userId = user?.id;
-  // initialize when user changes
-  useState(() => undefined);
-  if (user && username === "" && displayName === "" && role === "member" && password === "" && user._initialized !== true) {
-    // one-shot init guard
-  }
 
   const m = useMutation({
     mutationFn: (d: any) => update({ data: d }),
@@ -206,16 +194,16 @@ function EditUserDialog({ user, onClose, onSaved }: { user: any | null; onClose:
     onError: (e: any) => { const msg = e?.message ?? "Failed"; setErr(msg); toast.error(msg); },
   });
 
-  // simple effect-like init via key
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); setErr(null); setPassword(""); } }}>
-      <DialogContent className="sm:max-w-md" key={userId ?? "none"}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); setErr(null); } }}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit user</DialogTitle>
           <DialogDescription>Update username, password, display name or role.</DialogDescription>
         </DialogHeader>
         {user && (
           <EditUserForm
+            key={user.id}
             user={user}
             err={err}
             setErr={setErr}
