@@ -186,22 +186,23 @@ function UsersPage() {
 }
 
 function EditUserDialog({ user, onClose, onSaved }: { user: any | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useI18n();
   const update = useServerFn(adminUpdateUserFn);
   const [err, setErr] = useState<string | null>(null);
   const open = !!user;
 
   const m = useMutation({
     mutationFn: (d: any) => update({ data: d }),
-    onSuccess: () => { toast.success("User updated"); onSaved(); },
-    onError: (e: any) => { const msg = e?.message ?? "Failed"; setErr(msg); toast.error(msg); },
+    onSuccess: () => { toast.success(t("users.toast.updated")); onSaved(); },
+    onError: (e: any) => { const msg = e?.message ?? t("users.toast.failed"); setErr(msg); toast.error(msg); },
   });
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); setErr(null); } }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit user</DialogTitle>
-          <DialogDescription>Update username, password, display name or role.</DialogDescription>
+          <DialogTitle>{t("users.editTitle")}</DialogTitle>
+          <DialogDescription>{t("users.editDesc")}</DialogDescription>
         </DialogHeader>
         {user && (
           <EditUserForm
@@ -229,6 +230,7 @@ function EditUserForm({
   onSubmit: (data: { username?: string; displayName?: string; role?: Role; password?: string }) => void;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   const [username, setUsername] = useState(user.username);
   const [displayName, setDisplayName] = useState(user.display_name ?? "");
   const [role, setRole] = useState<Role>(user.role);
@@ -237,11 +239,11 @@ function EditUserForm({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (username !== user.username) {
-      const ue = validateUsername(username);
+      const ue = validateUsername(username, t);
       if (ue) return setErr(ue);
     }
     if (password) {
-      const pe = validatePassword(password);
+      const pe = validatePassword(password, t);
       if (pe) return setErr(pe);
     }
     setErr(null);
@@ -256,31 +258,31 @@ function EditUserForm({
   return (
     <form onSubmit={submit} className="space-y-3">
       <div className="space-y-1.5">
-        <Label>Username</Label>
+        <Label>{t("auth.username")}</Label>
         <Input value={username} onChange={(e) => setUsername(e.target.value)} />
       </div>
       <div className="space-y-1.5">
-        <Label>Display name</Label>
+        <Label>{t("auth.displayName")}</Label>
         <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
       </div>
       <div className="space-y-1.5">
-        <Label>Role</Label>
+        <Label>{t("common.role")}</Label>
         <Select value={role} onValueChange={(v) => setRole(v as Role)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
+            {ROLES.map((r) => <SelectItem key={r} value={r}>{roleLabel(r, t)}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label>New password</Label>
-        <Input type="password" placeholder="Leave blank to keep current"
+        <Label>{t("users.newPassword")}</Label>
+        <Input type="password" placeholder={t("users.passwordKeep")}
           value={password} onChange={(e) => setPassword(e.target.value)} />
       </div>
       {err && <p className="text-xs text-destructive">{err}</p>}
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" disabled={pending}>Save changes</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>{t("common.cancel")}</Button>
+        <Button type="submit" disabled={pending}>{t("common.saveChanges")}</Button>
       </DialogFooter>
     </form>
   );
