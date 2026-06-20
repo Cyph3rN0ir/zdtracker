@@ -55,7 +55,7 @@ function PersonalDetail() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["personal-tx", id] }),
   });
 
-  const totals = (tx.data ?? []).reduce(
+  const totals: Record<string, number> = (tx.data ?? []).reduce(
     (acc: Record<string, number>, t: any) => ({ ...acc, [t.kind]: (acc[t.kind] ?? 0) + Number(t.amount) }),
     {} as Record<string, number>,
   );

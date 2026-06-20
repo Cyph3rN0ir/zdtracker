@@ -13,8 +13,15 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppPersonalRouteImport } from './routes/_app.personal'
+import { Route as AppPersonalIdRouteImport } from './routes/_app.personal.$id'
 import { Route as AppMyTasksRouteImport } from './routes/_app.my.tasks'
+import { Route as AppBusinessesIdRouteImport } from './routes/_app.businesses.$id'
 import { Route as AppAdminUsersRouteImport } from './routes/_app.admin.users'
+import { Route as AppBusinessesIdIndexRouteImport } from './routes/_app.businesses.$id.index'
+import { Route as AppBusinessesIdTasksRouteImport } from './routes/_app.businesses.$id.tasks'
+import { Route as AppBusinessesIdProfitRouteImport } from './routes/_app.businesses.$id.profit'
+import { Route as AppBusinessesIdPeopleRouteImport } from './routes/_app.businesses.$id.people'
+import { Route as AppBusinessesIdMoneyRouteImport } from './routes/_app.businesses.$id.money'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -35,9 +42,19 @@ const AppPersonalRoute = AppPersonalRouteImport.update({
   path: '/personal',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPersonalIdRoute = AppPersonalIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppPersonalRoute,
+} as any)
 const AppMyTasksRoute = AppMyTasksRouteImport.update({
   id: '/my/tasks',
   path: '/my/tasks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBusinessesIdRoute = AppBusinessesIdRouteImport.update({
+  id: '/businesses/$id',
+  path: '/businesses/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
@@ -45,35 +62,103 @@ const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBusinessesIdIndexRoute = AppBusinessesIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
+const AppBusinessesIdTasksRoute = AppBusinessesIdTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
+const AppBusinessesIdProfitRoute = AppBusinessesIdProfitRouteImport.update({
+  id: '/profit',
+  path: '/profit',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
+const AppBusinessesIdPeopleRoute = AppBusinessesIdPeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
+const AppBusinessesIdMoneyRoute = AppBusinessesIdMoneyRouteImport.update({
+  id: '/money',
+  path: '/money',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRoute
-  '/personal': typeof AppPersonalRoute
+  '/personal': typeof AppPersonalRouteWithChildren
   '/admin/users': typeof AppAdminUsersRoute
+  '/businesses/$id': typeof AppBusinessesIdRouteWithChildren
   '/my/tasks': typeof AppMyTasksRoute
+  '/personal/$id': typeof AppPersonalIdRoute
+  '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
+  '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
+  '/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
+  '/businesses/$id/tasks': typeof AppBusinessesIdTasksRoute
+  '/businesses/$id/': typeof AppBusinessesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
-  '/personal': typeof AppPersonalRoute
+  '/personal': typeof AppPersonalRouteWithChildren
   '/': typeof AppIndexRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/my/tasks': typeof AppMyTasksRoute
+  '/personal/$id': typeof AppPersonalIdRoute
+  '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
+  '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
+  '/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
+  '/businesses/$id/tasks': typeof AppBusinessesIdTasksRoute
+  '/businesses/$id': typeof AppBusinessesIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_app/personal': typeof AppPersonalRoute
+  '/_app/personal': typeof AppPersonalRouteWithChildren
   '/_app/': typeof AppIndexRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
+  '/_app/businesses/$id': typeof AppBusinessesIdRouteWithChildren
   '/_app/my/tasks': typeof AppMyTasksRoute
+  '/_app/personal/$id': typeof AppPersonalIdRoute
+  '/_app/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
+  '/_app/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
+  '/_app/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
+  '/_app/businesses/$id/tasks': typeof AppBusinessesIdTasksRoute
+  '/_app/businesses/$id/': typeof AppBusinessesIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/personal' | '/admin/users' | '/my/tasks'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/personal'
+    | '/admin/users'
+    | '/businesses/$id'
+    | '/my/tasks'
+    | '/personal/$id'
+    | '/businesses/$id/money'
+    | '/businesses/$id/people'
+    | '/businesses/$id/profit'
+    | '/businesses/$id/tasks'
+    | '/businesses/$id/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/personal' | '/' | '/admin/users' | '/my/tasks'
+  to:
+    | '/auth'
+    | '/personal'
+    | '/'
+    | '/admin/users'
+    | '/my/tasks'
+    | '/personal/$id'
+    | '/businesses/$id/money'
+    | '/businesses/$id/people'
+    | '/businesses/$id/profit'
+    | '/businesses/$id/tasks'
+    | '/businesses/$id'
   id:
     | '__root__'
     | '/_app'
@@ -81,7 +166,14 @@ export interface FileRouteTypes {
     | '/_app/personal'
     | '/_app/'
     | '/_app/admin/users'
+    | '/_app/businesses/$id'
     | '/_app/my/tasks'
+    | '/_app/personal/$id'
+    | '/_app/businesses/$id/money'
+    | '/_app/businesses/$id/people'
+    | '/_app/businesses/$id/profit'
+    | '/_app/businesses/$id/tasks'
+    | '/_app/businesses/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,11 +211,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPersonalRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/personal/$id': {
+      id: '/_app/personal/$id'
+      path: '/$id'
+      fullPath: '/personal/$id'
+      preLoaderRoute: typeof AppPersonalIdRouteImport
+      parentRoute: typeof AppPersonalRoute
+    }
     '/_app/my/tasks': {
       id: '/_app/my/tasks'
       path: '/my/tasks'
       fullPath: '/my/tasks'
       preLoaderRoute: typeof AppMyTasksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/businesses/$id': {
+      id: '/_app/businesses/$id'
+      path: '/businesses/$id'
+      fullPath: '/businesses/$id'
+      preLoaderRoute: typeof AppBusinessesIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/admin/users': {
@@ -133,20 +239,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/businesses/$id/': {
+      id: '/_app/businesses/$id/'
+      path: '/'
+      fullPath: '/businesses/$id/'
+      preLoaderRoute: typeof AppBusinessesIdIndexRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
+    '/_app/businesses/$id/tasks': {
+      id: '/_app/businesses/$id/tasks'
+      path: '/tasks'
+      fullPath: '/businesses/$id/tasks'
+      preLoaderRoute: typeof AppBusinessesIdTasksRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
+    '/_app/businesses/$id/profit': {
+      id: '/_app/businesses/$id/profit'
+      path: '/profit'
+      fullPath: '/businesses/$id/profit'
+      preLoaderRoute: typeof AppBusinessesIdProfitRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
+    '/_app/businesses/$id/people': {
+      id: '/_app/businesses/$id/people'
+      path: '/people'
+      fullPath: '/businesses/$id/people'
+      preLoaderRoute: typeof AppBusinessesIdPeopleRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
+    '/_app/businesses/$id/money': {
+      id: '/_app/businesses/$id/money'
+      path: '/money'
+      fullPath: '/businesses/$id/money'
+      preLoaderRoute: typeof AppBusinessesIdMoneyRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
   }
 }
 
+interface AppPersonalRouteChildren {
+  AppPersonalIdRoute: typeof AppPersonalIdRoute
+}
+
+const AppPersonalRouteChildren: AppPersonalRouteChildren = {
+  AppPersonalIdRoute: AppPersonalIdRoute,
+}
+
+const AppPersonalRouteWithChildren = AppPersonalRoute._addFileChildren(
+  AppPersonalRouteChildren,
+)
+
+interface AppBusinessesIdRouteChildren {
+  AppBusinessesIdMoneyRoute: typeof AppBusinessesIdMoneyRoute
+  AppBusinessesIdPeopleRoute: typeof AppBusinessesIdPeopleRoute
+  AppBusinessesIdProfitRoute: typeof AppBusinessesIdProfitRoute
+  AppBusinessesIdTasksRoute: typeof AppBusinessesIdTasksRoute
+  AppBusinessesIdIndexRoute: typeof AppBusinessesIdIndexRoute
+}
+
+const AppBusinessesIdRouteChildren: AppBusinessesIdRouteChildren = {
+  AppBusinessesIdMoneyRoute: AppBusinessesIdMoneyRoute,
+  AppBusinessesIdPeopleRoute: AppBusinessesIdPeopleRoute,
+  AppBusinessesIdProfitRoute: AppBusinessesIdProfitRoute,
+  AppBusinessesIdTasksRoute: AppBusinessesIdTasksRoute,
+  AppBusinessesIdIndexRoute: AppBusinessesIdIndexRoute,
+}
+
+const AppBusinessesIdRouteWithChildren = AppBusinessesIdRoute._addFileChildren(
+  AppBusinessesIdRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppPersonalRoute: typeof AppPersonalRoute
+  AppPersonalRoute: typeof AppPersonalRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppBusinessesIdRoute: typeof AppBusinessesIdRouteWithChildren
   AppMyTasksRoute: typeof AppMyTasksRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppPersonalRoute: AppPersonalRoute,
+  AppPersonalRoute: AppPersonalRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
+  AppBusinessesIdRoute: AppBusinessesIdRouteWithChildren,
   AppMyTasksRoute: AppMyTasksRoute,
 }
 
