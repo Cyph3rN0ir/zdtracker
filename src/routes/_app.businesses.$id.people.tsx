@@ -34,16 +34,21 @@ function People() {
     enabled: me.role === "admin",
   });
   const [sel, setSel] = useState<{ userId: string; role: typeof ROLES[number] }>({ userId: "", role: "owner" });
+  const [formErr, setFormErr] = useState<string | null>(null);
   const m = useMutation({
     mutationFn: () => add({ data: { businessId: id, userId: sel.userId, role: sel.role } }),
     onSuccess: () => {
+      toast.success("Member added");
       setSel({ userId: "", role: sel.role });
+      setFormErr(null);
       qc.invalidateQueries({ queryKey: ["members", id] });
     },
+    onError: (e: any) => { const msg = e?.message ?? "Failed to add member"; setFormErr(msg); toast.error(msg); },
   });
   const dm = useMutation({
     mutationFn: (mid: string) => remove({ data: { id: mid } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["members", id] }),
+    onSuccess: () => { toast.success("Removed"); qc.invalidateQueries({ queryKey: ["members", id] }); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to remove"),
   });
 
   const grouped: Record<string, any[]> = { owner: [], investor: [], member: [] };
