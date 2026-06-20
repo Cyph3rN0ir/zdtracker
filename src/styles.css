@@ -154,4 +154,27 @@
   h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
   table { font-variant-numeric: tabular-nums; }
 
+  /* Bangla mode: switch typography to Hind Siliguri with relaxed line-height */
+  html[lang="bn"] body,
+  html[lang="bn"] h1,
+  html[lang="bn"] h2,
+  html[lang="bn"] h3,
+  html[lang="bn"] h4,
+  html[lang="bn"] h5,
+  html[lang="bn"] h6,
+  html[lang="bn"] .font-display,
+  html[lang="bn"] button,
+  html[lang="bn"] input,
+  html[lang="bn"] textarea,
+  html[lang="bn"] select,
+  html[lang="bn"] label,
+  html[lang="bn"] a {
+    font-family: "Hind Siliguri", var(--font-sans);
+    letter-spacing: 0;
+  }
+  html[lang="bn"] body { line-height: 1.7; }
+  html[lang="bn"] .tracking-wide,
+  html[lang="bn"] .tracking-wider,
+  html[lang="bn"] .tracking-widest,
+  html[lang="bn"] .uppercase { letter-spacing: 0; text-transform: none; }
 }
