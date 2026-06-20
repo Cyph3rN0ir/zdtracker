@@ -223,7 +223,7 @@ function Tasks() {
               {dayTasks.map((task: any) => {
                 const u = userById[task.assignee_user_id];
                 const isMine = task.assignee_user_id === me.userId;
-                const canToggle = canAssign || isMine;
+                const canToggle = isMine; // only the assignee may mark the task done
                 const done = task.status === "done";
                 return (
                   <li key={task.id} className="flex items-start gap-3 px-4 sm:px-6 py-3">
