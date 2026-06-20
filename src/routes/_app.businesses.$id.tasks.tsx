@@ -29,8 +29,9 @@ function startOfWeek(d = new Date()) {
   return x;
 }
 function toISO(d: Date) { return d.toISOString().slice(0, 10); }
-function fmtDay(iso: string) {
-  return new Date(iso + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+function fmtDay(iso: string, lang: Lang = "en") {
+  const locale = lang === "bn" ? "bn-BD" : undefined;
+  return new Date(iso + "T00:00:00").toLocaleDateString(locale, { weekday: "long", month: "short", day: "numeric" });
 }
 
 function Tasks() {
