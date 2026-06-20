@@ -89,7 +89,7 @@ function Tasks() {
     mutationFn: () => create({
       data: {
         businessId: id,
-        assigneeUserId: form.assigneeUserId,
+        assigneeUserId: canAssign ? form.assigneeUserId : me.userId,
         title: form.title.trim(),
         details: form.details,
         dueDate: adding!.date,
