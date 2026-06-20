@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu, Languages } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
@@ -25,6 +26,7 @@ function AppLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
+  const { lang, setLang, t } = useI18n();
 
   // close mobile drawer on route change
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -39,7 +41,7 @@ function AppLayout() {
     <>
       <div className="p-5 border-b border-border">
         <div className="text-[10px] font-display font-bold uppercase tracking-[0.18em] text-muted-foreground">
-          ZeroTrack
+          {t("brand")}
         </div>
         <div className="mt-3 flex items-center gap-2">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground text-sm font-semibold">
@@ -55,19 +57,37 @@ function AppLayout() {
       </div>
 
       <nav className="flex flex-col gap-0.5 p-3">
-        <NavLink to="/" icon={<LayoutDashboard className="h-4 w-4" />}>Dashboard</NavLink>
-        <NavLink to="/my/tasks" icon={<ListChecks className="h-4 w-4" />}>My tasks</NavLink>
-        <NavLink to="/personal" icon={<User className="h-4 w-4" />}>Personal</NavLink>
+        <NavLink to="/" icon={<LayoutDashboard className="h-4 w-4" />}>{t("nav.dashboard")}</NavLink>
+        <NavLink to="/my/tasks" icon={<ListChecks className="h-4 w-4" />}>{t("nav.myTasks")}</NavLink>
+        <NavLink to="/personal" icon={<User className="h-4 w-4" />}>{t("nav.personal")}</NavLink>
         {me.role === "admin" && (
-          <NavLink to="/admin/users" icon={<Users className="h-4 w-4" />}>Users</NavLink>
+          <NavLink to="/admin/users" icon={<Users className="h-4 w-4" />}>{t("nav.users")}</NavLink>
         )}
       </nav>
 
       <Separator className="mt-auto" />
-      <div className="p-3">
+      <div className="p-3 space-y-2">
+        <div className="flex items-center gap-1 rounded-md border border-border p-1">
+          <Languages className="h-3.5 w-3.5 mx-1.5 text-muted-foreground" />
+          <button
+            type="button"
+            onClick={() => setLang("en")}
+            className={`flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ${lang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            onClick={() => setLang("bn")}
+            className={`flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ${lang === "bn" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            style={{ fontFamily: '"Hind Siliguri", sans-serif' }}
+          >
+            বাংলা
+          </button>
+        </div>
         <Button variant="ghost" size="sm" onClick={doLogout} className="w-full justify-start text-muted-foreground">
           <LogOut className="h-4 w-4" />
-          Sign out
+          {t("nav.signOut")}
         </Button>
       </div>
     </>
@@ -93,7 +113,7 @@ function AppLayout() {
             {nav}
           </SheetContent>
         </Sheet>
-        <div className="text-sm font-display font-bold tracking-wide">ZeroTrack</div>
+        <div className="text-sm font-display font-bold tracking-wide">{t("brand")}</div>
         <div className="h-8 w-8 grid place-items-center rounded-md bg-primary text-primary-foreground text-xs font-semibold">
           {(me.displayName || me.username).slice(0, 1).toUpperCase()}
         </div>
