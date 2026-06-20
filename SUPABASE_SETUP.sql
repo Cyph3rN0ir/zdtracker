@@ -114,5 +114,5 @@ to service_role;
 -- ---------- Seed default admin (admin / 1234) ----------
 -- bcrypt hash of "1234" (cost 10)
 insert into public.app_users (username, password_hash, role, display_name)
-values ('admin', '$2b$10$Q8Yk5Z1mZ8YwQk3J3pX0euJq1lZqg8wL6yKj5K7r1u9bH3vL9oP3a', 'admin', 'Administrator')
+values ('admin', '$2b$10$iF4o1Y0zHri2Wybd2T/g6en7jkXnrWeOI/8AhPLcTG28rAnjAD2RK', 'admin', 'Administrator')
 on conflict (username) do nothing;
