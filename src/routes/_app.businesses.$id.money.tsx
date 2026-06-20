@@ -25,6 +25,7 @@ const KINDS: Kind[] = ["investment", "earning", "expense"];
 function Money() {
   const { id } = Route.useParams();
   const { me } = Route.useRouteContext() as any;
+  const { t } = useI18n();
   const list = useServerFn(listTransactionsFn);
   const add = useServerFn(addTransactionFn);
   const del = useServerFn(deleteTransactionFn);
@@ -47,30 +48,30 @@ function Money() {
         },
       }),
     onSuccess: () => {
-      toast.success("Transaction recorded");
+      toast.success(t("money.toast.added"));
       setForm({ ...form, amount: "", note: "" });
       setFormErr(null);
       qc.invalidateQueries({ queryKey: ["btx", id] });
     },
     onError: (e: any) => {
-      const msg = e?.message ?? "Failed to record transaction";
+      const msg = e?.message ?? t("money.toast.failed");
       setFormErr(msg);
       toast.error(msg);
     },
   });
   const dm = useMutation({
     mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => { toast.success("Transaction deleted"); qc.invalidateQueries({ queryKey: ["btx", id] }); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+    onSuccess: () => { toast.success(t("money.toast.deleted")); qc.invalidateQueries({ queryKey: ["btx", id] }); },
+    onError: (e: any) => toast.error(e?.message ?? t("money.toast.deleteFailed")),
   });
 
   function submitTx(e: React.FormEvent) {
     e.preventDefault();
     const amt = Number(form.amount);
-    if (!form.amount || Number.isNaN(amt)) return setFormErr("Enter a valid amount");
-    if (amt <= 0) return setFormErr("Amount must be greater than 0");
-    if (form.kind !== "expense" && !form.partyUserId) return setFormErr("Pick a party for this transaction");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurredOn)) return setFormErr("Pick a valid date");
+    if (!form.amount || Number.isNaN(amt)) return setFormErr(t("money.err.amount"));
+    if (amt <= 0) return setFormErr(t("money.err.positive"));
+    if (form.kind !== "expense" && !form.partyUserId) return setFormErr(t("money.err.party"));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurredOn)) return setFormErr(t("money.err.date"));
     setFormErr(null);
     m.mutate();
   }
