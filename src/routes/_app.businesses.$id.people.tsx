@@ -5,6 +5,12 @@ import { useState } from "react";
 import { addMemberFn, listMembersFn, removeMemberFn } from "@/lib/zt.functions";
 import { listUsersFn } from "@/lib/auth.functions";
 import { ErrorBox } from "./_app.index";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { UserPlus, X } from "lucide-react";
 
 export const Route = createFileRoute("/_app/businesses/$id/people")({
   component: People,
@@ -43,78 +49,81 @@ function People() {
   (q.data ?? []).forEach((m: any) => grouped[m.role_in_business]?.push(m));
 
   return (
-    <div>
+    <div className="space-y-6">
       {me.role === "admin" && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (sel.userId) m.mutate();
-          }}
-          className="flex gap-2 items-end mb-6 border border-border p-3"
-        >
-          <div className="flex-1">
-            <div className="text-xs text-muted-foreground mb-1">User</div>
-            <select
-              value={sel.userId}
-              onChange={(e) => setSel({ ...sel, userId: e.target.value })}
-              className="w-full border border-input px-2 py-1.5 text-sm bg-background"
-              required
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Add a person</CardTitle>
+            <CardDescription>Assign an existing user a role in this business.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={(e) => { e.preventDefault(); if (sel.userId) m.mutate(); }}
+              className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3 items-end"
             >
-              <option value="">Select a user…</option>
-              {(users.data ?? []).map((u: any) => (
-                <option key={u.id} value={u.id}>
-                  {u.username} {u.display_name ? `— ${u.display_name}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Role</div>
-            <select
-              value={sel.role}
-              onChange={(e) => setSel({ ...sel, role: e.target.value as any })}
-              className="border border-input px-2 py-1.5 text-sm bg-background"
-            >
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button className="bg-primary text-primary-foreground px-3 py-1.5 text-sm" disabled={m.isPending}>
-            Add
-          </button>
-        </form>
+              <div className="space-y-1.5 min-w-0">
+                <Label>User</Label>
+                <Select value={sel.userId} onValueChange={(v) => setSel({ ...sel, userId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select a user…" /></SelectTrigger>
+                  <SelectContent>
+                    {(users.data ?? []).map((u: any) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.username}{u.display_name ? ` — ${u.display_name}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Role</Label>
+                <Select value={sel.role} onValueChange={(v) => setSel({ ...sel, role: v as any })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" disabled={m.isPending || !sel.userId}>
+                <UserPlus className="h-4 w-4" /> Add
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {q.error && <ErrorBox error={q.error} />}
-      <div className="grid grid-cols-3 gap-4">
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {ROLES.map((r) => (
-          <div key={r} className="border border-border">
-            <div className="bg-muted px-3 py-2 text-xs uppercase tracking-wide text-muted-foreground">{r}s</div>
-            {grouped[r].length === 0 ? (
-              <div className="px-3 py-4 text-xs text-muted-foreground">None.</div>
-            ) : (
-              <ul className="divide-y divide-border">
-                {grouped[r].map((m) => (
-                  <li key={m.id} className="px-3 py-2 flex items-center justify-between text-sm">
-                    <span>
-                      {m.user?.username ?? "(deleted)"}{" "}
-                      {m.user?.display_name && (
-                        <span className="text-muted-foreground">— {m.user.display_name}</span>
+          <Card key={r}>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle className="capitalize text-sm">{r}s</CardTitle>
+              <Badge variant="secondary">{grouped[r].length}</Badge>
+            </CardHeader>
+            <CardContent>
+              {grouped[r].length === 0 ? (
+                <div className="text-xs text-muted-foreground py-2">None.</div>
+              ) : (
+                <ul className="divide-y divide-border -mx-2">
+                  {grouped[r].map((m) => (
+                    <li key={m.id} className="px-2 py-2 flex items-center justify-between gap-2 text-sm">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{m.user?.username ?? "(deleted)"}</div>
+                        {m.user?.display_name && (
+                          <div className="truncate text-xs text-muted-foreground">{m.user.display_name}</div>
+                        )}
+                      </div>
+                      {me.role === "admin" && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(m.id)}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
                       )}
-                    </span>
-                    {me.role === "admin" && (
-                      <button onClick={() => dm.mutate(m.id)} className="text-xs text-destructive hover:underline">
-                        Remove
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>
