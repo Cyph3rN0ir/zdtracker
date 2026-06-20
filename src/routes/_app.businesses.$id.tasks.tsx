@@ -254,7 +254,7 @@ function Tasks() {
                       </div>
                     </div>
                     {canDelete && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                      <Button variant="ghost" size="icon" className="h-7 w-7 mt-0.5 shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={() => dm.mutate(task.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
