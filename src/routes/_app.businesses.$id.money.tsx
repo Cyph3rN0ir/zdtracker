@@ -89,10 +89,7 @@ function Money() {
             <CardDescription>Log an investment, earning, or expense.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form
-              onSubmit={(e) => { e.preventDefault(); if (Number(form.amount) > 0) m.mutate(); }}
-              className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
-            >
+            <form onSubmit={submitTx} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
               <div className="space-y-1.5">
                 <Label>Kind</Label>
                 <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as Kind })}>
@@ -109,7 +106,7 @@ function Money() {
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <Label>Note</Label>
-                <Input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+                <Input maxLength={500} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
               <div className="space-y-1.5">
                 <Label>Party</Label>
@@ -129,12 +126,23 @@ function Money() {
                 <Label>Date</Label>
                 <Input type="date" value={form.occurredOn} onChange={(e) => setForm({ ...form, occurredOn: e.target.value })} />
               </div>
-              <div className="md:col-span-6 flex justify-end">
+              <div className="md:col-span-6 flex items-center justify-between gap-3">
+                {formErr ? <p className="text-xs text-destructive">{formErr}</p> : <span />}
                 <Button type="submit" disabled={m.isPending}>
                   <Plus className="h-4 w-4" /> Add transaction
                 </Button>
               </div>
             </form>
+            {(members.data ?? []).length === 0 && (
+              <div className="mt-3 rounded-md border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground flex items-center justify-between gap-3">
+                <span>Tip: add people first so you can attribute transactions.</span>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/businesses/$id/people" params={{ id }}>
+                    <UserPlus className="h-3.5 w-3.5" /> Add people
+                  </Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
