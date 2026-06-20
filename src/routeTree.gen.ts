@@ -11,6 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppPersonalRouteImport } from './routes/_app.personal'
+import { Route as AppMyTasksRouteImport } from './routes/_app.my.tasks'
+import { Route as AppAdminUsersRouteImport } from './routes/_app.admin.users'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -21,30 +25,67 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPersonalRoute = AppPersonalRouteImport.update({
+  id: '/personal',
+  path: '/personal',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMyTasksRoute = AppMyTasksRouteImport.update({
+  id: '/my/tasks',
+  path: '/my/tasks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppRoute
+  '/': typeof AppIndexRoute
   '/auth': typeof AuthRoute
+  '/personal': typeof AppPersonalRoute
+  '/admin/users': typeof AppAdminUsersRoute
+  '/my/tasks': typeof AppMyTasksRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof AppRoute
   '/auth': typeof AuthRoute
+  '/personal': typeof AppPersonalRoute
+  '/': typeof AppIndexRoute
+  '/admin/users': typeof AppAdminUsersRoute
+  '/my/tasks': typeof AppMyTasksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_app': typeof AppRoute
+  '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_app/personal': typeof AppPersonalRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/admin/users': typeof AppAdminUsersRoute
+  '/_app/my/tasks': typeof AppMyTasksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth'
+  fullPaths: '/' | '/auth' | '/personal' | '/admin/users' | '/my/tasks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth'
-  id: '__root__' | '/_app' | '/auth'
+  to: '/auth' | '/personal' | '/' | '/admin/users' | '/my/tasks'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/auth'
+    | '/_app/personal'
+    | '/_app/'
+    | '/_app/admin/users'
+    | '/_app/my/tasks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AppRoute: typeof AppRoute
+  AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
 }
 
@@ -64,11 +105,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/': {
+      id: '/_app/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/personal': {
+      id: '/_app/personal'
+      path: '/personal'
+      fullPath: '/personal'
+      preLoaderRoute: typeof AppPersonalRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/my/tasks': {
+      id: '/_app/my/tasks'
+      path: '/my/tasks'
+      fullPath: '/my/tasks'
+      preLoaderRoute: typeof AppMyTasksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/users': {
+      id: '/_app/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AppAdminUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppPersonalRoute: typeof AppPersonalRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppMyTasksRoute: typeof AppMyTasksRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppPersonalRoute: AppPersonalRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppAdminUsersRoute: AppAdminUsersRoute,
+  AppMyTasksRoute: AppMyTasksRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  AppRoute: AppRoute,
+  AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
