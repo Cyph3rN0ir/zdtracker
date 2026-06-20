@@ -78,6 +78,8 @@ function Tasks() {
   }, [members.data]);
 
   const canAssign = me.role === "admin" || me.role === "owner";
+  const canDelete = me.role === "admin";
+  const canCreate = !!me.userId; // any signed-in user can create (self-assigned if not admin/owner)
 
   const [adding, setAdding] = useState<{ date: string } | null>(null);
   const [form, setForm] = useState({ title: "", details: "", assigneeUserId: "" });
