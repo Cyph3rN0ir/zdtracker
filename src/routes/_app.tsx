@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu, Languages } from "lucide-react";
+import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu, Languages, Palette, Check } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { useTheme, THEMES, type Theme } from "@/lib/theme";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
