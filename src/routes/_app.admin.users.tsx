@@ -80,42 +80,42 @@ function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Users" subtitle="Create accounts, edit credentials, set roles." />
+      <PageHeader title={t("users.title")} subtitle={t("users.subtitle")} />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">New user</CardTitle>
-          <CardDescription>Set a username, password, and role.</CardDescription>
+          <CardTitle className="text-base">{t("users.new")}</CardTitle>
+          <CardDescription>{t("users.newDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={submitCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Username</Label>
+              <Label>{t("auth.username")}</Label>
               <Input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
             </div>
             <div className="space-y-1.5">
-              <Label>Password</Label>
+              <Label>{t("auth.password")}</Label>
               <Input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
             </div>
             <div className="space-y-1.5">
-              <Label>Display name</Label>
+              <Label>{t("auth.displayName")}</Label>
               <Input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
             </div>
             <div className="space-y-1.5">
-              <Label>Role</Label>
+              <Label>{t("common.role")}</Label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as Role })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (
-                    <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+                    <SelectItem key={r} value={r}>{roleLabel(r, t)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="sm:col-span-2 flex items-center justify-between gap-3">
+            <div className="sm:col-span-2 flex items-center justify-between gap-3 flex-wrap">
               {formErr ? <span className="text-xs text-destructive">{formErr}</span> : <span />}
               <Button type="submit" disabled={m.isPending} className="ml-auto">
-                <UserPlus className="h-4 w-4" /> Create user
+                <UserPlus className="h-4 w-4" /> {t("users.create")}
               </Button>
             </div>
           </form>
@@ -124,12 +124,12 @@ function UsersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">All users</CardTitle>
-          <CardDescription>{q.data?.length ?? 0} total</CardDescription>
+          <CardTitle className="text-base">{t("users.all")}</CardTitle>
+          <CardDescription>{t("users.totalCount", { n: q.data?.length ?? 0 })}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {q.isLoading ? (
-            <div className="text-sm text-muted-foreground p-6">Loading…</div>
+            <div className="text-sm text-muted-foreground p-6">{t("common.loading")}</div>
           ) : q.error ? (
             <div className="p-6"><ErrorBox error={q.error} /></div>
           ) : q.data && q.data.length ? (
@@ -137,29 +137,29 @@ function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="pl-6">Username</TableHead>
-                    <TableHead>Display name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="w-24 pr-6 text-right">Actions</TableHead>
+                    <TableHead className="pl-6">{t("auth.username")}</TableHead>
+                    <TableHead>{t("auth.displayName")}</TableHead>
+                    <TableHead>{t("common.role")}</TableHead>
+                    <TableHead>{t("common.created")}</TableHead>
+                    <TableHead className="w-24 pr-6 text-right">{t("common.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {q.data.map((u: any) => (
                     <TableRow key={u.id}>
-                      <TableCell className="font-mono pl-6">{u.username}</TableCell>
+                      <TableCell className="font-mono pl-6 break-all">{u.username}</TableCell>
                       <TableCell>{u.display_name}</TableCell>
-                      <TableCell><Badge variant="secondary" className="capitalize">{u.role}</Badge></TableCell>
-                      <TableCell className="text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell><Badge variant="secondary">{roleLabel(u.role, t)}</Badge></TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right pr-6">
                         <div className="inline-flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit"
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title={t("common.edit")}
                             onClick={() => setEditing(u)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           {u.username !== "admin" && (
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => { if (confirm(`Delete ${u.username}?`)) dm.mutate(u.id); }}>
+                              onClick={() => { if (confirm(t("users.confirmDelete", { name: u.username }))) dm.mutate(u.id); }}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
@@ -171,7 +171,7 @@ function UsersPage() {
               </Table>
             </div>
           ) : (
-            <div className="p-6"><EmptyState message="No users yet." /></div>
+            <div className="p-6"><EmptyState message={t("users.empty")} /></div>
           )}
         </CardContent>
       </Card>
