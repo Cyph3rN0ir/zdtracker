@@ -302,19 +302,23 @@ function Tasks() {
             <DialogDescription>{adding ? fmtDay(adding.date, lang) : ""}</DialogDescription>
           </DialogHeader>
           <form onSubmit={submitTask} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>{t("tasks.assignee")}</Label>
-              <Select value={form.assigneeUserId} onValueChange={(v) => setForm({ ...form, assigneeUserId: v })}>
-                <SelectTrigger><SelectValue placeholder={t("tasks.chooseAssignee")} /></SelectTrigger>
-                <SelectContent>
-                  {(members.data ?? []).map((m: any) => (
-                    <SelectItem key={m.user_id} value={m.user_id}>
-                      {m.user?.username} ({roleLabel(m.role_in_business, t)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canAssign ? (
+              <div className="space-y-1.5">
+                <Label>{t("tasks.assignee")}</Label>
+                <Select value={form.assigneeUserId} onValueChange={(v) => setForm({ ...form, assigneeUserId: v })}>
+                  <SelectTrigger><SelectValue placeholder={t("tasks.chooseAssignee")} /></SelectTrigger>
+                  <SelectContent>
+                    {(members.data ?? []).map((m: any) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.user?.username} ({roleLabel(m.role_in_business, t)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">{t("tasks.assignee")}: <span className="font-medium text-foreground">{t("common.you") ?? "You"}</span></p>
+            )}
             <div className="space-y-1.5">
               <Label>{t("tasks.title")}</Label>
               <Input autoFocus required maxLength={200} value={form.title}
