@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu, Languages } from "lucide-react";
+import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu, Languages, Palette, Check } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { useTheme, THEMES, type Theme } from "@/lib/theme";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
@@ -27,6 +29,8 @@ function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
   const { lang, setLang, t } = useI18n();
+  const { theme, setTheme } = useTheme();
+  const activeTheme = THEMES.find((tt) => tt.id === theme) ?? THEMES[0];
 
   // close mobile drawer on route change
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -85,6 +89,38 @@ function AppLayout() {
             বাংলা
           </button>
         </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
+            >
+              <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="flex gap-0.5">
+                {activeTheme.swatch.map((c, i) => (
+                  <span key={i} className="h-3 w-3 rounded-sm border border-border" style={{ background: c }} />
+                ))}
+              </span>
+              <span className="truncate flex-1 text-left">{activeTheme.label}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-xs">Theme</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {THEMES.map((th) => (
+              <DropdownMenuItem key={th.id} onSelect={() => setTheme(th.id as Theme)} className="gap-2">
+                <span className="flex gap-0.5">
+                  {th.swatch.map((c, i) => (
+                    <span key={i} className="h-3.5 w-3.5 rounded-sm border border-border" style={{ background: c }} />
+                  ))}
+                </span>
+                <span className="flex-1">{th.label}</span>
+                {theme === th.id && <Check className="h-3.5 w-3.5" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button variant="ghost" size="sm" onClick={doLogout} className="w-full justify-start text-muted-foreground">
           <LogOut className="h-4 w-4" />
           {t("nav.signOut")}
