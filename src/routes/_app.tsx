@@ -113,7 +113,7 @@ function AppLayout() {
             {nav}
           </SheetContent>
         </Sheet>
-        <div className="text-sm font-display font-bold tracking-wide">ZeroTrack</div>
+        <div className="text-sm font-display font-bold tracking-wide">{t("brand")}</div>
         <div className="h-8 w-8 grid place-items-center rounded-md bg-primary text-primary-foreground text-xs font-semibold">
           {(me.displayName || me.username).slice(0, 1).toUpperCase()}
         </div>
