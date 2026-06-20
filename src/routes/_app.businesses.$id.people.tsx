@@ -115,7 +115,10 @@ function People() {
             </CardHeader>
             <CardContent>
               {grouped[r].length === 0 ? (
-                <div className="text-xs text-muted-foreground py-2">None.</div>
+                <div className="rounded-md border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
+                  No {r}s yet.
+                  {me.role === "admin" && <div className="mt-1 text-[11px]">Use the form above to add one.</div>}
+                </div>
               ) : (
                 <ul className="divide-y divide-border -mx-2">
                   {grouped[r].map((m) => (
