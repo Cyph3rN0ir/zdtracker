@@ -1,10 +1,12 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
 import { logoutFn, meFn } from "@/lib/auth.functions";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { LayoutDashboard, ListChecks, User, Users, LogOut } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu } from "lucide-react";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
@@ -21,54 +23,83 @@ function AppLayout() {
   const logout = useServerFn(logoutFn);
   const router = useRouter();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [open, setOpen] = useState(false);
+
+  // close mobile drawer on route change
+  useEffect(() => { setOpen(false); }, [pathname]);
 
   async function doLogout() {
-    try {
-      await logout();
-    } catch {}
+    try { await logout(); } catch {}
     router.invalidate();
     navigate({ to: "/auth" });
   }
 
+  const nav = (
+    <>
+      <div className="p-5 border-b border-border">
+        <div className="text-[10px] font-display font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          ZeroTrack
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground text-sm font-semibold">
+            {(me.displayName || me.username).slice(0, 1).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium">{me.displayName || me.username}</div>
+            <Badge variant="secondary" className="mt-0.5 text-[10px] uppercase tracking-wide px-1.5 py-0">
+              {me.role}
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      <nav className="flex flex-col gap-0.5 p-3">
+        <NavLink to="/" icon={<LayoutDashboard className="h-4 w-4" />}>Dashboard</NavLink>
+        <NavLink to="/my/tasks" icon={<ListChecks className="h-4 w-4" />}>My tasks</NavLink>
+        <NavLink to="/personal" icon={<User className="h-4 w-4" />}>Personal</NavLink>
+        {me.role === "admin" && (
+          <NavLink to="/admin/users" icon={<Users className="h-4 w-4" />}>Users</NavLink>
+        )}
+      </nav>
+
+      <Separator className="mt-auto" />
+      <div className="p-3">
+        <Button variant="ghost" size="sm" onClick={doLogout} className="w-full justify-start text-muted-foreground">
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </Button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-[240px_1fr] bg-muted/30">
-      <aside className="border-r border-border bg-card flex flex-col">
-        <div className="p-5 border-b border-border">
-          <div className="text-[10px] font-display font-bold uppercase tracking-[0.18em] text-muted-foreground">
-            ZeroTrack
-          </div>
-          <div className="mt-3 flex items-center gap-2">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground text-sm font-semibold">
-              {(me.displayName || me.username).slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium">{me.displayName || me.username}</div>
-              <Badge variant="secondary" className="mt-0.5 text-[10px] uppercase tracking-wide px-1.5 py-0">
-                {me.role}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex flex-col gap-0.5 p-3">
-          <NavLink to="/" icon={<LayoutDashboard className="h-4 w-4" />}>Dashboard</NavLink>
-          <NavLink to="/my/tasks" icon={<ListChecks className="h-4 w-4" />}>My tasks</NavLink>
-          <NavLink to="/personal" icon={<User className="h-4 w-4" />}>Personal</NavLink>
-          {me.role === "admin" && (
-            <NavLink to="/admin/users" icon={<Users className="h-4 w-4" />}>Users</NavLink>
-          )}
-        </nav>
-
-        <Separator className="mt-auto" />
-        <div className="p-3">
-          <Button variant="ghost" size="sm" onClick={doLogout} className="w-full justify-start text-muted-foreground">
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </Button>
-        </div>
+    <div className="min-h-screen md:grid md:grid-cols-[240px_1fr] bg-muted/30">
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex border-r border-border bg-card flex-col">
+        {nav}
       </aside>
 
-      <main className="p-6 md:p-8 max-w-7xl w-full">
+      {/* Mobile top bar */}
+      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Open menu">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-[260px] flex flex-col">
+            <SheetHeader className="sr-only"><SheetTitle>Navigation</SheetTitle></SheetHeader>
+            {nav}
+          </SheetContent>
+        </Sheet>
+        <div className="text-sm font-display font-bold tracking-wide">ZeroTrack</div>
+        <div className="h-8 w-8 grid place-items-center rounded-md bg-primary text-primary-foreground text-xs font-semibold">
+          {(me.displayName || me.username).slice(0, 1).toUpperCase()}
+        </div>
+      </header>
+
+      <main className="p-4 sm:p-6 md:p-8 max-w-7xl w-full">
         <Outlet />
       </main>
     </div>

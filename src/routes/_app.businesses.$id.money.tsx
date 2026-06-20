@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { addTransactionFn, deleteTransactionFn, listMembersFn, listTransactionsFn } from "@/lib/zt.functions";
 import { ErrorBox } from "./_app.index";
 import { fmt } from "./_app.personal.$id";
@@ -11,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Wallet, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/_app/businesses/$id/money")({
   component: Money,
@@ -35,6 +36,7 @@ function Money() {
   const [form, setForm] = useState<{ kind: Kind; amount: string; partyUserId: string; note: string; occurredOn: string }>({
     kind: "investment", amount: "", partyUserId: "", note: "", occurredOn: today,
   });
+  const [formErr, setFormErr] = useState<string | null>(null);
   const m = useMutation({
     mutationFn: () =>
       add({
@@ -44,14 +46,33 @@ function Money() {
         },
       }),
     onSuccess: () => {
+      toast.success("Transaction recorded");
       setForm({ ...form, amount: "", note: "" });
+      setFormErr(null);
       qc.invalidateQueries({ queryKey: ["btx", id] });
+    },
+    onError: (e: any) => {
+      const msg = e?.message ?? "Failed to record transaction";
+      setFormErr(msg);
+      toast.error(msg);
     },
   });
   const dm = useMutation({
     mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["btx", id] }),
+    onSuccess: () => { toast.success("Transaction deleted"); qc.invalidateQueries({ queryKey: ["btx", id] }); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
+
+  function submitTx(e: React.FormEvent) {
+    e.preventDefault();
+    const amt = Number(form.amount);
+    if (!form.amount || Number.isNaN(amt)) return setFormErr("Enter a valid amount");
+    if (amt <= 0) return setFormErr("Amount must be greater than 0");
+    if (form.kind !== "expense" && !form.partyUserId) return setFormErr("Pick a party for this transaction");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurredOn)) return setFormErr("Pick a valid date");
+    setFormErr(null);
+    m.mutate();
+  }
 
   const byKind = useMemo(() => {
     const r: Record<Kind, any[]> = { investment: [], earning: [], expense: [] };
@@ -68,10 +89,7 @@ function Money() {
             <CardDescription>Log an investment, earning, or expense.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form
-              onSubmit={(e) => { e.preventDefault(); if (Number(form.amount) > 0) m.mutate(); }}
-              className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
-            >
+            <form onSubmit={submitTx} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
               <div className="space-y-1.5">
                 <Label>Kind</Label>
                 <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as Kind })}>
@@ -88,7 +106,7 @@ function Money() {
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <Label>Note</Label>
-                <Input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+                <Input maxLength={500} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
               <div className="space-y-1.5">
                 <Label>Party</Label>
@@ -108,12 +126,23 @@ function Money() {
                 <Label>Date</Label>
                 <Input type="date" value={form.occurredOn} onChange={(e) => setForm({ ...form, occurredOn: e.target.value })} />
               </div>
-              <div className="md:col-span-6 flex justify-end">
+              <div className="md:col-span-6 flex items-center justify-between gap-3">
+                {formErr ? <p className="text-xs text-destructive">{formErr}</p> : <span />}
                 <Button type="submit" disabled={m.isPending}>
                   <Plus className="h-4 w-4" /> Add transaction
                 </Button>
               </div>
             </form>
+            {(members.data ?? []).length === 0 && (
+              <div className="mt-3 rounded-md border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground flex items-center justify-between gap-3">
+                <span>Tip: add people first so you can attribute transactions.</span>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/businesses/$id/people" params={{ id }}>
+                    <UserPlus className="h-3.5 w-3.5" /> Add people
+                  </Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { addMemberFn, listMembersFn, removeMemberFn } from "@/lib/zt.functions";
 import { listUsersFn } from "@/lib/auth.functions";
 import { ErrorBox } from "./_app.index";
@@ -33,16 +34,21 @@ function People() {
     enabled: me.role === "admin",
   });
   const [sel, setSel] = useState<{ userId: string; role: typeof ROLES[number] }>({ userId: "", role: "owner" });
+  const [formErr, setFormErr] = useState<string | null>(null);
   const m = useMutation({
     mutationFn: () => add({ data: { businessId: id, userId: sel.userId, role: sel.role } }),
     onSuccess: () => {
+      toast.success("Member added");
       setSel({ userId: "", role: sel.role });
+      setFormErr(null);
       qc.invalidateQueries({ queryKey: ["members", id] });
     },
+    onError: (e: any) => { const msg = e?.message ?? "Failed to add member"; setFormErr(msg); toast.error(msg); },
   });
   const dm = useMutation({
     mutationFn: (mid: string) => remove({ data: { id: mid } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["members", id] }),
+    onSuccess: () => { toast.success("Removed"); qc.invalidateQueries({ queryKey: ["members", id] }); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to remove"),
   });
 
   const grouped: Record<string, any[]> = { owner: [], investor: [], member: [] };
@@ -58,7 +64,13 @@ function People() {
           </CardHeader>
           <CardContent>
             <form
-              onSubmit={(e) => { e.preventDefault(); if (sel.userId) m.mutate(); }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!sel.userId) return setFormErr("Pick a user");
+                if (!sel.role) return setFormErr("Pick a role");
+                setFormErr(null);
+                m.mutate();
+              }}
               className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3 items-end"
             >
               <div className="space-y-1.5 min-w-0">
@@ -86,6 +98,7 @@ function People() {
               <Button type="submit" disabled={m.isPending || !sel.userId}>
                 <UserPlus className="h-4 w-4" /> Add
               </Button>
+              {formErr && <p className="md:col-span-3 text-xs text-destructive">{formErr}</p>}
             </form>
           </CardContent>
         </Card>
@@ -102,7 +115,10 @@ function People() {
             </CardHeader>
             <CardContent>
               {grouped[r].length === 0 ? (
-                <div className="text-xs text-muted-foreground py-2">None.</div>
+                <div className="rounded-md border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
+                  No {r}s yet.
+                  {me.role === "admin" && <div className="mt-1 text-[11px]">Use the form above to add one.</div>}
+                </div>
               ) : (
                 <ul className="divide-y divide-border -mx-2">
                   {grouped[r].map((m) => (

@@ -42,7 +42,7 @@ function BusinessLayout() {
           {q.data?.name ?? "…"}
         </h1>
         <Tabs value={active}>
-          <TabsList>
+          <TabsList className="w-full justify-start overflow-x-auto">
             {TABS.map((t) => (
               <TabsTrigger key={t.key} value={t.key} asChild>
                 <Link to={t.to} params={{ id }}>{t.label}</Link>

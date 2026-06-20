@@ -131,10 +131,11 @@ export function PageHeader({ title, subtitle, right }: { title: string; subtitle
   );
 }
 
-export function EmptyState({ message }: { message: string }) {
+export function EmptyState({ message, action }: { message: string; action?: React.ReactNode }) {
   return (
     <div className="rounded-md border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-      {message}
+      <div>{message}</div>
+      {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }
