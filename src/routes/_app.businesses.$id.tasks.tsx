@@ -196,7 +196,13 @@ function Tasks() {
             <EmptyCTA
               title="No assignees yet"
               message="Add people to this business before scheduling tasks."
-              cta={canAssign ? { to: `/businesses/${id}/people`, label: "Add people" } : undefined}
+              cta={canAssign ? (
+                <Button size="sm" className="mt-4" asChild>
+                  <Link to="/businesses/$id/people" params={{ id }}>
+                    <UserPlus className="h-4 w-4" /> Add people
+                  </Link>
+                </Button>
+              ) : undefined}
             />
           ) : dayTasks.length === 0 ? (
             <EmptyCTA
