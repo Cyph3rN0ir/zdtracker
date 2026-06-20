@@ -335,7 +335,7 @@ function EmptyCTA({
   title: string;
   message: string;
   action?: { label: string; onClick: () => void };
-  cta?: { to: string; label: string };
+  cta?: React.ReactNode;
   icon?: React.ReactNode;
 }) {
   return (
@@ -350,11 +350,7 @@ function EmptyCTA({
           <Plus className="h-4 w-4" /> {action.label}
         </Button>
       )}
-      {cta && (
-        <Button size="sm" className="mt-4" asChild>
-          <Link to={cta.to}><UserPlus className="h-4 w-4" /> {cta.label}</Link>
-        </Button>
-      )}
+      {cta}
     </div>
   );
 }
