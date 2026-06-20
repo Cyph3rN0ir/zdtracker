@@ -136,13 +136,13 @@ function Tasks() {
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <Button variant="outline" size="sm" onClick={() => shiftWeek(-1)} aria-label="Previous week">
+            <Button variant="outline" size="sm" onClick={() => shiftWeek(-1)} aria-label={t("tasks.prevWeek")}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={() => { setWeekStart(toISO(startOfWeek())); setActiveDay(today); }}>
-              <CalendarDays className="h-4 w-4" /> This week
+              <CalendarDays className="h-4 w-4" /> {t("tasks.thisWeek")}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => shiftWeek(1)} aria-label="Next week">
+            <Button variant="outline" size="sm" onClick={() => shiftWeek(1)} aria-label={t("tasks.nextWeek")}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -152,12 +152,13 @@ function Tasks() {
               const doneCount = (byDay[d] ?? []).filter((t) => t.status === "done").length;
               const isActive = d === activeDay;
               const isToday = d === today;
+              const locale = lang === "bn" ? "bn-BD" : undefined;
               return (
                 <button
                   key={d}
                   onClick={() => setActiveDay(d)}
                   className={
-                    "rounded-md border px-1 py-2 text-center transition-colors " +
+                    "rounded-md border px-1 py-2 text-center transition-colors min-w-0 " +
                     (isActive
                       ? "border-primary bg-primary text-primary-foreground"
                       : isToday
@@ -165,8 +166,8 @@ function Tasks() {
                         : "border-border bg-background hover:bg-accent")
                   }
                 >
-                  <div className="text-[10px] uppercase tracking-wider opacity-80">
-                    {new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" })}
+                  <div className="text-[10px] uppercase tracking-wider opacity-80 truncate">
+                    {new Date(d + "T00:00:00").toLocaleDateString(locale, { weekday: "short" })}
                   </div>
                   <div className="font-display text-base font-bold leading-tight">{d.slice(8)}</div>
                   <div className={"mt-1 text-[10px] font-mono " + (isActive ? "opacity-90" : "text-muted-foreground")}>
@@ -181,37 +182,39 @@ function Tasks() {
 
       {/* Day detail */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 flex-wrap">
           <div className="min-w-0">
-            <CardTitle className="text-base truncate">{fmtDay(activeDay)}</CardTitle>
+            <CardTitle className="text-base">{fmtDay(activeDay, lang)}</CardTitle>
             <CardDescription>
-              {dayTasks.length === 0 ? "No tasks scheduled" : `${dayDone} of ${dayTasks.length} done`}
+              {dayTasks.length === 0
+                ? t("tasks.noneScheduled")
+                : t("tasks.summary", { done: dayDone, total: dayTasks.length })}
             </CardDescription>
           </div>
           {canAssign && !noMembers && (
             <Button size="sm" onClick={() => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); }}>
-              <Plus className="h-4 w-4" /> Add task
+              <Plus className="h-4 w-4" /> {t("tasks.addTask")}
             </Button>
           )}
         </CardHeader>
         <CardContent className="p-0">
           {noMembers ? (
             <EmptyCTA
-              title="No assignees yet"
-              message="Add people to this business before scheduling tasks."
+              title={t("tasks.empty.noAssignees.title")}
+              message={t("tasks.empty.noAssignees.msg")}
               cta={canAssign ? (
                 <Button size="sm" className="mt-4" asChild>
                   <Link to="/businesses/$id/people" params={{ id }}>
-                    <UserPlus className="h-4 w-4" /> Add people
+                    <UserPlus className="h-4 w-4" /> {t("money.addPeople")}
                   </Link>
                 </Button>
               ) : undefined}
             />
           ) : dayTasks.length === 0 ? (
             <EmptyCTA
-              title="No tasks for this day"
-              message="Plan work for your team — assign a task with a quick title and details."
-              action={canAssign ? { label: "Add a task", onClick: () => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); } } : undefined}
+              title={t("tasks.empty.noTasks.title")}
+              message={t("tasks.empty.noTasks.msg")}
+              action={canAssign ? { label: t("tasks.empty.addOne"), onClick: () => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); } } : undefined}
             />
           ) : (
             <ul className="divide-y divide-border">
