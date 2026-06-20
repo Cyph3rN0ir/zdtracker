@@ -228,25 +228,25 @@ function Tasks() {
                     <button
                       onClick={() => canToggle && tg.mutate({ id: t.id, done: !done })}
                       disabled={!canToggle}
-                      aria-label={done ? "Mark pending" : "Mark done"}
+                      aria-label={done ? t("tasks.markPending") : t("tasks.markDone")}
                       className="mt-0.5 text-muted-foreground hover:text-primary disabled:opacity-50"
                     >
                       {done ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <Circle className="h-5 w-5" />}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <div className={"text-sm font-medium " + (done ? "line-through text-muted-foreground" : "")}>
+                      <div className={"text-sm font-medium break-words " + (done ? "line-through text-muted-foreground" : "")}>
                         {t.title}
                       </div>
                       {t.details && (
                         <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 whitespace-pre-wrap">{t.details}</div>
                       )}
                       <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                        <Badge variant="secondary" className="text-[10px] uppercase px-1.5 py-0">
-                          {u?.user?.username ?? "unknown"}
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {u?.user?.username ?? t("common.unknown")}
                         </Badge>
                         {u?.role_in_business && (
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {u.role_in_business}
+                          <span className="text-[10px] tracking-wider text-muted-foreground">
+                            {roleLabel(u.role_in_business, useI18nT())}
                           </span>
                         )}
                       </div>
