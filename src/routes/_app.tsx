@@ -89,6 +89,38 @@ function AppLayout() {
             বাংলা
           </button>
         </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
+            >
+              <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="flex gap-0.5">
+                {activeTheme.swatch.map((c, i) => (
+                  <span key={i} className="h-3 w-3 rounded-sm border border-border" style={{ background: c }} />
+                ))}
+              </span>
+              <span className="truncate flex-1 text-left">{activeTheme.label}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-xs">Theme</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {THEMES.map((th) => (
+              <DropdownMenuItem key={th.id} onSelect={() => setTheme(th.id as Theme)} className="gap-2">
+                <span className="flex gap-0.5">
+                  {th.swatch.map((c, i) => (
+                    <span key={i} className="h-3.5 w-3.5 rounded-sm border border-border" style={{ background: c }} />
+                  ))}
+                </span>
+                <span className="flex-1">{th.label}</span>
+                {theme === th.id && <Check className="h-3.5 w-3.5" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button variant="ghost" size="sm" onClick={doLogout} className="w-full justify-start text-muted-foreground">
           <LogOut className="h-4 w-4" />
           {t("nav.signOut")}
