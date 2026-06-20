@@ -94,22 +94,22 @@ function Tasks() {
       },
     }),
     onSuccess: () => {
-      toast.success("Task created");
+      toast.success(t("tasks.toast.created"));
       setAdding(null); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null);
       qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to create task"),
+    onError: (e: any) => toast.error(e?.message ?? t("tasks.toast.createFailed")),
   });
 
   const tg = useMutation({
     mutationFn: (v: { id: string; done: boolean }) => toggle({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] }),
-    onError: (e: any) => toast.error(e?.message ?? "Failed to update task"),
+    onError: (e: any) => toast.error(e?.message ?? t("tasks.toast.updateFailed")),
   });
   const dm = useMutation({
     mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => { toast.success("Task deleted"); qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] }); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+    onSuccess: () => { toast.success(t("tasks.toast.deleted")); qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] }); },
+    onError: (e: any) => toast.error(e?.message ?? t("money.toast.deleteFailed")),
   });
 
   function shiftWeek(n: number) {
@@ -118,9 +118,9 @@ function Tasks() {
 
   function submitTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.title.trim()) return setFormErr("Title is required");
-    if (form.title.trim().length > 200) return setFormErr("Title is too long");
-    if (!form.assigneeUserId) return setFormErr("Choose an assignee");
+    if (!form.title.trim()) return setFormErr(t("tasks.err.title"));
+    if (form.title.trim().length > 200) return setFormErr(t("tasks.err.titleLong"));
+    if (!form.assigneeUserId) return setFormErr(t("tasks.err.assignee"));
     setFormErr(null);
     addM.mutate();
   }
