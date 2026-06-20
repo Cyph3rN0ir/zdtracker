@@ -42,6 +42,7 @@ function validatePassword(v: string, t: (k: string) => string, optional = false)
 }
 
 function UsersPage() {
+  const { t } = useI18n();
   const list = useServerFn(listUsersFn);
   const create = useServerFn(adminCreateUserFn);
   const del = useServerFn(adminDeleteUserFn);
@@ -54,24 +55,24 @@ function UsersPage() {
   const m = useMutation({
     mutationFn: (d: any) => create({ data: d }),
     onSuccess: () => {
-      toast.success("User created");
+      toast.success(t("users.toast.created"));
       setForm({ username: "", password: "", role: "member", displayName: "" });
       setFormErr(null);
       qc.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (e: any) => { const msg = e?.message ?? "Failed"; setFormErr(msg); toast.error(msg); },
+    onError: (e: any) => { const msg = e?.message ?? t("users.toast.failed"); setFormErr(msg); toast.error(msg); },
   });
   const dm = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
-    onSuccess: () => { toast.success("User deleted"); qc.invalidateQueries({ queryKey: ["users"] }); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+    onSuccess: () => { toast.success(t("users.toast.deleted")); qc.invalidateQueries({ queryKey: ["users"] }); },
+    onError: (e: any) => toast.error(e?.message ?? t("users.toast.deleteFailed")),
   });
 
   function submitCreate(e: React.FormEvent) {
     e.preventDefault();
-    const uErr = validateUsername(form.username);
+    const uErr = validateUsername(form.username, t);
     if (uErr) return setFormErr(uErr);
-    const pErr = validatePassword(form.password);
+    const pErr = validatePassword(form.password, t);
     if (pErr) return setFormErr(pErr);
     setFormErr(null);
     m.mutate(form);
