@@ -4,6 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { adminCreateUserFn, adminDeleteUserFn, listUsersFn } from "@/lib/auth.functions";
 import { PageHeader, ErrorBox, EmptyState } from "./_app.index";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/_app/admin/users")({
   beforeLoad: ({ context }) => {
@@ -36,115 +44,95 @@ function UsersPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader title="Users" subtitle="Create accounts. Share credentials privately." />
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          m.mutate(form);
-        }}
-        className="grid grid-cols-2 gap-3 max-w-2xl border border-border p-4 mb-6"
-      >
-        <Field label="Username">
-          <input
-            required
-            value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
-            className="w-full border border-input px-3 py-1.5 text-sm outline-none focus:border-foreground"
-          />
-        </Field>
-        <Field label="Password">
-          <input
-            required
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="w-full border border-input px-3 py-1.5 text-sm outline-none focus:border-foreground"
-          />
-        </Field>
-        <Field label="Display name">
-          <input
-            value={form.displayName}
-            onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-            className="w-full border border-input px-3 py-1.5 text-sm outline-none focus:border-foreground"
-          />
-        </Field>
-        <Field label="Role">
-          <select
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value as any })}
-            className="w-full border border-input px-3 py-1.5 text-sm bg-background"
-          >
-            <option value="admin">admin</option>
-            <option value="owner">owner</option>
-            <option value="investor">investor</option>
-            <option value="member">member</option>
-          </select>
-        </Field>
-        <div className="col-span-2 flex items-center justify-between">
-          {err && <span className="text-xs text-destructive">{err}</span>}
-          <button
-            type="submit"
-            disabled={m.isPending}
-            className="bg-primary text-primary-foreground px-4 py-1.5 text-sm disabled:opacity-50 ml-auto"
-          >
-            Create user
-          </button>
-        </div>
-      </form>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">New user</CardTitle>
+          <CardDescription>Set a username, password, and role.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={(e) => { e.preventDefault(); m.mutate(form); }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Username</Label>
+              <Input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Password</Label>
+              <Input required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Display name</Label>
+              <Input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Role</Label>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as any })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["admin", "owner", "investor", "member"].map((r) => (
+                    <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2 flex items-center justify-between gap-3">
+              {err && <span className="text-xs text-destructive">{err}</span>}
+              <Button type="submit" disabled={m.isPending} className="ml-auto">
+                <UserPlus className="h-4 w-4" /> Create user
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
-      {q.isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
-      ) : q.error ? (
-        <ErrorBox error={q.error} />
-      ) : q.data && q.data.length ? (
-        <div className="border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 font-medium">Username</th>
-                <th className="px-3 py-2 font-medium">Display name</th>
-                <th className="px-3 py-2 font-medium">Role</th>
-                <th className="px-3 py-2 font-medium">Created</th>
-                <th className="px-3 py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {q.data.map((u: any) => (
-                <tr key={u.id} className="border-t border-border">
-                  <td className="px-3 py-2 font-mono">{u.username}</td>
-                  <td className="px-3 py-2">{u.display_name}</td>
-                  <td className="px-3 py-2 text-xs uppercase">{u.role}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
-                  <td className="px-3 py-2 text-right">
-                    {u.username !== "admin" && (
-                      <button
-                        onClick={() => {
-                          if (confirm(`Delete ${u.username}?`)) dm.mutate(u.id);
-                        }}
-                        className="text-xs text-destructive hover:underline"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <EmptyState message="No users yet." />
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">All users</CardTitle>
+          <CardDescription>{q.data?.length ?? 0} total</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {q.isLoading ? (
+            <div className="text-sm text-muted-foreground p-6">Loading…</div>
+          ) : q.error ? (
+            <div className="p-6"><ErrorBox error={q.error} /></div>
+          ) : q.data && q.data.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6">Username</TableHead>
+                  <TableHead>Display name</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="w-12 pr-6"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {q.data.map((u: any) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-mono pl-6">{u.username}</TableCell>
+                    <TableCell>{u.display_name}</TableCell>
+                    <TableCell><Badge variant="secondary" className="capitalize">{u.role}</Badge></TableCell>
+                    <TableCell className="text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right pr-6">
+                      {u.username !== "admin" && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => { if (confirm(`Delete ${u.username}?`)) dm.mutate(u.id); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-6"><EmptyState message="No users yet." /></div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <div className="text-xs text-muted-foreground mb-1">{label}</div>
-      {children}
-    </label>
   );
 }
