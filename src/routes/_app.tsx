@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu, Languages } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
