@@ -36,6 +36,7 @@ function Money() {
   const [form, setForm] = useState<{ kind: Kind; amount: string; partyUserId: string; note: string; occurredOn: string }>({
     kind: "investment", amount: "", partyUserId: "", note: "", occurredOn: today,
   });
+  const [formErr, setFormErr] = useState<string | null>(null);
   const m = useMutation({
     mutationFn: () =>
       add({
@@ -45,14 +46,33 @@ function Money() {
         },
       }),
     onSuccess: () => {
+      toast.success("Transaction recorded");
       setForm({ ...form, amount: "", note: "" });
+      setFormErr(null);
       qc.invalidateQueries({ queryKey: ["btx", id] });
+    },
+    onError: (e: any) => {
+      const msg = e?.message ?? "Failed to record transaction";
+      setFormErr(msg);
+      toast.error(msg);
     },
   });
   const dm = useMutation({
     mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["btx", id] }),
+    onSuccess: () => { toast.success("Transaction deleted"); qc.invalidateQueries({ queryKey: ["btx", id] }); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
+
+  function submitTx(e: React.FormEvent) {
+    e.preventDefault();
+    const amt = Number(form.amount);
+    if (!form.amount || Number.isNaN(amt)) return setFormErr("Enter a valid amount");
+    if (amt <= 0) return setFormErr("Amount must be greater than 0");
+    if (form.kind !== "expense" && !form.partyUserId) return setFormErr("Pick a party for this transaction");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurredOn)) return setFormErr("Pick a valid date");
+    setFormErr(null);
+    m.mutate();
+  }
 
   const byKind = useMemo(() => {
     const r: Record<Kind, any[]> = { investment: [], earning: [], expense: [] };
