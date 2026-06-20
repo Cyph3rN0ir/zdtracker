@@ -122,7 +122,7 @@ function Tasks() {
     e.preventDefault();
     if (!form.title.trim()) return setFormErr(t("tasks.err.title"));
     if (form.title.trim().length > 200) return setFormErr(t("tasks.err.titleLong"));
-    if (!form.assigneeUserId) return setFormErr(t("tasks.err.assignee"));
+    if (canAssign && !form.assigneeUserId) return setFormErr(t("tasks.err.assignee"));
     setFormErr(null);
     addM.mutate();
   }
