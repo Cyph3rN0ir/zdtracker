@@ -184,17 +184,17 @@ function Tasks() {
 
       {/* Day detail */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 flex-wrap">
-          <div className="min-w-0">
-            <CardTitle className="text-base">{fmtDay(activeDay, lang)}</CardTitle>
-            <CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base truncate">{fmtDay(activeDay, lang)}</CardTitle>
+            <CardDescription className="truncate">
               {dayTasks.length === 0
                 ? t("tasks.noneScheduled")
                 : t("tasks.summary", { done: dayDone, total: dayTasks.length })}
             </CardDescription>
           </div>
           {canCreate && !noMembers && (
-            <Button size="sm" onClick={() => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); }}>
+            <Button size="sm" className="shrink-0" onClick={() => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); }}>
               <Plus className="h-4 w-4" /> {t("tasks.addTask")}
             </Button>
           )}
