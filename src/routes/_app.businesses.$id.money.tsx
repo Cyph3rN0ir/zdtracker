@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Plus, Wallet, UserPlus } from "lucide-react";
+import { useI18n, roleLabel } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_app/businesses/$id/money")({
   component: Money,
@@ -24,6 +25,7 @@ const KINDS: Kind[] = ["investment", "earning", "expense"];
 function Money() {
   const { id } = Route.useParams();
   const { me } = Route.useRouteContext() as any;
+  const { t } = useI18n();
   const list = useServerFn(listTransactionsFn);
   const add = useServerFn(addTransactionFn);
   const del = useServerFn(deleteTransactionFn);
@@ -46,30 +48,30 @@ function Money() {
         },
       }),
     onSuccess: () => {
-      toast.success("Transaction recorded");
+      toast.success(t("money.toast.added"));
       setForm({ ...form, amount: "", note: "" });
       setFormErr(null);
       qc.invalidateQueries({ queryKey: ["btx", id] });
     },
     onError: (e: any) => {
-      const msg = e?.message ?? "Failed to record transaction";
+      const msg = e?.message ?? t("money.toast.failed");
       setFormErr(msg);
       toast.error(msg);
     },
   });
   const dm = useMutation({
     mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => { toast.success("Transaction deleted"); qc.invalidateQueries({ queryKey: ["btx", id] }); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+    onSuccess: () => { toast.success(t("money.toast.deleted")); qc.invalidateQueries({ queryKey: ["btx", id] }); },
+    onError: (e: any) => toast.error(e?.message ?? t("money.toast.deleteFailed")),
   });
 
   function submitTx(e: React.FormEvent) {
     e.preventDefault();
     const amt = Number(form.amount);
-    if (!form.amount || Number.isNaN(amt)) return setFormErr("Enter a valid amount");
-    if (amt <= 0) return setFormErr("Amount must be greater than 0");
-    if (form.kind !== "expense" && !form.partyUserId) return setFormErr("Pick a party for this transaction");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurredOn)) return setFormErr("Pick a valid date");
+    if (!form.amount || Number.isNaN(amt)) return setFormErr(t("money.err.amount"));
+    if (amt <= 0) return setFormErr(t("money.err.positive"));
+    if (form.kind !== "expense" && !form.partyUserId) return setFormErr(t("money.err.party"));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurredOn)) return setFormErr(t("money.err.date"));
     setFormErr(null);
     m.mutate();
   }
@@ -85,60 +87,60 @@ function Money() {
       {me.role === "admin" && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Record transaction</CardTitle>
-            <CardDescription>Log an investment, earning, or expense.</CardDescription>
+            <CardTitle className="text-base">{t("money.record")}</CardTitle>
+            <CardDescription>{t("money.recordDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={submitTx} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
               <div className="space-y-1.5">
-                <Label>Kind</Label>
+                <Label>{t("money.kind")}</Label>
                 <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as Kind })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {KINDS.map((k) => <SelectItem key={k} value={k} className="capitalize">{k}</SelectItem>)}
+                    {KINDS.map((k) => <SelectItem key={k} value={k}>{t(`money.kind.${k}`)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Amount</Label>
+                <Label>{t("common.amount")}</Label>
                 <Input type="number" step="0.01" min="0" required className="text-right font-mono"
                   value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
               </div>
               <div className="space-y-1.5 md:col-span-2">
-                <Label>Note</Label>
+                <Label>{t("common.note")}</Label>
                 <Input maxLength={500} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Party</Label>
+                <Label>{t("money.party")}</Label>
                 <Select value={form.partyUserId || "none"} onValueChange={(v) => setForm({ ...form, partyUserId: v === "none" ? "" : v })}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">—</SelectItem>
                     {(members.data ?? []).map((mem: any) => (
                       <SelectItem key={mem.user_id} value={mem.user_id}>
-                        {mem.user?.username} ({mem.role_in_business})
+                        {mem.user?.username} ({roleLabel(mem.role_in_business, t)})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Date</Label>
+                <Label>{t("common.date")}</Label>
                 <Input type="date" value={form.occurredOn} onChange={(e) => setForm({ ...form, occurredOn: e.target.value })} />
               </div>
-              <div className="md:col-span-6 flex items-center justify-between gap-3">
+              <div className="md:col-span-6 flex items-center justify-between gap-3 flex-wrap">
                 {formErr ? <p className="text-xs text-destructive">{formErr}</p> : <span />}
                 <Button type="submit" disabled={m.isPending}>
-                  <Plus className="h-4 w-4" /> Add transaction
+                  <Plus className="h-4 w-4" /> {t("money.addTx")}
                 </Button>
               </div>
             </form>
             {(members.data ?? []).length === 0 && (
-              <div className="mt-3 rounded-md border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground flex items-center justify-between gap-3">
-                <span>Tip: add people first so you can attribute transactions.</span>
+              <div className="mt-3 rounded-md border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground flex items-center justify-between gap-3 flex-wrap">
+                <span>{t("money.tipAddPeople")}</span>
                 <Button asChild size="sm" variant="outline">
                   <Link to="/businesses/$id/people" params={{ id }}>
-                    <UserPlus className="h-3.5 w-3.5" /> Add people
+                    <UserPlus className="h-3.5 w-3.5" /> {t("money.addPeople")}
                   </Link>
                 </Button>
               </div>
@@ -151,7 +153,7 @@ function Money() {
 
       <div className="grid grid-cols-1 gap-4">
         {KINDS.map((k) => (
-          <Section key={k} title={k} rows={byKind[k]} onDelete={me.role === "admin" ? (tid) => dm.mutate(tid) : undefined} />
+          <Section key={k} title={t(`money.section.${k}`)} rows={byKind[k]} onDelete={me.role === "admin" ? (tid) => dm.mutate(tid) : undefined} />
         ))}
       </div>
     </div>
@@ -159,36 +161,37 @@ function Money() {
 }
 
 function Section({ title, rows, onDelete }: { title: string; rows: any[]; onDelete?: (id: string) => void }) {
+  const { t } = useI18n();
   const total = rows.reduce((s, t) => s + Number(t.amount), 0);
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="capitalize text-base">{title}s</CardTitle>
-        <div className="text-sm font-mono">Total: {fmt(total)}</div>
+      <CardHeader className="flex-row items-center justify-between space-y-0 gap-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <div className="text-sm font-mono whitespace-nowrap">{t("common.total")}: {fmt(total)}</div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-32 pl-6">Date</TableHead>
-              <TableHead className="w-40">Party</TableHead>
-              <TableHead>Note</TableHead>
-              <TableHead className="text-right w-32">Amount</TableHead>
+              <TableHead className="w-32 pl-6">{t("common.date")}</TableHead>
+              <TableHead className="w-40">{t("money.party")}</TableHead>
+              <TableHead>{t("common.note")}</TableHead>
+              <TableHead className="text-right w-32">{t("common.amount")}</TableHead>
               {onDelete && <TableHead className="w-12 pr-6"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
-              <TableRow><TableCell colSpan={onDelete ? 5 : 4} className="text-center py-6 text-muted-foreground text-xs">None.</TableCell></TableRow>
-            ) : rows.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="font-mono text-xs pl-6">{t.occurred_on}</TableCell>
-                <TableCell>{t.party?.username ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                <TableCell>{t.note}</TableCell>
-                <TableCell className="text-right font-mono">{fmt(t.amount)}</TableCell>
+              <TableRow><TableCell colSpan={onDelete ? 5 : 4} className="text-center py-6 text-muted-foreground text-xs">{t("common.none")}</TableCell></TableRow>
+            ) : rows.map((tx) => (
+              <TableRow key={tx.id}>
+                <TableCell className="font-mono text-xs pl-6">{tx.occurred_on}</TableCell>
+                <TableCell>{tx.party?.username ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                <TableCell>{tx.note}</TableCell>
+                <TableCell className="text-right font-mono">{fmt(tx.amount)}</TableCell>
                 {onDelete && (
                   <TableCell className="text-right pr-6">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(t.id)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(tx.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </TableCell>

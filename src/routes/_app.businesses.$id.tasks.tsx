@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays, CheckCircle2, Circle, UserPlus } from "lucide-react";
+import { useI18n, roleLabel, type Lang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_app/businesses/$id/tasks")({
   component: Tasks,
@@ -28,13 +29,15 @@ function startOfWeek(d = new Date()) {
   return x;
 }
 function toISO(d: Date) { return d.toISOString().slice(0, 10); }
-function fmtDay(iso: string) {
-  return new Date(iso + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+function fmtDay(iso: string, lang: Lang = "en") {
+  const locale = lang === "bn" ? "bn-BD" : undefined;
+  return new Date(iso + "T00:00:00").toLocaleDateString(locale, { weekday: "long", month: "short", day: "numeric" });
 }
 
 function Tasks() {
   const { id } = Route.useParams();
   const { me } = Route.useRouteContext() as any;
+  const { t, lang } = useI18n();
   const listT = useServerFn(listBusinessTasksFn);
   const listM = useServerFn(listMembersFn);
   const create = useServerFn(createTaskFn);
@@ -91,22 +94,22 @@ function Tasks() {
       },
     }),
     onSuccess: () => {
-      toast.success("Task created");
+      toast.success(t("tasks.toast.created"));
       setAdding(null); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null);
       qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to create task"),
+    onError: (e: any) => toast.error(e?.message ?? t("tasks.toast.createFailed")),
   });
 
   const tg = useMutation({
     mutationFn: (v: { id: string; done: boolean }) => toggle({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] }),
-    onError: (e: any) => toast.error(e?.message ?? "Failed to update task"),
+    onError: (e: any) => toast.error(e?.message ?? t("tasks.toast.updateFailed")),
   });
   const dm = useMutation({
     mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => { toast.success("Task deleted"); qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] }); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+    onSuccess: () => { toast.success(t("tasks.toast.deleted")); qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] }); },
+    onError: (e: any) => toast.error(e?.message ?? t("money.toast.deleteFailed")),
   });
 
   function shiftWeek(n: number) {
@@ -115,9 +118,9 @@ function Tasks() {
 
   function submitTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.title.trim()) return setFormErr("Title is required");
-    if (form.title.trim().length > 200) return setFormErr("Title is too long");
-    if (!form.assigneeUserId) return setFormErr("Choose an assignee");
+    if (!form.title.trim()) return setFormErr(t("tasks.err.title"));
+    if (form.title.trim().length > 200) return setFormErr(t("tasks.err.titleLong"));
+    if (!form.assigneeUserId) return setFormErr(t("tasks.err.assignee"));
     setFormErr(null);
     addM.mutate();
   }
@@ -133,13 +136,13 @@ function Tasks() {
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <Button variant="outline" size="sm" onClick={() => shiftWeek(-1)} aria-label="Previous week">
+            <Button variant="outline" size="sm" onClick={() => shiftWeek(-1)} aria-label={t("tasks.prevWeek")}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={() => { setWeekStart(toISO(startOfWeek())); setActiveDay(today); }}>
-              <CalendarDays className="h-4 w-4" /> This week
+              <CalendarDays className="h-4 w-4" /> {t("tasks.thisWeek")}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => shiftWeek(1)} aria-label="Next week">
+            <Button variant="outline" size="sm" onClick={() => shiftWeek(1)} aria-label={t("tasks.nextWeek")}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -149,12 +152,13 @@ function Tasks() {
               const doneCount = (byDay[d] ?? []).filter((t) => t.status === "done").length;
               const isActive = d === activeDay;
               const isToday = d === today;
+              const locale = lang === "bn" ? "bn-BD" : undefined;
               return (
                 <button
                   key={d}
                   onClick={() => setActiveDay(d)}
                   className={
-                    "rounded-md border px-1 py-2 text-center transition-colors " +
+                    "rounded-md border px-1 py-2 text-center transition-colors min-w-0 " +
                     (isActive
                       ? "border-primary bg-primary text-primary-foreground"
                       : isToday
@@ -162,8 +166,8 @@ function Tasks() {
                         : "border-border bg-background hover:bg-accent")
                   }
                 >
-                  <div className="text-[10px] uppercase tracking-wider opacity-80">
-                    {new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" })}
+                  <div className="text-[10px] uppercase tracking-wider opacity-80 truncate">
+                    {new Date(d + "T00:00:00").toLocaleDateString(locale, { weekday: "short" })}
                   </div>
                   <div className="font-display text-base font-bold leading-tight">{d.slice(8)}</div>
                   <div className={"mt-1 text-[10px] font-mono " + (isActive ? "opacity-90" : "text-muted-foreground")}>
@@ -178,76 +182,78 @@ function Tasks() {
 
       {/* Day detail */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 flex-wrap">
           <div className="min-w-0">
-            <CardTitle className="text-base truncate">{fmtDay(activeDay)}</CardTitle>
+            <CardTitle className="text-base">{fmtDay(activeDay, lang)}</CardTitle>
             <CardDescription>
-              {dayTasks.length === 0 ? "No tasks scheduled" : `${dayDone} of ${dayTasks.length} done`}
+              {dayTasks.length === 0
+                ? t("tasks.noneScheduled")
+                : t("tasks.summary", { done: dayDone, total: dayTasks.length })}
             </CardDescription>
           </div>
           {canAssign && !noMembers && (
             <Button size="sm" onClick={() => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); }}>
-              <Plus className="h-4 w-4" /> Add task
+              <Plus className="h-4 w-4" /> {t("tasks.addTask")}
             </Button>
           )}
         </CardHeader>
         <CardContent className="p-0">
           {noMembers ? (
             <EmptyCTA
-              title="No assignees yet"
-              message="Add people to this business before scheduling tasks."
+              title={t("tasks.empty.noAssignees.title")}
+              message={t("tasks.empty.noAssignees.msg")}
               cta={canAssign ? (
                 <Button size="sm" className="mt-4" asChild>
                   <Link to="/businesses/$id/people" params={{ id }}>
-                    <UserPlus className="h-4 w-4" /> Add people
+                    <UserPlus className="h-4 w-4" /> {t("money.addPeople")}
                   </Link>
                 </Button>
               ) : undefined}
             />
           ) : dayTasks.length === 0 ? (
             <EmptyCTA
-              title="No tasks for this day"
-              message="Plan work for your team — assign a task with a quick title and details."
-              action={canAssign ? { label: "Add a task", onClick: () => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); } } : undefined}
+              title={t("tasks.empty.noTasks.title")}
+              message={t("tasks.empty.noTasks.msg")}
+              action={canAssign ? { label: t("tasks.empty.addOne"), onClick: () => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); } } : undefined}
             />
           ) : (
             <ul className="divide-y divide-border">
-              {dayTasks.map((t: any) => {
-                const u = userById[t.assignee_user_id];
-                const isMine = t.assignee_user_id === me.userId;
+              {dayTasks.map((task: any) => {
+                const u = userById[task.assignee_user_id];
+                const isMine = task.assignee_user_id === me.userId;
                 const canToggle = canAssign || isMine;
-                const done = t.status === "done";
+                const done = task.status === "done";
                 return (
-                  <li key={t.id} className="flex items-start gap-3 px-4 sm:px-6 py-3">
+                  <li key={task.id} className="flex items-start gap-3 px-4 sm:px-6 py-3">
                     <button
-                      onClick={() => canToggle && tg.mutate({ id: t.id, done: !done })}
+                      onClick={() => canToggle && tg.mutate({ id: task.id, done: !done })}
                       disabled={!canToggle}
-                      aria-label={done ? "Mark pending" : "Mark done"}
+                      aria-label={done ? t("tasks.markPending") : t("tasks.markDone")}
                       className="mt-0.5 text-muted-foreground hover:text-primary disabled:opacity-50"
                     >
                       {done ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <Circle className="h-5 w-5" />}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <div className={"text-sm font-medium " + (done ? "line-through text-muted-foreground" : "")}>
-                        {t.title}
+                      <div className={"text-sm font-medium break-words " + (done ? "line-through text-muted-foreground" : "")}>
+                        {task.title}
                       </div>
-                      {t.details && (
-                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 whitespace-pre-wrap">{t.details}</div>
+                      {task.details && (
+                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 whitespace-pre-wrap">{task.details}</div>
                       )}
                       <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                        <Badge variant="secondary" className="text-[10px] uppercase px-1.5 py-0">
-                          {u?.user?.username ?? "unknown"}
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {u?.user?.username ?? t("common.unknown")}
                         </Badge>
                         {u?.role_in_business && (
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {u.role_in_business}
+                          <span className="text-[10px] tracking-wider text-muted-foreground">
+                            {roleLabel(u.role_in_business, t)}
                           </span>
                         )}
                       </div>
                     </div>
                     {canAssign && (
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => dm.mutate(t.id)}>
+                        onClick={() => dm.mutate(task.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
@@ -263,17 +269,17 @@ function Tasks() {
       {!noMembers && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Week summary</CardTitle>
-            <CardDescription>Completion by assignee</CardDescription>
+            <CardTitle className="text-base">{t("tasks.weekSummary")}</CardTitle>
+            <CardDescription>{t("tasks.weekSummaryDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {(members.data ?? []).map((mem: any) => {
-              const mine = (tasks.data ?? []).filter((t: any) => t.assignee_user_id === mem.user_id);
-              const done = mine.filter((t: any) => t.status === "done").length;
+              const mine = (tasks.data ?? []).filter((x: any) => x.assignee_user_id === mem.user_id);
+              const done = mine.filter((x: any) => x.status === "done").length;
               const pct = mine.length ? Math.round((done / mine.length) * 100) : 0;
               return (
                 <div key={mem.id} className="flex items-center gap-3 text-sm">
-                  <div className="w-32 truncate font-medium">{mem.user?.username}</div>
+                  <div className="w-32 min-w-0 truncate font-medium">{mem.user?.username}</div>
                   <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                     <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
                   </div>
@@ -290,37 +296,37 @@ function Tasks() {
       <Dialog open={!!adding} onOpenChange={(o) => !o && setAdding(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>New task</DialogTitle>
-            <DialogDescription>{adding ? fmtDay(adding.date) : ""}</DialogDescription>
+            <DialogTitle>{t("tasks.newTask")}</DialogTitle>
+            <DialogDescription>{adding ? fmtDay(adding.date, lang) : ""}</DialogDescription>
           </DialogHeader>
           <form onSubmit={submitTask} className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Assignee</Label>
+              <Label>{t("tasks.assignee")}</Label>
               <Select value={form.assigneeUserId} onValueChange={(v) => setForm({ ...form, assigneeUserId: v })}>
-                <SelectTrigger><SelectValue placeholder="Choose…" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("tasks.chooseAssignee")} /></SelectTrigger>
                 <SelectContent>
                   {(members.data ?? []).map((m: any) => (
                     <SelectItem key={m.user_id} value={m.user_id}>
-                      {m.user?.username} ({m.role_in_business})
+                      {m.user?.username} ({roleLabel(m.role_in_business, t)})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Title</Label>
+              <Label>{t("tasks.title")}</Label>
               <Input autoFocus required maxLength={200} value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </div>
             <div className="space-y-1.5">
-              <Label>Details</Label>
+              <Label>{t("tasks.details")}</Label>
               <Textarea rows={3} maxLength={1000} value={form.details}
                 onChange={(e) => setForm({ ...form, details: e.target.value })} />
             </div>
             {formErr && <p className="text-xs text-destructive">{formErr}</p>}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setAdding(null)}>Cancel</Button>
-              <Button type="submit" disabled={addM.isPending}>Create task</Button>
+              <Button type="button" variant="outline" onClick={() => setAdding(null)}>{t("common.cancel")}</Button>
+              <Button type="submit" disabled={addM.isPending}>{t("tasks.createTask")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -154,7 +154,7 @@
   h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
   table { font-variant-numeric: tabular-nums; }
 
-  /* Bangla mode: switch typography to Hind Siliguri with relaxed line-height */
+  /* Bangla mode: switch typography to Hind Siliguri with rich fallback chain */
   html[lang="bn"] body,
   html[lang="bn"] h1,
   html[lang="bn"] h2,
@@ -169,12 +169,15 @@
   html[lang="bn"] select,
   html[lang="bn"] label,
   html[lang="bn"] a {
-    font-family: "Hind Siliguri", var(--font-sans);
+    font-family: "Hind Siliguri", "Noto Sans Bengali", "SolaimanLipi", "Kalpurush", "Siyam Rupali", var(--font-sans);
     letter-spacing: 0;
+    font-feature-settings: normal;
   }
   html[lang="bn"] body { line-height: 1.7; }
   html[lang="bn"] .tracking-wide,
   html[lang="bn"] .tracking-wider,
   html[lang="bn"] .tracking-widest,
   html[lang="bn"] .uppercase { letter-spacing: 0; text-transform: none; }
+  /* Tables can shrink Bangla text awkwardly — let cells breathe */
+  html[lang="bn"] td, html[lang="bn"] th { white-space: normal; word-break: break-word; }
 }
