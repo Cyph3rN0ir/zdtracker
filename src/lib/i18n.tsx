@@ -189,11 +189,22 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       document.documentElement.lang = lang;
       document.documentElement.dataset.lang = lang;
     }
+    if (typeof window !== "undefined") {
+      (async () => {
+        const mod = await import("./auto-translate");
+        if (lang === "bn") mod.enableAutoTranslate();
+        else mod.disableAutoTranslate();
+      })();
+    }
   }, [lang]);
 
   function setLang(l: Lang) {
     setLangState(l);
     try { localStorage.setItem(STORAGE_KEY, l); } catch {}
+    if (typeof window !== "undefined" && l === "en") {
+      // Easiest way to fully revert DOM to English.
+      window.location.reload();
+    }
   }
 
   function t(key: string, fallbackOrParams?: string | Record<string, string | number>, maybeParams?: Record<string, string | number>) {
