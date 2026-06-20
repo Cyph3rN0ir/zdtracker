@@ -13,7 +13,7 @@ import { ArrowRight, Plus, User } from "lucide-react";
 
 export const Route = createFileRoute("/_app/personal")({
   component: PersonalList,
-  head: () => ({ meta: [{ title: "Personal — ZeroTrack" }] }),
+  head: () => ({ meta: [{ title: "Personal — ZeroSync" }] }),
 });
 
 function PersonalList() {

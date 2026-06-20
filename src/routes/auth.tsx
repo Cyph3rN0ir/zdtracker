@@ -16,7 +16,7 @@ export const Route = createFileRoute("/auth")({
     if (me) throw redirect({ to: "/" });
   },
   component: AuthPage,
-  head: () => ({ meta: [{ title: "Sign in — ZeroTrack" }] }),
+  head: () => ({ meta: [{ title: "Sign in — ZeroSync" }] }),
 });
 
 function AuthPage() {

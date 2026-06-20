@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_app/my/tasks")({
   component: MyTasks,
-  head: () => ({ meta: [{ title: "My tasks — ZeroTrack" }] }),
+  head: () => ({ meta: [{ title: "My tasks — ZeroSync" }] }),
 });
 
 function MyTasks() {

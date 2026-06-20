@@ -17,7 +17,7 @@ import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/personal/$id")({
   component: PersonalDetail,
-  head: () => ({ meta: [{ title: "Profile — ZeroTrack" }] }),
+  head: () => ({ meta: [{ title: "Profile — ZeroSync" }] }),
 });
 
 const KINDS = ["earning", "expense", "debt", "repayment"] as const;

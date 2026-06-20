@@ -13,7 +13,7 @@ import { ArrowRight, Plus, Building2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
-  head: () => ({ meta: [{ title: "Dashboard — ZeroTrack" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — ZeroSync" }] }),
 });
 
 function Dashboard() {

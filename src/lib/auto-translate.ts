@@ -5,7 +5,7 @@
 
 const MAP: Record<string, string> = {
   // Brand / nav
-  "ZeroTrack": "জিরোট্র্যাক",
+  "ZeroSync": "জিরোসিঙ্ক",
   "Dashboard": "ড্যাশবোর্ড",
   "My tasks": "আমার কাজ",
   "Personal": "ব্যক্তিগত",
@@ -151,11 +151,11 @@ const MAP: Record<string, string> = {
   "Sign in failed": "সাইন ইন ব্যর্থ হয়েছে",
 
   // Heads (titles)
-  "Sign in — ZeroTrack": "সাইন ইন — জিরোট্র্যাক",
-  "Dashboard — ZeroTrack": "ড্যাশবোর্ড — জিরোট্র্যাক",
-  "My tasks — ZeroTrack": "আমার কাজ — জিরোট্র্যাক",
-  "Personal — ZeroTrack": "ব্যক্তিগত — জিরোট্র্যাক",
-  "Profile — ZeroTrack": "প্রোফাইল — জিরোট্র্যাক",
+  "Sign in — ZeroSync": "সাইন ইন — জিরোসিঙ্ক",
+  "Dashboard — ZeroSync": "ড্যাশবোর্ড — জিরোসিঙ্ক",
+  "My tasks — ZeroSync": "আমার কাজ — জিরোসিঙ্ক",
+  "Personal — ZeroSync": "ব্যক্তিগত — জিরোসিঙ্ক",
+  "Profile — ZeroSync": "প্রোফাইল — জিরোসিঙ্ক",
 
   // Misc
   "Nothing here yet": "এখনও কিছু নেই",
