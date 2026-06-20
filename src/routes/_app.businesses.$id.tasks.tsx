@@ -216,7 +216,7 @@ function Tasks() {
             <EmptyCTA
               title={t("tasks.empty.noTasks.title")}
               message={t("tasks.empty.noTasks.msg")}
-              action={canAssign ? { label: t("tasks.empty.addOne"), onClick: () => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); } } : undefined}
+              action={canCreate ? { label: t("tasks.empty.addOne"), onClick: () => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); } } : undefined}
             />
           ) : (
             <ul className="divide-y divide-border">
