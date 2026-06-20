@@ -218,15 +218,15 @@ function Tasks() {
             />
           ) : (
             <ul className="divide-y divide-border">
-              {dayTasks.map((t: any) => {
-                const u = userById[t.assignee_user_id];
-                const isMine = t.assignee_user_id === me.userId;
+              {dayTasks.map((task: any) => {
+                const u = userById[task.assignee_user_id];
+                const isMine = task.assignee_user_id === me.userId;
                 const canToggle = canAssign || isMine;
-                const done = t.status === "done";
+                const done = task.status === "done";
                 return (
-                  <li key={t.id} className="flex items-start gap-3 px-4 sm:px-6 py-3">
+                  <li key={task.id} className="flex items-start gap-3 px-4 sm:px-6 py-3">
                     <button
-                      onClick={() => canToggle && tg.mutate({ id: t.id, done: !done })}
+                      onClick={() => canToggle && tg.mutate({ id: task.id, done: !done })}
                       disabled={!canToggle}
                       aria-label={done ? t("tasks.markPending") : t("tasks.markDone")}
                       className="mt-0.5 text-muted-foreground hover:text-primary disabled:opacity-50"
@@ -235,10 +235,10 @@ function Tasks() {
                     </button>
                     <div className="flex-1 min-w-0">
                       <div className={"text-sm font-medium break-words " + (done ? "line-through text-muted-foreground" : "")}>
-                        {t.title}
+                        {task.title}
                       </div>
-                      {t.details && (
-                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 whitespace-pre-wrap">{t.details}</div>
+                      {task.details && (
+                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 whitespace-pre-wrap">{task.details}</div>
                       )}
                       <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
@@ -246,14 +246,14 @@ function Tasks() {
                         </Badge>
                         {u?.role_in_business && (
                           <span className="text-[10px] tracking-wider text-muted-foreground">
-                            {roleLabel(u.role_in_business, useI18nT())}
+                            {roleLabel(u.role_in_business, t)}
                           </span>
                         )}
                       </div>
                     </div>
                     {canAssign && (
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => dm.mutate(t.id)}>
+                        onClick={() => dm.mutate(task.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
