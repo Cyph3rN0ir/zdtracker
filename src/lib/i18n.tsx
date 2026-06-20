@@ -159,10 +159,11 @@ export function roleLabel(role: string, t: (k: string, f?: string) => string) {
   return t(k, role);
 }
 
+type TFn = (key: string, fallbackOrParams?: string | Record<string, string | number>, params?: Record<string, string | number>) => string;
 type Ctx = {
   lang: Lang;
   setLang: (l: Lang) => void;
-  t: (key: string, fallback?: string) => string;
+  t: TFn;
 };
 
 const I18nContext = createContext<Ctx | null>(null);
