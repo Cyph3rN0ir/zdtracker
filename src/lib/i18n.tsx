@@ -207,8 +207,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   return <I18nContext.Provider value={{ lang, setLang, t: t as any }}>{children}</I18nContext.Provider>;
 }
 
-export function useI18n() {
+export function useI18n(): Ctx {
   const ctx = useContext(I18nContext);
-  if (!ctx) return { lang: "en" as Lang, setLang: () => {}, t: (k: string, f?: string) => f ?? k };
+  if (!ctx) return { lang: "en" as Lang, setLang: () => {}, t: ((k: string, f?: any) => (typeof f === "string" ? f : k)) as TFn };
   return ctx;
 }
