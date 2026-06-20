@@ -193,7 +193,7 @@ function Tasks() {
                 : t("tasks.summary", { done: dayDone, total: dayTasks.length })}
             </CardDescription>
           </div>
-          {canAssign && !noMembers && (
+          {canCreate && !noMembers && (
             <Button size="sm" onClick={() => { setAdding({ date: activeDay }); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null); }}>
               <Plus className="h-4 w-4" /> {t("tasks.addTask")}
             </Button>
