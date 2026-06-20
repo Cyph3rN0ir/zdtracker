@@ -64,7 +64,13 @@ function People() {
           </CardHeader>
           <CardContent>
             <form
-              onSubmit={(e) => { e.preventDefault(); if (sel.userId) m.mutate(); }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!sel.userId) return setFormErr("Pick a user");
+                if (!sel.role) return setFormErr("Pick a role");
+                setFormErr(null);
+                m.mutate();
+              }}
               className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3 items-end"
             >
               <div className="space-y-1.5 min-w-0">
@@ -92,6 +98,7 @@ function People() {
               <Button type="submit" disabled={m.isPending || !sel.userId}>
                 <UserPlus className="h-4 w-4" /> Add
               </Button>
+              {formErr && <p className="md:col-span-3 text-xs text-destructive">{formErr}</p>}
             </form>
           </CardContent>
         </Card>
