@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays, CheckCircle2, Circle, UserPlus } from "lucide-react";
+import { useI18n, roleLabel, type Lang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_app/businesses/$id/tasks")({
   component: Tasks,
