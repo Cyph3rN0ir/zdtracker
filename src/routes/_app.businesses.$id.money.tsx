@@ -87,60 +87,60 @@ function Money() {
       {me.role === "admin" && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Record transaction</CardTitle>
-            <CardDescription>Log an investment, earning, or expense.</CardDescription>
+            <CardTitle className="text-base">{t("money.record")}</CardTitle>
+            <CardDescription>{t("money.recordDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={submitTx} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
               <div className="space-y-1.5">
-                <Label>Kind</Label>
+                <Label>{t("money.kind")}</Label>
                 <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as Kind })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {KINDS.map((k) => <SelectItem key={k} value={k} className="capitalize">{k}</SelectItem>)}
+                    {KINDS.map((k) => <SelectItem key={k} value={k}>{t(`money.kind.${k}`)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Amount</Label>
+                <Label>{t("common.amount")}</Label>
                 <Input type="number" step="0.01" min="0" required className="text-right font-mono"
                   value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
               </div>
               <div className="space-y-1.5 md:col-span-2">
-                <Label>Note</Label>
+                <Label>{t("common.note")}</Label>
                 <Input maxLength={500} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Party</Label>
+                <Label>{t("money.party")}</Label>
                 <Select value={form.partyUserId || "none"} onValueChange={(v) => setForm({ ...form, partyUserId: v === "none" ? "" : v })}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">—</SelectItem>
                     {(members.data ?? []).map((mem: any) => (
                       <SelectItem key={mem.user_id} value={mem.user_id}>
-                        {mem.user?.username} ({mem.role_in_business})
+                        {mem.user?.username} ({roleLabel(mem.role_in_business, t)})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Date</Label>
+                <Label>{t("common.date")}</Label>
                 <Input type="date" value={form.occurredOn} onChange={(e) => setForm({ ...form, occurredOn: e.target.value })} />
               </div>
-              <div className="md:col-span-6 flex items-center justify-between gap-3">
+              <div className="md:col-span-6 flex items-center justify-between gap-3 flex-wrap">
                 {formErr ? <p className="text-xs text-destructive">{formErr}</p> : <span />}
                 <Button type="submit" disabled={m.isPending}>
-                  <Plus className="h-4 w-4" /> Add transaction
+                  <Plus className="h-4 w-4" /> {t("money.addTx")}
                 </Button>
               </div>
             </form>
             {(members.data ?? []).length === 0 && (
-              <div className="mt-3 rounded-md border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground flex items-center justify-between gap-3">
-                <span>Tip: add people first so you can attribute transactions.</span>
+              <div className="mt-3 rounded-md border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground flex items-center justify-between gap-3 flex-wrap">
+                <span>{t("money.tipAddPeople")}</span>
                 <Button asChild size="sm" variant="outline">
                   <Link to="/businesses/$id/people" params={{ id }}>
-                    <UserPlus className="h-3.5 w-3.5" /> Add people
+                    <UserPlus className="h-3.5 w-3.5" /> {t("money.addPeople")}
                   </Link>
                 </Button>
               </div>
@@ -153,7 +153,7 @@ function Money() {
 
       <div className="grid grid-cols-1 gap-4">
         {KINDS.map((k) => (
-          <Section key={k} title={k} rows={byKind[k]} onDelete={me.role === "admin" ? (tid) => dm.mutate(tid) : undefined} />
+          <Section key={k} title={t(`money.section.${k}`)} rows={byKind[k]} onDelete={me.role === "admin" ? (tid) => dm.mutate(tid) : undefined} />
         ))}
       </div>
     </div>
