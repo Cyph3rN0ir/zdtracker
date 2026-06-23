@@ -41,6 +41,12 @@ export function PersonalTransactions({
   const upd = useServerFn(updatePersonalTxFn);
   const del = useServerFn(deletePersonalTxFn);
 
+  // Register this session's runner so any queued add_personal_tx from a
+  // previous offline session can be replayed when we come back online.
+  useEffect(() => {
+    return registerOfflineRunner("addPersonalTxEx", (data: any) => addEx({ data }));
+  }, [addEx]);
+
   const [form, setForm] = useState({
     kind: "expense" as TxKind,
     amount: "",
@@ -60,22 +66,21 @@ export function PersonalTransactions({
 
   const add = useMutation({
     mutationFn: () =>
-      addEx({
-        data: {
-          profileId,
-          kind: form.kind,
-          amount: Number(form.amount),
-          note: form.note,
-          occurredOn: form.occurredOn,
-          accountId: form.accountId || null,
-          categoryId: form.categoryId || null,
-          counterpartyId: form.counterpartyId || null,
-          transferAccountId: form.transferAccountId || null,
-          linkedLoanId: form.linkedLoanId || null,
-        },
+      runOrQueue("addPersonalTxEx", {
+        profileId,
+        kind: form.kind,
+        amount: Number(form.amount),
+        note: form.note,
+        occurredOn: form.occurredOn,
+        accountId: form.accountId || null,
+        categoryId: form.categoryId || null,
+        counterpartyId: form.counterpartyId || null,
+        transferAccountId: form.transferAccountId || null,
+        linkedLoanId: form.linkedLoanId || null,
       }),
-    onSuccess: () => {
-      toast.success("Transaction added");
+    onSuccess: (res: any) => {
+      if (res?.queued) toast.success("Saved offline — will sync when back online");
+      else toast.success("Transaction added");
       setForm({ ...form, amount: "", note: "" });
       invalidate();
     },
