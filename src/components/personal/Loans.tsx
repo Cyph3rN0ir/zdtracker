@@ -282,7 +282,10 @@ function RepaymentDialog({
         <Button size="sm" variant="secondary"><HandCoins className="h-3.5 w-3.5" /> Repayment</Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Record repayment</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Record repayment</DialogTitle>
+          <DialogDescription>Repayment for {fmtMoney(loan.principal, currency)} loan.</DialogDescription>
+        </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Amount</Label>
