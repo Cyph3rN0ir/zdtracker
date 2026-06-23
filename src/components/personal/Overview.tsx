@@ -204,6 +204,50 @@ export function PersonalOverview({
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Net worth — 30 days</CardTitle>
+            <CardDescription>Running balance across all accounts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-56">
+              <ResponsiveContainer>
+                <LineChart data={netWorthSeries}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="label" fontSize={10} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis fontSize={10} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
+                  <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Account balances</CardTitle>
+            <CardDescription>Opening + activity</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y">
+              {accountBalances.length === 0 && <div className="py-6 text-center text-sm text-muted-foreground">No accounts yet.</div>}
+              {accountBalances.map((a) => (
+                <div key={a.id} className="flex items-center justify-between py-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Badge variant="secondary" className="text-[10px] capitalize">{a.type}</Badge>
+                    <span className="truncate">{a.name}</span>
+                  </div>
+                  <span className={`font-mono ${a.balance < 0 ? "text-rose-500" : ""}`}>{fmtMoney(a.balance, currency)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Recent transactions</CardTitle>
