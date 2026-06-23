@@ -10,6 +10,7 @@ import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu, Languages, Pale
 import { useI18n } from "@/lib/i18n";
 import { useTheme, THEMES, type Theme } from "@/lib/theme";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
