@@ -86,8 +86,11 @@ export function fmtMoney(n: number | string, currency = "BDT", langOverride?: "e
       return `${v.toFixed(2)} টাকা`;
     }
   }
+  // Non-BDT (or English mode): pick the locale to match the active language
+  // so digits render in the expected script.
+  const locale = lang === "bn" ? "bn-BD" : "en-US";
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency,
       currencyDisplay: "code",
@@ -95,7 +98,7 @@ export function fmtMoney(n: number | string, currency = "BDT", langOverride?: "e
       minimumFractionDigits: 2,
     }).format(v);
   } catch {
-    return `${currency} ${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${currency} ${v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 }
 
