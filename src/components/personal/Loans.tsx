@@ -183,7 +183,7 @@ export function PersonalLoans({
               <Label>Note</Label>
               <Input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
             </div>
-            <Button type="submit" disabled={add.isPending}><Plus className="h-4 w-4" /> Add</Button>
+            <Button type="submit" disabled={add.isPending} className="md:col-span-1"><Plus className="h-4 w-4" /> Add</Button>
           </form>
         </CardContent>
       </Card>
