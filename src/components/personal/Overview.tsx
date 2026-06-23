@@ -32,22 +32,23 @@ export function PersonalOverview({
   const monthSpend = tx.filter((t) => isSpend(t.kind) && t.occurred_on >= month.start && t.occurred_on <= month.end)
     .reduce((s, t) => s + Number(t.amount), 0);
 
-  // Savings: balance held in accounts of type 'savings' + net deposits this month.
+  // Savings: opening balance of savings-typed accounts + net effect of
+  // savings-kinded transactions on those accounts. Uses the same rule as
+  // accountBalances so the two never drift apart.
   const savingsAcctIds = new Set(accounts.filter((a) => a.type === "savings").map((a) => a.id));
   const savingsBase = accounts
     .filter((a) => savingsAcctIds.has(a.id))
     .reduce((s, a) => s + Number(a.opening_balance || 0), 0);
   const savingsDelta = tx.reduce((s, t) => {
     const amt = Number(t.amount);
-    // Net change to any savings-type account.
-    if (t.account_id && savingsAcctIds.has(t.account_id)) {
-      if (t.kind === "transfer") return s - amt;
-      const d = txDirection(t.kind);
-      if (d === "in") return s + amt;
-      if (d === "out") return s - amt;
-    }
-    if (t.kind === "transfer" && t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id)) {
-      return s + amt;
+    const onSav = t.account_id && savingsAcctIds.has(t.account_id);
+    const toSav = t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id);
+    if (t.kind === "savings_deposit" && onSav) return s + amt;
+    if (t.kind === "savings_withdraw" && onSav) return s - amt;
+    if (t.kind === "transfer") {
+      if (onSav) s -= amt;
+      if (toSav) s += amt;
+      return s;
     }
     return s;
   }, 0);
@@ -56,10 +57,12 @@ export function PersonalOverview({
     .filter((t) => t.occurred_on >= month.start && t.occurred_on <= month.end)
     .reduce((s, t) => {
       const amt = Number(t.amount);
-      if (t.kind === "savings_deposit") return s + amt;
-      if (t.kind === "savings_withdraw") return s - amt;
-      if (t.kind === "transfer" && t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id)) return s + amt;
-      if (t.kind === "transfer" && t.account_id && savingsAcctIds.has(t.account_id)) return s - amt;
+      const onSav = t.account_id && savingsAcctIds.has(t.account_id);
+      const toSav = t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id);
+      if (t.kind === "savings_deposit" && onSav) return s + amt;
+      if (t.kind === "savings_withdraw" && onSav) return s - amt;
+      if (t.kind === "transfer" && toSav) return s + amt;
+      if (t.kind === "transfer" && onSav) return s - amt;
       return s;
     }, 0);
 
