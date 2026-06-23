@@ -3,7 +3,21 @@ import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: (failureCount, error: any) => {
+          // Don't retry permanent errors (auth / not found / validation)
+          const msg = String(error?.message ?? "").toLowerCase();
+          if (msg.includes("not found") || msg.includes("unauthorized") || msg.includes("forbidden")) return false;
+          return failureCount < 3;
+        },
+        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+        staleTime: 30_000,
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
 
   const router = createRouter({
     routeTree,
