@@ -27,7 +27,7 @@ export default defineConfig({
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/_server\//, /^\/sw\.js$/],
           cleanupOutdatedCaches: true,
           clientsClaim: true,
-          skipWaiting: false,
+          skipWaiting: true,
           runtimeCaching: [
             {
               urlPattern: ({ request }) => request.mode === "navigate",
