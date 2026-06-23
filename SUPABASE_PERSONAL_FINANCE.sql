@@ -127,3 +127,11 @@ grant all on public.personal_accounts,
              public.personal_loans,
              public.personal_budgets
 to service_role;
+
+-- ----------------------------------------------------------------------------
+-- Safety net: ensure RLS + grants on personal_transactions if this migration
+-- ever runs against a DB that skipped SUPABASE_SETUP.sql.
+-- ----------------------------------------------------------------------------
+alter table if exists public.personal_transactions enable row level security;
+revoke all on public.personal_transactions from anon, authenticated;
+grant all on public.personal_transactions to service_role;

@@ -168,7 +168,10 @@ function AccountsTab({ profileId, accounts, currency }: { profileId: string; acc
   });
   const dm = useMutation({
     mutationFn: (id: string) => del({ data: { id, profileId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personal-accts", profileId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["personal-accts", profileId] });
+      qc.invalidateQueries({ queryKey: ["personal-tx", profileId] });
+    },
   });
   return (
     <div className="space-y-4">
@@ -337,8 +340,3 @@ function CounterpartiesTab({ profileId, counterparties }: { profileId: string; c
   );
 }
 
-// Backward compat: business pages import { fmt } from this file (plain 2-dp number).
-export function fmt(n: number | string) {
-  const v = Number(n) || 0;
-  return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}

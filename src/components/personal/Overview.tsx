@@ -13,6 +13,7 @@ import {
   BudgetRow,
   periodWindow,
   txDirection,
+  toLocalISO,
 } from "@/lib/personal-finance";
 
 type Cat = { id: string; name: string; color: string; kind: "income" | "expense" };
@@ -64,7 +65,7 @@ export function PersonalOverview({
     for (let i = 29; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      days.push({ date: d.toISOString().slice(0, 10), income: 0, expense: 0 });
+      days.push({ date: toLocalISO(d), income: 0, expense: 0 });
     }
     const idx = new Map(days.map((d, i) => [d.date, i]));
     for (const t of tx) {
@@ -97,12 +98,8 @@ export function PersonalOverview({
 
   // 30-day net-worth line (running sum of signed flows, starting from netWorth − totalDelta).
   const netWorthSeries = useMemo(() => {
-    const totalDelta = tx.reduce((s, t) => {
-      const d = txDirection(t.kind);
-      return s + (d === "in" ? Number(t.amount) : d === "out" ? -Number(t.amount) : 0);
-    }, 0);
     const todayDate = new Date();
-    const startISO = (() => { const d = new Date(todayDate); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10); })();
+    const startISO = (() => { const d = new Date(todayDate); d.setDate(d.getDate() - 29); return toLocalISO(d); })();
     // Net worth as of the day before the window starts.
     let running = netWorth - tx
       .filter((t) => t.occurred_on >= startISO)
@@ -110,7 +107,6 @@ export function PersonalOverview({
         const d = txDirection(t.kind);
         return s + (d === "in" ? Number(t.amount) : d === "out" ? -Number(t.amount) : 0);
       }, 0);
-    void totalDelta;
     const points: { date: string; label: string; value: number }[] = [];
     const dayDelta = new Map<string, number>();
     for (const t of tx) {
@@ -121,7 +117,7 @@ export function PersonalOverview({
     }
     for (let i = 29; i >= 0; i--) {
       const d = new Date(todayDate); d.setDate(d.getDate() - i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = toLocalISO(d);
       running += dayDelta.get(iso) ?? 0;
       points.push({ date: iso, label: iso.slice(5), value: Math.round(running * 100) / 100 });
     }

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listTransactionsFn } from "@/lib/zt.functions";
-import { fmt } from "./_app.personal.$id";
+import { fmt } from "@/lib/personal-finance";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
 

@@ -136,7 +136,15 @@ export function PersonalTransactions({
             className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
           >
             <Field label="Kind" className="md:col-span-1">
-              <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as TxKind })}>
+              <Select value={form.kind} onValueChange={(v) => {
+                const k = v as TxKind;
+                setForm({
+                  ...form, kind: k,
+                  categoryId: (k === "income" || k === "expense") ? form.categoryId : "",
+                  transferAccountId: k === "transfer" ? form.transferAccountId : "",
+                  linkedLoanId: (k === "repayment_in" || k === "repayment_out") ? form.linkedLoanId : "",
+                });
+              }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {TX_KINDS.map((k) => <SelectItem key={k} value={k}>{TX_KIND_LABEL[k]}</SelectItem>)}
