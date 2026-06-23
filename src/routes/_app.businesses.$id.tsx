@@ -1,8 +1,10 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteBusinessFn, getBusinessFn } from "@/lib/zt.functions";
+import { useState } from "react";
+import { deleteBusinessFn, getBusinessFn, renameBusinessFn } from "@/lib/zt.functions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -13,10 +15,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { ChevronLeft, Trash2 } from "lucide-react";
+import { ChevronLeft, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/businesses/$id")({
   component: BusinessLayout,
@@ -35,10 +50,15 @@ function BusinessLayout() {
   const { me } = Route.useRouteContext() as any;
   const get = useServerFn(getBusinessFn);
   const del = useServerFn(deleteBusinessFn);
+  const ren = useServerFn(renameBusinessFn);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["business", id], queryFn: () => get({ data: { id } }) });
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameVal, setRenameVal] = useState("");
+  const [delOpen, setDelOpen] = useState(false);
 
   const delM = useMutation({
     mutationFn: () => del({ data: { id } }),
@@ -48,6 +68,17 @@ function BusinessLayout() {
       navigate({ to: "/" });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+  });
+
+  const renM = useMutation({
+    mutationFn: (name: string) => ren({ data: { id, name } }),
+    onSuccess: () => {
+      toast.success("Renamed");
+      setRenameOpen(false);
+      qc.invalidateQueries({ queryKey: ["business", id] });
+      qc.invalidateQueries({ queryKey: ["businesses"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to rename"),
   });
 
   const active =
@@ -69,37 +100,30 @@ function BusinessLayout() {
             {q.data?.name ?? "…"}
           </h1>
           {me?.role === "admin" && q.data && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive hover:text-destructive shrink-0"
-                  disabled={delM.isPending}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Delete</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="shrink-0" aria-label="Business actions">
+                  <MoreVertical className="h-4 w-4" />
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete "{q.data.name}"?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This permanently removes the business and all its members,
-                    money transactions, and tasks. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => delM.mutate()}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem
+                  onSelect={() => {
+                    setRenameVal(q.data!.name);
+                    setRenameOpen(true);
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Rename
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={() => setDelOpen(true)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
         <Tabs value={active}>
@@ -112,6 +136,50 @@ function BusinessLayout() {
           </TabsList>
         </Tabs>
       </div>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename business</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = renameVal.trim();
+              if (v) renM.mutate(v);
+            }}
+            className="space-y-3"
+          >
+            <Input value={renameVal} onChange={(e) => setRenameVal(e.target.value)} autoFocus />
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setRenameOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={renM.isPending || !renameVal.trim()}>Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={delOpen} onOpenChange={setDelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{q.data?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the business and all its members, money transactions, and tasks.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => delM.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Outlet />
     </div>
   );
