@@ -817,8 +817,9 @@ export const addPersonalTxExFn = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }) => {
-    const { supa } = await assertProfileOwner(data.profileId);
+    const { me, supa } = await assertProfileOwner(data.profileId);
     const { error } = await supa.from("personal_transactions").insert({
+      owner_user_id: me.userId,
       profile_id: data.profileId,
       kind: data.kind,
       amount: data.amount,
