@@ -132,7 +132,7 @@ export interface TxRow {
   id: string;
   kind: TxKind;
   amount: number | string;
-  note: string;
+  note: string | null;
   occurred_on: string;
   account_id: string | null;
   category_id: string | null;
