@@ -56,7 +56,6 @@ export function PersonalLoans({
     direction: "i_owe" as "i_owe" | "owed_to_me",
     counterpartyId: "",
     principal: "",
-    interestRate: "",
     startedOn: todayISO(),
     dueOn: "",
     note: "",
@@ -69,7 +68,7 @@ export function PersonalLoans({
         direction: form.direction,
         counterpartyId: form.counterpartyId || null,
         principal: Number(form.principal),
-        interestRate: Number(form.interestRate || 0),
+        interestRate: 0,
         startedOn: form.startedOn,
         dueOn: form.dueOn || null,
         status: "open",
@@ -78,7 +77,7 @@ export function PersonalLoans({
     }),
     onSuccess: () => {
       toast.success("Loan added");
-      setForm({ ...form, principal: "", interestRate: "", dueOn: "", note: "" });
+      setForm({ ...form, principal: "", dueOn: "", note: "" });
       invalidate();
     },
   });
@@ -141,7 +140,7 @@ export function PersonalLoans({
         </CardHeader>
         <CardContent>
           <form onSubmit={(e) => { e.preventDefault(); if (Number(form.principal) > 0) add.mutate(); }}
-            className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+            className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
             <div className="space-y-1.5 md:col-span-1">
               <Label>Direction</Label>
               <Select value={form.direction} onValueChange={(v) => setForm({ ...form, direction: v as any })}>
@@ -168,11 +167,6 @@ export function PersonalLoans({
                 value={form.principal} onChange={(e) => setForm({ ...form, principal: e.target.value })} />
             </div>
             <div className="space-y-1.5 md:col-span-1">
-              <Label>Interest %</Label>
-              <Input type="number" step="0.01" min="0" className="text-right font-mono"
-                value={form.interestRate} onChange={(e) => setForm({ ...form, interestRate: e.target.value })} />
-            </div>
-            <div className="space-y-1.5 md:col-span-1">
               <Label>Started</Label>
               <Input type="date" value={form.startedOn} onChange={(e) => setForm({ ...form, startedOn: e.target.value })} />
             </div>
@@ -180,7 +174,7 @@ export function PersonalLoans({
               <Label>Due (optional)</Label>
               <Input type="date" value={form.dueOn} onChange={(e) => setForm({ ...form, dueOn: e.target.value })} />
             </div>
-            <div className="space-y-1.5 md:col-span-5">
+            <div className="space-y-1.5 md:col-span-4">
               <Label>Note</Label>
               <Input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
             </div>
