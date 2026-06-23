@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { logoutFn, meFn } from "@/lib/auth.functions";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -32,8 +32,12 @@ function AppLayout() {
   const { theme, setTheme } = useTheme();
   const activeTheme = THEMES.find((tt) => tt.id === theme) ?? THEMES[0];
 
-  // close mobile drawer on route change
+  // Belt-and-braces: close drawer if pathname ever changes (e.g. browser back).
   useEffect(() => { setOpen(false); }, [pathname]);
+
+  // Close drawer BEFORE navigating so the sheet and route transition don't
+  // animate at the same time (the main cause of mobile lag).
+  const closeDrawer = useCallback(() => setOpen(false), []);
 
   async function doLogout() {
     try { await logout(); } catch {}
@@ -41,11 +45,14 @@ function AppLayout() {
     navigate({ to: "/auth" });
   }
 
-  const nav = (
+  const nav = useMemo(() => (
     <>
       <div className="p-5 border-b border-border">
-        <div className="text-[10px] font-display font-bold uppercase tracking-[0.18em] text-muted-foreground">
-          {t("brand")}
+        <div className="flex items-center gap-2.5">
+          <img src="/icon-192.png" alt="ZeroSync" width={32} height={32} className="h-8 w-8 rounded-md shrink-0" />
+          <div className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            {t("brand")}
+          </div>
         </div>
         <div className="mt-3 flex items-center gap-2">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground text-sm font-semibold">
@@ -61,11 +68,11 @@ function AppLayout() {
       </div>
 
       <nav className="flex flex-col gap-0.5 p-3">
-        <NavLink to="/" icon={<LayoutDashboard className="h-4 w-4" />}>{t("nav.dashboard")}</NavLink>
-        <NavLink to="/my/tasks" icon={<ListChecks className="h-4 w-4" />}>{t("nav.myTasks")}</NavLink>
-        <NavLink to="/personal" icon={<User className="h-4 w-4" />}>{t("nav.personal")}</NavLink>
+        <NavLink to="/" onNavigate={closeDrawer} icon={<LayoutDashboard className="h-4 w-4" />}>{t("nav.dashboard")}</NavLink>
+        <NavLink to="/my/tasks" onNavigate={closeDrawer} icon={<ListChecks className="h-4 w-4" />}>{t("nav.myTasks")}</NavLink>
+        <NavLink to="/personal" onNavigate={closeDrawer} icon={<User className="h-4 w-4" />}>{t("nav.personal")}</NavLink>
         {me.role === "admin" && (
-          <NavLink to="/admin/users" icon={<Users className="h-4 w-4" />}>{t("nav.users")}</NavLink>
+          <NavLink to="/admin/users" onNavigate={closeDrawer} icon={<Users className="h-4 w-4" />}>{t("nav.users")}</NavLink>
         )}
       </nav>
 
@@ -127,7 +134,7 @@ function AppLayout() {
         </Button>
       </div>
     </>
-  );
+  ), [me, t, lang, setLang, theme, setTheme, activeTheme, closeDrawer]);
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[240px_1fr] bg-muted/30">
@@ -144,29 +151,33 @@ function AppLayout() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[260px] flex flex-col">
+          <SheetContent side="left" className="pwa-sheet p-0 w-[260px] flex flex-col">
             <SheetHeader className="sr-only"><SheetTitle>Navigation</SheetTitle></SheetHeader>
             {nav}
           </SheetContent>
         </Sheet>
-        <div className="text-sm font-display font-bold tracking-wide">{t("brand")}</div>
+        <div className="flex items-center gap-2">
+          <img src="/icon-192.png" alt="" width={24} height={24} className="h-6 w-6 rounded" />
+          <div className="text-sm font-display font-bold tracking-wide">{t("brand")}</div>
+        </div>
         <div className="h-8 w-8 grid place-items-center rounded-md bg-primary text-primary-foreground text-xs font-semibold">
           {(me.displayName || me.username).slice(0, 1).toUpperCase()}
         </div>
       </header>
 
-      <main className="p-4 sm:p-6 md:p-8 max-w-7xl w-full">
+      <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full">
         <Outlet />
       </main>
     </div>
   );
 }
 
-function NavLink({ to, icon, children }: { to: string; icon: React.ReactNode; children: React.ReactNode }) {
+function NavLink({ to, icon, children, onNavigate }: { to: string; icon: React.ReactNode; children: React.ReactNode; onNavigate?: () => void }) {
   return (
     <Link
       to={to}
       activeOptions={{ exact: to === "/" }}
+      onClick={onNavigate}
       className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors data-[status=active]:bg-accent data-[status=active]:text-foreground data-[status=active]:font-medium"
       activeProps={{ "data-status": "active" } as any}
     >
@@ -175,3 +186,4 @@ function NavLink({ to, icon, children }: { to: string; icon: React.ReactNode; ch
     </Link>
   );
 }
+
