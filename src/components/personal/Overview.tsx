@@ -1,0 +1,228 @@
+import { useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import {
+  computeBudgetStatus,
+  fmtMoney,
+  isIncome,
+  isSpend,
+  TX_KIND_LABEL,
+  TxRow,
+  BudgetRow,
+  periodWindow,
+  txDirection,
+} from "@/lib/personal-finance";
+
+type Cat = { id: string; name: string; color: string; kind: "income" | "expense" };
+type Account = { id: string; name: string; type: string; opening_balance: number | string };
+
+export function PersonalOverview({
+  tx, budgets, categories, accounts, currency,
+}: {
+  tx: TxRow[]; budgets: BudgetRow[]; categories: Cat[]; accounts: Account[]; currency: string;
+}) {
+  const week = periodWindow("week");
+  const month = periodWindow("month");
+
+  const weekSpend = tx.filter((t) => isSpend(t.kind) && t.occurred_on >= week.start && t.occurred_on <= week.end)
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const monthSpend = tx.filter((t) => isSpend(t.kind) && t.occurred_on >= month.start && t.occurred_on <= month.end)
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const monthIncome = tx.filter((t) => isIncome(t.kind) && t.occurred_on >= month.start && t.occurred_on <= month.end)
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const savingsRate = monthIncome > 0 ? Math.max(0, ((monthIncome - monthSpend) / monthIncome) * 100) : 0;
+
+  const netWorth = useMemo(() => {
+    const acctBase = accounts.reduce((s, a) => s + Number(a.opening_balance || 0), 0);
+    const delta = tx.reduce((s, t) => {
+      const d = txDirection(t.kind);
+      return s + (d === "in" ? Number(t.amount) : d === "out" ? -Number(t.amount) : 0);
+    }, 0);
+    return acctBase + delta;
+  }, [accounts, tx]);
+
+  const catMap = new Map(categories.map((c) => [c.id, c]));
+  const byCat = new Map<string, number>();
+  for (const t of tx) {
+    if (!isSpend(t.kind)) continue;
+    if (t.occurred_on < month.start || t.occurred_on > month.end) continue;
+    const key = t.category_id ?? "uncategorized";
+    byCat.set(key, (byCat.get(key) ?? 0) + Number(t.amount));
+  }
+  const donut = Array.from(byCat.entries())
+    .map(([id, value]) => {
+      const c = catMap.get(id);
+      return { id, name: c?.name ?? "Uncategorized", color: c?.color ?? "#64748b", value };
+    })
+    .sort((a, b) => b.value - a.value);
+
+  const daily = useMemo(() => {
+    const days: { date: string; income: number; expense: number }[] = [];
+    const today = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      days.push({ date: d.toISOString().slice(0, 10), income: 0, expense: 0 });
+    }
+    const idx = new Map(days.map((d, i) => [d.date, i]));
+    for (const t of tx) {
+      const i = idx.get(t.occurred_on);
+      if (i == null) continue;
+      if (isIncome(t.kind)) days[i].income += Number(t.amount);
+      else if (isSpend(t.kind)) days[i].expense += Number(t.amount);
+    }
+    return days.map((d) => ({ ...d, label: d.date.slice(5) }));
+  }, [tx]);
+
+  const weeklyBudgets = budgets.filter((b) => b.active && b.period === "week");
+  const monthlyBudgets = budgets.filter((b) => b.active && b.period === "month");
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Net worth" value={fmtMoney(netWorth, currency)} />
+        <StatCard label="This week spend" value={fmtMoney(weekSpend, currency)} />
+        <StatCard label="This month spend" value={fmtMoney(monthSpend, currency)} />
+        <StatCard label="Savings rate" value={`${savingsRate.toFixed(0)}%`} />
+      </div>
+
+      {(weeklyBudgets.length + monthlyBudgets.length) > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {weeklyBudgets.slice(0, 1).map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
+          {monthlyBudgets.slice(0, 1).map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Spend by category</CardTitle>
+            <CardDescription>This month</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {donut.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-12 text-center">No expenses yet this month.</div>
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie data={donut} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
+                      {donut.map((d) => <Cell key={d.id} fill={d.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs">
+              {donut.slice(0, 8).map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ background: d.color }} />
+                    <span className="truncate">{d.name}</span>
+                  </span>
+                  <span className="font-mono">{fmtMoney(d.value, currency)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Last 30 days</CardTitle>
+            <CardDescription>Income vs expense</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer>
+                <BarChart data={daily}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="label" fontSize={10} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis fontSize={10} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
+                  <Bar dataKey="income" fill="#16a34a" />
+                  <Bar dataKey="expense" fill="#ef4444" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Recent transactions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y">
+            {tx.slice(0, 8).map((t) => {
+              const dir = txDirection(t.kind);
+              const sign = dir === "in" ? "+" : dir === "out" ? "−" : "";
+              const color = dir === "in" ? "text-emerald-500" : dir === "out" ? "text-rose-500" : "text-muted-foreground";
+              return (
+                <div key={t.id} className="flex items-center justify-between py-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Badge variant="secondary" className="text-[10px] capitalize">{TX_KIND_LABEL[t.kind]}</Badge>
+                    <span className="truncate text-muted-foreground">{t.note || catMap.get(t.category_id ?? "")?.name || "—"}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground font-mono">{t.occurred_on}</span>
+                    <span className={`font-mono ${color}`}>{sign}{fmtMoney(t.amount, currency)}</span>
+                  </div>
+                </div>
+              );
+            })}
+            {tx.length === 0 && <div className="py-8 text-center text-sm text-muted-foreground">No transactions yet.</div>}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <Card>
+      <CardHeader className="pb-1.5">
+        <CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{label}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-lg font-mono font-semibold">{value}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BudgetCard({ budget, tx, currency }: { budget: BudgetRow; tx: TxRow[]; currency: string }) {
+  const s = computeBudgetStatus(budget, tx);
+  const tone =
+    s.pct >= 100 ? "text-rose-500" : s.pct >= 75 ? "text-amber-500" : "text-emerald-500";
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base">{budget.name}</CardTitle>
+          <Badge variant="secondary" className="capitalize">{budget.period}</Badge>
+        </div>
+        <CardDescription>
+          {s.daysLeft} day{s.daysLeft === 1 ? "" : "s"} left · projected {fmtMoney(s.projected, currency)}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-baseline justify-between">
+          <div className={`text-2xl font-mono font-semibold ${tone}`}>
+            {fmtMoney(Math.max(0, s.remaining), currency)}
+          </div>
+          <div className="text-xs text-muted-foreground font-mono">
+            {fmtMoney(s.spent, currency)} / {fmtMoney(s.limit, currency)}
+          </div>
+        </div>
+        <Progress value={s.pct} className="mt-2 h-2" />
+        <div className="mt-1 text-xs text-muted-foreground">remaining of {budget.period}ly budget</div>
+      </CardContent>
+    </Card>
+  );
+}
