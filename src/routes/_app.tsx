@@ -13,12 +13,67 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 
+type CachedMe = {
+  userId: string;
+  username: string;
+  displayName: string;
+};
+
+type AppMe = CachedMe & { role: "admin" | "owner" | "investor" | "member" };
+
+const ME_CACHE_KEY = "zs:me:v1";
+
+function readCachedMe(): AppMe | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(ME_CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as CachedMe;
+    // Do not trust admin/owner role from client storage. Offline mode is for
+    // reading cached data and queuing supported personal writes only; privileged
+    // operations still require the server when back online.
+    return { ...cached, role: "member" };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedMe(me: AppMe) {
+  if (typeof window === "undefined") return;
+  try {
+    const cached: CachedMe = {
+      userId: me.userId,
+      username: me.username,
+      displayName: me.displayName,
+    };
+    window.localStorage.setItem(ME_CACHE_KEY, JSON.stringify(cached));
+  } catch {}
+}
+
+function isOfflineLikeError(error: unknown) {
+  const msg = String((error as any)?.message ?? error).toLowerCase();
+  return msg.includes("fetch") || msg.includes("network") || msg.includes("offline") || msg.includes("load failed");
+}
+
 export const Route = createFileRoute("/_app")({
   ssr: false,
   beforeLoad: async () => {
-    const me = await meFn();
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const cached = readCachedMe();
+      if (cached) return { me: cached, offline: true };
+    }
+
+    let me: AppMe | null = null;
+    try {
+      me = await meFn();
+    } catch (error) {
+      const cached = readCachedMe();
+      if (cached && isOfflineLikeError(error)) return { me: cached, offline: true };
+      throw error;
+    }
     if (!me) throw redirect({ to: "/auth" });
-    return { me };
+    writeCachedMe(me);
+    return { me, offline: false };
   },
   component: AppLayout,
 });

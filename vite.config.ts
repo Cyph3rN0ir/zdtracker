@@ -5,13 +5,59 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { VitePWA } from "vite-plugin-pwa";
 
-// Manifest-only PWA: home-screen installability + PWABuilder APK conversion
-// only require public/manifest.webmanifest + icons + head meta tags. No
-// service worker is registered. A kill-switch /sw.js cleans up returning
-// visitors that still have the previous vite-plugin-pwa SW installed.
+// Offline PWA support: vite-plugin-pwa generates /sw.js for published builds.
+// Registration is still guarded in src/lib/pwa-register.ts so dev/preview never
+// get sticky service-worker caches.
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
+  },
+  vite: {
+    plugins: [
+      VitePWA({
+        strategies: "generateSW",
+        filename: "sw.js",
+        registerType: "autoUpdate",
+        injectRegister: null,
+        devOptions: { enabled: false },
+        manifest: false,
+        workbox: {
+          clientsClaim: true,
+          skipWaiting: true,
+          cleanupOutdatedCaches: true,
+          navigateFallback: "/",
+          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+          additionalManifestEntries: [{ url: "/", revision: null }],
+          runtimeCaching: [
+            {
+              urlPattern: ({ request, url }) =>
+                request.mode === "navigate" &&
+                url.origin === self.location.origin &&
+                !url.pathname.startsWith("/~oauth") &&
+                !url.pathname.startsWith("/api/"),
+              handler: "NetworkFirst",
+              options: {
+                cacheName: "zs-html-pages",
+                networkTimeoutSeconds: 4,
+                expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
+            {
+              urlPattern: ({ url }) =>
+                url.origin === self.location.origin &&
+                (url.pathname.startsWith("/assets/") ||
+                  /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname)),
+              handler: "CacheFirst",
+              options: {
+                cacheName: "zs-static-assets",
+                expiration: { maxEntries: 240, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              },
+            },
+          ],
+        },
+      }),
+    ],
   },
 });

@@ -104,7 +104,7 @@ function People() {
         </Card>
       )}
 
-      {q.error && <ErrorBox error={q.error} />}
+      {q.isError && !q.data && !q.isFetching && <ErrorBox error={q.error} />}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {ROLES.map((r) => (

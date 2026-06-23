@@ -149,7 +149,7 @@ function Money() {
         </Card>
       )}
 
-      {q.error && <ErrorBox error={q.error} />}
+      {q.isError && !q.data && !q.isFetching && <ErrorBox error={q.error} />}
 
       <div className="grid grid-cols-1 gap-4">
         {KINDS.map((k) => (
