@@ -7,7 +7,6 @@ import { PageHeader, ErrorBox, EmptyState } from "./_app.index";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, Plus, User } from "lucide-react";
 
@@ -59,28 +58,23 @@ function PersonalList() {
             ) : q.error ? (
               <ErrorBox error={q.error} />
             ) : q.data && q.data.length ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="w-24 text-right"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {q.data.map((p: any) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild size="sm" variant="ghost">
-                          <Link to="/personal/$id" params={{ id: p.id }}>Open <ArrowRight className="h-3 w-3" /></Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <ul className="divide-y rounded-md border">
+                {q.data.map((p: any) => (
+                  <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Created {new Date(p.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <Button asChild size="sm" variant="ghost" className="shrink-0">
+                      <Link to="/personal/$id" params={{ id: p.id }}>
+                        Open <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             ) : (
               <EmptyState message="No personal profiles yet." />
             )}
