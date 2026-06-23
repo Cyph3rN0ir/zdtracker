@@ -16,26 +16,37 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 type CachedMe = {
   userId: string;
   username: string;
-  role: "admin" | "owner" | "investor" | "member";
   displayName: string;
 };
 
+type AppMe = CachedMe & { role: "admin" | "owner" | "investor" | "member" };
+
 const ME_CACHE_KEY = "zs:me:v1";
 
-function readCachedMe(): CachedMe | null {
+function readCachedMe(): AppMe | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(ME_CACHE_KEY);
-    return raw ? (JSON.parse(raw) as CachedMe) : null;
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as CachedMe;
+    // Do not trust admin/owner role from client storage. Offline mode is for
+    // reading cached data and queuing supported personal writes only; privileged
+    // operations still require the server when back online.
+    return { ...cached, role: "member" };
   } catch {
     return null;
   }
 }
 
-function writeCachedMe(me: CachedMe) {
+function writeCachedMe(me: AppMe) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(ME_CACHE_KEY, JSON.stringify(me));
+    const cached: CachedMe = {
+      userId: me.userId,
+      username: me.username,
+      displayName: me.displayName,
+    };
+    window.localStorage.setItem(ME_CACHE_KEY, JSON.stringify(cached));
   } catch {}
 }
 
@@ -52,7 +63,7 @@ export const Route = createFileRoute("/_app")({
       if (cached) return { me: cached, offline: true };
     }
 
-    let me: CachedMe | null = null;
+    let me: AppMe | null = null;
     try {
       me = await meFn();
     } catch (error) {

@@ -7,10 +7,9 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
-// Manifest-only PWA: home-screen installability + PWABuilder APK conversion
-// only require public/manifest.webmanifest + icons + head meta tags. No
-// service worker is registered. A kill-switch /sw.js cleans up returning
-// visitors that still have the previous vite-plugin-pwa SW installed.
+// Offline PWA support: vite-plugin-pwa generates /sw.js for published builds.
+// Registration is still guarded in src/lib/pwa-register.ts so dev/preview never
+// get sticky service-worker caches.
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
