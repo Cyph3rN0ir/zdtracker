@@ -32,6 +32,25 @@ import { Progress } from "@/components/ui/progress";
 export const Route = createFileRoute("/_app/personal/$id")({
   component: PersonalDetail,
   head: () => ({ meta: [{ title: "Profile — ZeroSync" }] }),
+  errorComponent: ({ error, reset }) => {
+    const router = useRouter();
+    return (
+      <div className="mx-auto max-w-md mt-16 p-6 text-center space-y-3">
+        <h2 className="text-lg font-semibold">Couldn’t load this profile</h2>
+        <p className="text-sm text-muted-foreground">{(error as Error)?.message ?? "Something went wrong."}</p>
+        <div className="flex justify-center gap-2">
+          <button className="text-sm underline" onClick={() => { router.invalidate(); reset(); }}>Try again</button>
+          <Link to="/personal" className="text-sm underline">Back to profiles</Link>
+        </div>
+      </div>
+    );
+  },
+  notFoundComponent: () => (
+    <div className="mx-auto max-w-md mt-16 p-6 text-center space-y-3">
+      <h2 className="text-lg font-semibold">Profile not found</h2>
+      <Link to="/personal" className="text-sm underline">Back to profiles</Link>
+    </div>
+  ),
 });
 
 const NONE = "__none__";
