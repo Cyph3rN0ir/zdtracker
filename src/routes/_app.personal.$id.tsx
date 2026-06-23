@@ -70,7 +70,21 @@ function PersonalDetail() {
     }
   }, [budgets.data, tx.data]);
 
-  const err = prof.error || tx.error || accts.error || cats.error || cps.error || loans.error || budgets.error;
+  // Only surface a hard error after the query has actually failed (not while
+  // it's still loading/retrying), and only when there's no data to show.
+  // Prevents transient network/SW blips from flashing "Not found".
+  const queries = [prof, tx, accts, cats, cps, loans, budgets];
+  const anyFetching = queries.some((q) => q.isFetching);
+  const hardErr = !anyFetching
+    ? (prof.isError && !prof.data ? prof.error
+      : tx.isError && !tx.data ? tx.error
+      : accts.isError && !accts.data ? accts.error
+      : cats.isError && !cats.data ? cats.error
+      : cps.isError && !cps.data ? cps.error
+      : loans.isError && !loans.data ? loans.error
+      : budgets.isError && !budgets.data ? budgets.error
+      : null)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -84,7 +98,7 @@ function PersonalDetail() {
         }
       />
 
-      {err && <ErrorBox error={err} />}
+      {hardErr && <ErrorBox error={hardErr} />}
 
       <Tabs defaultValue="overview" className="space-y-4">
         <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
