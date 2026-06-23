@@ -97,12 +97,8 @@ export function PersonalOverview({
 
   // 30-day net-worth line (running sum of signed flows, starting from netWorth − totalDelta).
   const netWorthSeries = useMemo(() => {
-    const totalDelta = tx.reduce((s, t) => {
-      const d = txDirection(t.kind);
-      return s + (d === "in" ? Number(t.amount) : d === "out" ? -Number(t.amount) : 0);
-    }, 0);
     const todayDate = new Date();
-    const startISO = (() => { const d = new Date(todayDate); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10); })();
+    const startISO = (() => { const d = new Date(todayDate); d.setDate(d.getDate() - 29); return toLocalISO(d); })();
     // Net worth as of the day before the window starts.
     let running = netWorth - tx
       .filter((t) => t.occurred_on >= startISO)
@@ -110,7 +106,6 @@ export function PersonalOverview({
         const d = txDirection(t.kind);
         return s + (d === "in" ? Number(t.amount) : d === "out" ? -Number(t.amount) : 0);
       }, 0);
-    void totalDelta;
     const points: { date: string; label: string; value: number }[] = [];
     const dayDelta = new Map<string, number>();
     for (const t of tx) {
