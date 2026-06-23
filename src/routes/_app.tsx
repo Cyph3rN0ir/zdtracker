@@ -165,7 +165,9 @@ function AppLayout() {
       </header>
 
       <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full">
-        <Outlet />
+        <PullToRefresh>
+          <Outlet />
+        </PullToRefresh>
       </main>
     </div>
   );
