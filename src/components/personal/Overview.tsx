@@ -105,20 +105,31 @@ export function PersonalOverview({
     return days.map((d) => ({ ...d, label: d.date.slice(5) }));
   }, [tx]);
 
-  // Per-account current balance (opening + signed deltas, transfers handled).
+  // Per-account current balance (opening + signed deltas).
+  // - transfer: debit account_id, credit transfer_account_id.
+  // - savings_deposit / investment_buy: account_id IS the savings/investment
+  //   account being credited (the cash debit isn't tracked separately in this
+  //   single-account model). Without this special-case, txDirection ("out")
+  //   would debit the savings account, so its balance would never grow.
+  // - savings_withdraw / investment_sell: debit account_id (the savings/inv
+  //   account); the cash credit isn't tracked separately.
+  // - all other kinds: follow txDirection on account_id.
   const accountBalances = useMemo(() => {
     const base = new Map<string, number>();
     for (const a of accounts) base.set(a.id, Number(a.opening_balance || 0));
+    const credit = (id: string | null, n: number) => { if (id) base.set(id, (base.get(id) ?? 0) + n); };
     for (const t of tx) {
-      const d = txDirection(t.kind);
       const amt = Number(t.amount);
-      if (t.account_id) {
-        if (t.kind === "transfer") base.set(t.account_id, (base.get(t.account_id) ?? 0) - amt);
-        else if (d === "in")  base.set(t.account_id, (base.get(t.account_id) ?? 0) + amt);
-        else if (d === "out") base.set(t.account_id, (base.get(t.account_id) ?? 0) - amt);
-      }
-      if (t.kind === "transfer" && t.transfer_account_id) {
-        base.set(t.transfer_account_id, (base.get(t.transfer_account_id) ?? 0) + amt);
+      if (t.kind === "transfer") {
+        credit(t.account_id, -amt);
+        credit(t.transfer_account_id, +amt);
+      } else if (t.kind === "savings_deposit" || t.kind === "investment_buy") {
+        credit(t.account_id, +amt);
+      } else if (t.kind === "savings_withdraw" || t.kind === "investment_sell") {
+        credit(t.account_id, -amt);
+      } else {
+        const d = txDirection(t.kind);
+        credit(t.account_id, d === "in" ? +amt : d === "out" ? -amt : 0);
       }
     }
     return accounts.map((a) => ({ ...a, balance: base.get(a.id) ?? 0 }));
