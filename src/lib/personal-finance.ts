@@ -156,3 +156,9 @@ export function computeBudgetStatus(b: BudgetRow, tx: TxRow[], today = new Date(
   const projected = elapsedDays > 0 ? (spent / elapsedDays) * totalDays : 0;
   return { start, end, spent, limit, remaining, pct, daysLeft, totalDays, projected };
 }
+
+// Plain 2-decimal number formatter (no currency symbol). Used by business pages.
+export function fmt(n: number | string) {
+  const v = Number(n) || 0;
+  return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
