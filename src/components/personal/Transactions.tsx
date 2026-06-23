@@ -254,43 +254,51 @@ export function PersonalTransactions({
               const color = dir === "in" ? "text-emerald-500" : dir === "out" ? "text-rose-500" : "text-muted-foreground";
               const editing = editingId === t.id;
               return (
-                <div key={t.id} className="grid grid-cols-12 gap-2 items-center px-4 py-2 text-sm">
-                  <div className="col-span-2 font-mono text-xs text-muted-foreground">{t.occurred_on}</div>
-                  <div className="col-span-2"><Badge variant="secondary" className="text-[10px]">{TX_KIND_LABEL[t.kind]}</Badge></div>
-                  <div className="col-span-4 truncate">
+                <div key={t.id} className="px-3 py-2.5 sm:px-4 text-sm flex flex-col gap-1.5 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center">
+                  <div className="flex items-center justify-between gap-2 sm:contents">
+                    <div className="flex items-center gap-2 min-w-0 sm:col-span-2">
+                      <span className="font-mono text-[11px] text-muted-foreground shrink-0">{t.occurred_on}</span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Badge variant="secondary" className="text-[10px]">{TX_KIND_LABEL[t.kind]}</Badge>
+                    </div>
+                  </div>
+                  <div className="min-w-0 sm:col-span-4">
                     {editing ? (
                       <Input value={editNote} onChange={(e) => setEditNote(e.target.value)} className="h-7" />
                     ) : (
-                      <span className="text-muted-foreground">
+                      <span className="text-muted-foreground block truncate">
                         {t.note || [catName(t.category_id), acctName(t.account_id), cpName(t.counterparty_id)].filter(Boolean).join(" · ") || "—"}
                       </span>
                     )}
                   </div>
-                  <div className={`col-span-2 text-right font-mono ${color}`}>
-                    {editing ? (
-                      <Input value={editAmount} onChange={(e) => setEditAmount(e.target.value)} className="h-7 text-right font-mono" />
-                    ) : (
-                      <>{sign}{fmtMoney(t.amount, currency)}</>
-                    )}
-                  </div>
-                  <div className="col-span-2 flex justify-end gap-1">
-                    {editing ? (
-                      <>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate(t)}><Check className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-3.5 w-3.5" /></Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
-                          onClick={() => { setEditingId(t.id); setEditAmount(String(t.amount)); setEditNote(t.note ?? ""); }}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => dm.mutate(t.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </>
-                    )}
+                  <div className="flex items-center justify-between gap-2 sm:contents">
+                    <div className={`font-mono text-right sm:col-span-2 ${color}`}>
+                      {editing ? (
+                        <Input value={editAmount} onChange={(e) => setEditAmount(e.target.value)} className="h-7 text-right font-mono" />
+                      ) : (
+                        <>{sign}{fmtMoney(t.amount, currency)}</>
+                      )}
+                    </div>
+                    <div className="flex justify-end gap-1 sm:col-span-2">
+                      {editing ? (
+                        <>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate(t)}><Check className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-3.5 w-3.5" /></Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
+                            onClick={() => { setEditingId(t.id); setEditAmount(String(t.amount)); setEditNote(t.note ?? ""); }}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => dm.mutate(t.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

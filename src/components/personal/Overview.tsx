@@ -191,9 +191,9 @@ export function PersonalOverview({
             <div className="h-64">
               <ResponsiveContainer>
                 <BarChart data={daily}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="label" fontSize={10} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis fontSize={10} stroke="hsl(var(--muted-foreground))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="label" fontSize={10} stroke="var(--muted-foreground)" />
+                  <YAxis fontSize={10} stroke="var(--muted-foreground)" />
                   <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
                   <Bar dataKey="income" fill="#16a34a" />
                   <Bar dataKey="expense" fill="#ef4444" />
@@ -214,9 +214,9 @@ export function PersonalOverview({
             <div className="h-56">
               <ResponsiveContainer>
                 <LineChart data={netWorthSeries}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="label" fontSize={10} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis fontSize={10} stroke="hsl(var(--muted-foreground))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="label" fontSize={10} stroke="var(--muted-foreground)" />
+                  <YAxis fontSize={10} stroke="var(--muted-foreground)" />
                   <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
                   <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} dot={false} />
                 </LineChart>

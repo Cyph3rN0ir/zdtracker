@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Trash2, HandCoins } from "lucide-react";
 import { fmtMoney, todayISO, TxRow } from "@/lib/personal-finance";
 
@@ -183,7 +183,7 @@ export function PersonalLoans({
               <Label>Note</Label>
               <Input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
             </div>
-            <Button type="submit" disabled={add.isPending}><Plus className="h-4 w-4" /> Add</Button>
+            <Button type="submit" disabled={add.isPending} className="md:col-span-1"><Plus className="h-4 w-4" /> Add</Button>
           </form>
         </CardContent>
       </Card>
@@ -201,15 +201,17 @@ export function PersonalLoans({
                 const repaid = repaidByLoan.get(l.id) ?? 0;
                 const outstanding = Math.max(0, Number(l.principal) - repaid);
                 return (
-                  <div key={l.id} className="px-4 py-3 grid grid-cols-12 gap-2 items-center text-sm">
-                    <div className="col-span-3">
-                      <div className="font-medium">{cpName(l.counterparty_id)}</div>
+                  <div key={l.id} className="px-3 sm:px-4 py-3 flex flex-col gap-2 text-sm sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center">
+                    <div className="sm:col-span-3 min-w-0">
+                      <div className="font-medium truncate">{cpName(l.counterparty_id)}</div>
                       <div className="text-xs text-muted-foreground">{l.started_on}{l.due_on ? ` → ${l.due_on}` : ""}</div>
                     </div>
-                    <div className="col-span-2 text-xs text-muted-foreground">Principal<br /><span className="font-mono text-foreground">{fmtMoney(l.principal, currency)}</span></div>
-                    <div className="col-span-2 text-xs text-muted-foreground">Repaid<br /><span className="font-mono text-foreground">{fmtMoney(repaid, currency)}</span></div>
-                    <div className="col-span-2 text-xs text-muted-foreground">Outstanding<br /><span className={`font-mono ${outstanding > 0 ? "text-foreground" : "text-emerald-500"}`}>{fmtMoney(outstanding, currency)}</span></div>
-                    <div className="col-span-3 flex justify-end gap-1.5">
+                    <div className="grid grid-cols-3 gap-2 sm:contents">
+                      <div className="sm:col-span-2 text-xs text-muted-foreground">Principal<br /><span className="font-mono text-foreground">{fmtMoney(l.principal, currency)}</span></div>
+                      <div className="sm:col-span-2 text-xs text-muted-foreground">Repaid<br /><span className="font-mono text-foreground">{fmtMoney(repaid, currency)}</span></div>
+                      <div className="sm:col-span-2 text-xs text-muted-foreground">Outstanding<br /><span className={`font-mono ${outstanding > 0 ? "text-foreground" : "text-emerald-500"}`}>{fmtMoney(outstanding, currency)}</span></div>
+                    </div>
+                    <div className="flex justify-end gap-1.5 sm:col-span-3 flex-wrap">
                       <RepaymentDialog loan={l} accounts={accounts} currency={currency}
                         onAdd={async (amount, accountId, note, occurredOn) => {
                           await addTx({
@@ -280,7 +282,10 @@ function RepaymentDialog({
         <Button size="sm" variant="secondary"><HandCoins className="h-3.5 w-3.5" /> Repayment</Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Record repayment</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Record repayment</DialogTitle>
+          <DialogDescription>Repayment for {fmtMoney(loan.principal, currency)} loan.</DialogDescription>
+        </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Amount</Label>
