@@ -22,7 +22,19 @@ export default defineConfig({
         filename: "sw.js",
         manifest: false, // we ship our own public/manifest.webmanifest
         workbox: {
-          globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff2}"],
+          // Keep the precache small and predictable so the SW `install` step
+          // can never stall on a slow mobile connection.
+          globPatterns: ["**/*.{js,css,woff2}"],
+          globIgnores: [
+            "**/node_modules/**",
+            "**/_server/**",
+            "**/server/**",
+            "**/_worker.js/**",
+            "**/*.map",
+            "**/sw.js",
+            "**/workbox-*.js",
+          ],
+          maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           navigateFallback: "/offline.html",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/_server\//, /^\/sw\.js$/],
           cleanupOutdatedCaches: true,
@@ -30,6 +42,8 @@ export default defineConfig({
           skipWaiting: true,
           runtimeCaching: [
             {
+              // HTML / navigations — always try the network first so users
+              // get fresh pages; fall back to cache, then to /offline.html.
               urlPattern: ({ request }) => request.mode === "navigate",
               handler: "NetworkFirst",
               options: {
@@ -38,6 +52,7 @@ export default defineConfig({
                 expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 },
               },
             },
+
             {
               urlPattern: ({ request, sameOrigin }) =>
                 sameOrigin && (request.destination === "script" || request.destination === "style" || request.destination === "worker"),
