@@ -307,7 +307,7 @@ export function PersonalOverview({
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <Card>
       <CardHeader className="pb-1.5">
@@ -315,6 +315,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
       </CardHeader>
       <CardContent>
         <div className="text-lg font-mono font-semibold">{value}</div>
+        {hint && <div className="text-[10px] mt-0.5 text-muted-foreground font-mono">{hint}</div>}
       </CardContent>
     </Card>
   );
