@@ -2,13 +2,34 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createPersonalProfileFn, listPersonalProfilesFn } from "@/lib/zt.functions";
+import {
+  createPersonalProfileFn,
+  deletePersonalProfileFn,
+  listPersonalProfilesFn,
+} from "@/lib/zt.functions";
 import { PageHeader, ErrorBox, EmptyState } from "./_app.index";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Plus, User } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { ArrowRight, Plus, User, MoreVertical, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/personal/")({
   component: PersonalList,
@@ -18,12 +39,22 @@ export const Route = createFileRoute("/_app/personal/")({
 function PersonalList() {
   const list = useServerFn(listPersonalProfilesFn);
   const create = useServerFn(createPersonalProfileFn);
+  const del = useServerFn(deletePersonalProfileFn);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["personal"], queryFn: () => list() });
   const [name, setName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const m = useMutation({
     mutationFn: () => create({ data: { name: name.trim() } }),
     onSuccess: () => { setName(""); qc.invalidateQueries({ queryKey: ["personal"] }); },
+  });
+  const delM = useMutation({
+    mutationFn: (id: string) => del({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Profile deleted");
+      qc.invalidateQueries({ queryKey: ["personal"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
   return (
     <div className="space-y-6">
@@ -67,11 +98,28 @@ function PersonalList() {
                         Created {new Date(p.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                    <Button asChild size="sm" variant="ghost" className="shrink-0">
-                      <Link to="/personal/$id" params={{ id: p.id }}>
-                        Open <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button asChild size="sm" variant="ghost">
+                        <Link to="/personal/$id" params={{ id: p.id }}>
+                          Open <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="ghost" aria-label={`Actions for ${p.name}`}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => setDeleteTarget({ id: p.id, name: p.name })}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -81,6 +129,30 @@ function PersonalList() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the profile and all its accounts, transactions, categories,
+              counterparties, loans, and budgets. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteTarget) delM.mutate(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
