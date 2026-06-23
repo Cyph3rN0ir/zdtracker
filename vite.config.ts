@@ -28,15 +28,22 @@ export default defineConfig({
           skipWaiting: true,
           cleanupOutdatedCaches: true,
           navigateFallback: "/",
-          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
-          additionalManifestEntries: [{ url: "/", revision: null }],
+          // Routes that must NEVER serve the cached app shell offline (OAuth
+          // brokers, raw API endpoints, the auth flow itself — the app shell
+          // would immediately call protected server fns and 401-spam).
+          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/auth(\/|$)/],
+          additionalManifestEntries: [
+            { url: "/", revision: null },
+            { url: "/offline.html", revision: null },
+          ],
           runtimeCaching: [
             {
               urlPattern: ({ request, url }) =>
                 request.mode === "navigate" &&
                 url.origin === self.location.origin &&
                 !url.pathname.startsWith("/~oauth") &&
-                !url.pathname.startsWith("/api/"),
+                !url.pathname.startsWith("/api/") &&
+                !url.pathname.startsWith("/auth"),
               handler: "NetworkFirst",
               options: {
                 cacheName: "zs-html-pages",
