@@ -130,7 +130,9 @@ export function startOfMonthISO(d = new Date()) {
 }
 
 export function daysBetween(aIso: string, bIso: string) {
-  return Math.round((+new Date(bIso) - +new Date(aIso)) / 86_400_000);
+  // Parse as LOCAL midnight (suffix "T00:00:00") so DST/timezone offsets
+  // don't shift either side and produce off-by-one results in UTC+5:30/+6.
+  return Math.round((+new Date(bIso + "T00:00:00") - +new Date(aIso + "T00:00:00")) / 86_400_000);
 }
 
 export function periodWindow(period: "week" | "month", today = new Date()) {
