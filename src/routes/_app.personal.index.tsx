@@ -55,7 +55,7 @@ function PersonalList() {
           <CardContent>
             {q.isLoading ? (
               <Skeleton className="h-9 w-full" />
-            ) : q.error ? (
+            ) : q.isError && !q.data && !q.isFetching ? (
               <ErrorBox error={q.error} />
             ) : q.data && q.data.length ? (
               <ul className="divide-y rounded-md border">
