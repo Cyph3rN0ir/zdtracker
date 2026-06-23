@@ -62,19 +62,40 @@ export function isIncome(k: TxKind) {
   return k === "income";
 }
 
-export function fmtMoney(n: number | string, currency = "BDT") {
+function currentLang(): "en" | "bn" {
+  if (typeof document !== "undefined") {
+    const l = document.documentElement.lang;
+    if (l === "bn") return "bn";
+  }
+  return "en";
+}
+
+export function fmtMoney(n: number | string, currency = "BDT", langOverride?: "en" | "bn") {
   const v = Number(n) || 0;
-  // Force a locale that renders the BDT symbol (৳) inline; other locales
-  // would print "BDT 1,234.00" instead of "৳1,234.00".
-  const locale = currency === "BDT" ? "bn-BD" : undefined;
+  const lang = langOverride ?? currentLang();
+  // English: "BDT 1,234.00" with Latin digits.
+  // Bangla:  "৳১,২৩৪.০০" with Bengali digits.
+  if (lang === "bn" && currency === "BDT") {
+    try {
+      const num = new Intl.NumberFormat("bn-BD", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(v);
+      return `৳${num}`;
+    } catch {
+      return `৳${v.toFixed(2)}`;
+    }
+  }
   try {
-    return new Intl.NumberFormat(locale, {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
+      currencyDisplay: "code",
       maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
     }).format(v);
   } catch {
-    return `৳${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${currency} ${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 }
 
