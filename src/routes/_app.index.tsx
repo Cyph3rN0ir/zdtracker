@@ -32,6 +32,7 @@ function Dashboard() {
   const { me } = Route.useRouteContext() as any;
   const list = useServerFn(listBusinessesFn);
   const create = useServerFn(createBusinessFn);
+  const del = useServerFn(deleteBusinessFn);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["businesses"], queryFn: () => list() });
   const [name, setName] = useState("");
@@ -41,6 +42,14 @@ function Dashboard() {
       setName("");
       qc.invalidateQueries({ queryKey: ["businesses"] });
     },
+  });
+  const delM = useMutation({
+    mutationFn: (id: string) => del({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Business deleted");
+      qc.invalidateQueries({ queryKey: ["businesses"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
 
   return (
