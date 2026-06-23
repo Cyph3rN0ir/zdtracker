@@ -1,24 +1,20 @@
 import { useEffect } from "react";
-import { toast } from "sonner";
-import { registerPWA } from "./pwa-register";
 
+// Manifest-only PWA: no service worker is needed for install / Add to
+// Home Screen / PWABuilder APK conversion. We keep this component mounted
+// only to actively unregister any leftover service workers from earlier
+// builds (vite-plugin-pwa). The /sw.js kill-switch worker also handles
+// returning visitors that still have the old SW activated.
 export function PWAUpdater() {
   useEffect(() => {
-    let activate: (() => Promise<void>) | null = null;
-    registerPWA(() => {
-      toast("Update available", {
-        description: "A new version of ZeroSync is ready.",
-        duration: Infinity,
-        action: {
-          label: "Reload",
-          onClick: () => {
-            activate?.();
-          },
-        },
-      });
-    }).then((fn) => {
-      activate = fn;
-    });
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator)) return;
+    (async () => {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.allSettled(regs.map((r) => r.unregister()));
+      } catch {}
+    })();
   }, []);
   return null;
 }
