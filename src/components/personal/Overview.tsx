@@ -161,13 +161,17 @@ export function PersonalOverview({
         <StatCard label="Net worth" value={fmtMoney(netWorth, currency)} />
         <StatCard label="This week spend" value={fmtMoney(weekSpend, currency)} />
         <StatCard label="This month spend" value={fmtMoney(monthSpend, currency)} />
-        <StatCard label="Savings rate" value={`${savingsRate.toFixed(0)}%`} />
+        <StatCard
+          label="Savings"
+          value={fmtMoney(savingsBalance, currency)}
+          hint={`${savedThisMonth >= 0 ? "+" : "−"}${fmtMoney(Math.abs(savedThisMonth), currency)} this month`}
+        />
       </div>
 
       {(weeklyBudgets.length + monthlyBudgets.length) > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {weeklyBudgets.slice(0, 1).map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
-          {monthlyBudgets.slice(0, 1).map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {weeklyBudgets.map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
+          {monthlyBudgets.map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
         </div>
       )}
 
