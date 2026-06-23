@@ -11,6 +11,7 @@ import { useI18n } from "@/lib/i18n";
 import { useTheme, THEMES, type Theme } from "@/lib/theme";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
@@ -169,6 +170,7 @@ function AppLayout() {
           <Outlet />
         </PullToRefresh>
       </main>
+      <OfflineIndicator />
     </div>
   );
 }
