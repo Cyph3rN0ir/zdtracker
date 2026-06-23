@@ -76,6 +76,58 @@ export function PersonalOverview({
     return days.map((d) => ({ ...d, label: d.date.slice(5) }));
   }, [tx]);
 
+  // Per-account current balance (opening + signed deltas, transfers handled).
+  const accountBalances = useMemo(() => {
+    const base = new Map<string, number>();
+    for (const a of accounts) base.set(a.id, Number(a.opening_balance || 0));
+    for (const t of tx) {
+      const d = txDirection(t.kind);
+      const amt = Number(t.amount);
+      if (t.account_id) {
+        if (t.kind === "transfer") base.set(t.account_id, (base.get(t.account_id) ?? 0) - amt);
+        else if (d === "in")  base.set(t.account_id, (base.get(t.account_id) ?? 0) + amt);
+        else if (d === "out") base.set(t.account_id, (base.get(t.account_id) ?? 0) - amt);
+      }
+      if (t.kind === "transfer" && t.transfer_account_id) {
+        base.set(t.transfer_account_id, (base.get(t.transfer_account_id) ?? 0) + amt);
+      }
+    }
+    return accounts.map((a) => ({ ...a, balance: base.get(a.id) ?? 0 }));
+  }, [accounts, tx]);
+
+  // 30-day net-worth line (running sum of signed flows, starting from netWorth − totalDelta).
+  const netWorthSeries = useMemo(() => {
+    const totalDelta = tx.reduce((s, t) => {
+      const d = txDirection(t.kind);
+      return s + (d === "in" ? Number(t.amount) : d === "out" ? -Number(t.amount) : 0);
+    }, 0);
+    const todayDate = new Date();
+    const startISO = (() => { const d = new Date(todayDate); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10); })();
+    // Net worth as of the day before the window starts.
+    let running = netWorth - tx
+      .filter((t) => t.occurred_on >= startISO)
+      .reduce((s, t) => {
+        const d = txDirection(t.kind);
+        return s + (d === "in" ? Number(t.amount) : d === "out" ? -Number(t.amount) : 0);
+      }, 0);
+    void totalDelta;
+    const points: { date: string; label: string; value: number }[] = [];
+    const dayDelta = new Map<string, number>();
+    for (const t of tx) {
+      if (t.occurred_on < startISO) continue;
+      const d = txDirection(t.kind);
+      const flow = d === "in" ? Number(t.amount) : d === "out" ? -Number(t.amount) : 0;
+      dayDelta.set(t.occurred_on, (dayDelta.get(t.occurred_on) ?? 0) + flow);
+    }
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(todayDate); d.setDate(d.getDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      running += dayDelta.get(iso) ?? 0;
+      points.push({ date: iso, label: iso.slice(5), value: Math.round(running * 100) / 100 });
+    }
+    return points;
+  }, [tx, netWorth]);
+
   const weeklyBudgets = budgets.filter((b) => b.active && b.period === "week");
   const monthlyBudgets = budgets.filter((b) => b.active && b.period === "month");
 
