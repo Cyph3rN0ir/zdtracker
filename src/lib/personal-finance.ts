@@ -81,9 +81,9 @@ export function fmtMoney(n: number | string, currency = "BDT", langOverride?: "e
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(v);
-      return `${num} ৳`;
+      return `${num} টাকা`;
     } catch {
-      return `${v.toFixed(2)} ৳`;
+      return `${v.toFixed(2)} টাকা`;
     }
   }
   try {
