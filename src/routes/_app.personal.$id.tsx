@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { registerOfflineRunner } from "@/lib/offline-queue";
+import { addPersonalTxExFn as addTxFnImport } from "@/lib/zt.functions";
 import {
   getPersonalProfileFn, listPersonalTxExFn,
   listPersonalAccountsFn, upsertPersonalAccountFn, deletePersonalAccountFn,
