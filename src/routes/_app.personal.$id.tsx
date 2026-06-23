@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { PersonalOverview } from "@/components/personal/Overview";
 import { PersonalTransactions } from "@/components/personal/Transactions";
+import { PersonalLoans } from "@/components/personal/Loans";
+import { PersonalCategories } from "@/components/personal/Categories";
 import { computeBudgetStatus, fmtMoney, todayISO, BudgetRow, TxRow } from "@/lib/personal-finance";
 import { Progress } from "@/components/ui/progress";
 
@@ -88,8 +90,10 @@ function PersonalDetail() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="tx">Transactions</TabsTrigger>
+          <TabsTrigger value="loans">Loans</TabsTrigger>
           <TabsTrigger value="accounts">Accounts</TabsTrigger>
           <TabsTrigger value="budgets">Budgets</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="people">People</TabsTrigger>
         </TabsList>
 
@@ -115,6 +119,17 @@ function PersonalDetail() {
           />
         </TabsContent>
 
+        <TabsContent value="loans">
+          <PersonalLoans
+            profileId={id}
+            loans={(loans.data ?? []) as any}
+            counterparties={(cps.data ?? []) as any}
+            accounts={(accts.data ?? []) as any}
+            tx={(tx.data ?? []) as TxRow[]}
+            currency={currency}
+          />
+        </TabsContent>
+
         <TabsContent value="accounts">
           <AccountsTab profileId={id} accounts={(accts.data ?? []) as any} currency={currency} />
         </TabsContent>
@@ -123,9 +138,14 @@ function PersonalDetail() {
           <BudgetsTab profileId={id} budgets={(budgets.data ?? []) as BudgetRow[]} categories={(cats.data ?? []) as any} tx={(tx.data ?? []) as TxRow[]} currency={currency} />
         </TabsContent>
 
+        <TabsContent value="categories">
+          <PersonalCategories profileId={id} categories={(cats.data ?? []) as any} />
+        </TabsContent>
+
         <TabsContent value="people">
           <CounterpartiesTab profileId={id} counterparties={(cps.data ?? []) as any} />
         </TabsContent>
+
       </Tabs>
     </div>
   );
