@@ -84,6 +84,21 @@ export const deleteBusinessFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const renameBusinessFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), name: z.string().trim().min(1).max(120) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const { error } = await getSupabaseAdmin()
+      .from("businesses")
+      .update({ name: data.name })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // ---------- Members ----------
 export const listMembersFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))

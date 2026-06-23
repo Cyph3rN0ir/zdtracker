@@ -31,9 +31,37 @@ export function PersonalOverview({
     .reduce((s, t) => s + Number(t.amount), 0);
   const monthSpend = tx.filter((t) => isSpend(t.kind) && t.occurred_on >= month.start && t.occurred_on <= month.end)
     .reduce((s, t) => s + Number(t.amount), 0);
-  const monthIncome = tx.filter((t) => isIncome(t.kind) && t.occurred_on >= month.start && t.occurred_on <= month.end)
-    .reduce((s, t) => s + Number(t.amount), 0);
-  const savingsRate = monthIncome > 0 ? Math.max(0, ((monthIncome - monthSpend) / monthIncome) * 100) : 0;
+
+  // Savings: balance held in accounts of type 'savings' + net deposits this month.
+  const savingsAcctIds = new Set(accounts.filter((a) => a.type === "savings").map((a) => a.id));
+  const savingsBase = accounts
+    .filter((a) => savingsAcctIds.has(a.id))
+    .reduce((s, a) => s + Number(a.opening_balance || 0), 0);
+  const savingsDelta = tx.reduce((s, t) => {
+    const amt = Number(t.amount);
+    // Net change to any savings-type account.
+    if (t.account_id && savingsAcctIds.has(t.account_id)) {
+      if (t.kind === "transfer") return s - amt;
+      const d = txDirection(t.kind);
+      if (d === "in") return s + amt;
+      if (d === "out") return s - amt;
+    }
+    if (t.kind === "transfer" && t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id)) {
+      return s + amt;
+    }
+    return s;
+  }, 0);
+  const savingsBalance = savingsBase + savingsDelta;
+  const savedThisMonth = tx
+    .filter((t) => t.occurred_on >= month.start && t.occurred_on <= month.end)
+    .reduce((s, t) => {
+      const amt = Number(t.amount);
+      if (t.kind === "savings_deposit") return s + amt;
+      if (t.kind === "savings_withdraw") return s - amt;
+      if (t.kind === "transfer" && t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id)) return s + amt;
+      if (t.kind === "transfer" && t.account_id && savingsAcctIds.has(t.account_id)) return s - amt;
+      return s;
+    }, 0);
 
   const netWorth = useMemo(() => {
     const acctBase = accounts.reduce((s, a) => s + Number(a.opening_balance || 0), 0);
@@ -133,13 +161,17 @@ export function PersonalOverview({
         <StatCard label="Net worth" value={fmtMoney(netWorth, currency)} />
         <StatCard label="This week spend" value={fmtMoney(weekSpend, currency)} />
         <StatCard label="This month spend" value={fmtMoney(monthSpend, currency)} />
-        <StatCard label="Savings rate" value={`${savingsRate.toFixed(0)}%`} />
+        <StatCard
+          label="Savings"
+          value={fmtMoney(savingsBalance, currency)}
+          hint={`${savedThisMonth >= 0 ? "+" : "−"}${fmtMoney(Math.abs(savedThisMonth), currency)} this month`}
+        />
       </div>
 
       {(weeklyBudgets.length + monthlyBudgets.length) > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {weeklyBudgets.slice(0, 1).map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
-          {monthlyBudgets.slice(0, 1).map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {weeklyBudgets.map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
+          {monthlyBudgets.map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
         </div>
       )}
 
@@ -275,7 +307,7 @@ export function PersonalOverview({
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <Card>
       <CardHeader className="pb-1.5">
@@ -283,6 +315,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
       </CardHeader>
       <CardContent>
         <div className="text-lg font-mono font-semibold">{value}</div>
+        {hint && <div className="text-[10px] mt-0.5 text-muted-foreground font-mono">{hint}</div>}
       </CardContent>
     </Card>
   );

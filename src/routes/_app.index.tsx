@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createBusinessFn, deleteBusinessFn, listBusinessesFn } from "@/lib/zt.functions";
+import { createBusinessFn, deleteBusinessFn, listBusinessesFn, renameBusinessFn } from "@/lib/zt.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,10 +18,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { ArrowRight, Plus, Building2, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, Building2, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
@@ -33,6 +46,7 @@ function Dashboard() {
   const list = useServerFn(listBusinessesFn);
   const create = useServerFn(createBusinessFn);
   const del = useServerFn(deleteBusinessFn);
+  const ren = useServerFn(renameBusinessFn);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["businesses"], queryFn: () => list() });
   const [name, setName] = useState("");
@@ -51,6 +65,18 @@ function Dashboard() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
+  const renM = useMutation({
+    mutationFn: (v: { id: string; name: string }) => ren({ data: v }),
+    onSuccess: () => {
+      toast.success("Renamed");
+      setRenameTarget(null);
+      qc.invalidateQueries({ queryKey: ["businesses"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to rename"),
+  });
+
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <div className="space-y-6">
@@ -125,37 +151,31 @@ function Dashboard() {
                             </Link>
                           </Button>
                           {me.role === "admin" && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="text-destructive hover:text-destructive"
-                                  aria-label={`Delete ${b.name}`}
-                                  disabled={delM.isPending}
+                                  aria-label={`Actions for ${b.name}`}
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <MoreVertical className="h-4 w-4" />
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete "{b.name}"?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This permanently removes the business and all its members,
-                                    money transactions, and tasks. This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => delM.mutate(b.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-40">
+                                <DropdownMenuItem
+                                  onSelect={() => setRenameTarget({ id: b.id, name: b.name })}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" /> Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onSelect={() => setDeleteTarget({ id: b.id, name: b.name })}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
                         </div>
                       </TableCell>
@@ -171,6 +191,59 @@ function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!renameTarget} onOpenChange={(o) => !o && setRenameTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename business</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!renameTarget) return;
+              const v = renameTarget.name.trim();
+              if (v) renM.mutate({ id: renameTarget.id, name: v });
+            }}
+            className="space-y-3"
+          >
+            <Input
+              value={renameTarget?.name ?? ""}
+              onChange={(e) =>
+                setRenameTarget((t) => (t ? { ...t, name: e.target.value } : t))
+              }
+              autoFocus
+            />
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setRenameTarget(null)}>Cancel</Button>
+              <Button type="submit" disabled={renM.isPending || !renameTarget?.name.trim()}>Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the business and all its members, money transactions, and tasks.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteTarget) delM.mutate(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

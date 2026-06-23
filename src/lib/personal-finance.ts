@@ -142,7 +142,12 @@ export interface TxRow {
 }
 
 export function computeBudgetStatus(b: BudgetRow, tx: TxRow[], today = new Date()) {
-  const { start, end, totalDays } = periodWindow(b.period, today);
+  const win = periodWindow(b.period, today);
+  // Clamp window start to the budget's own start_date when it falls inside
+  // the current period (handles budgets created mid-period).
+  const start = b.start_date && b.start_date > win.start ? b.start_date : win.start;
+  const end = win.end;
+  const totalDays = Math.max(1, daysBetween(start, end) + 1);
   const spent = tx
     .filter((t) => isSpend(t.kind))
     .filter((t) => t.occurred_on >= start && t.occurred_on <= end)
@@ -151,7 +156,7 @@ export function computeBudgetStatus(b: BudgetRow, tx: TxRow[], today = new Date(
   const limit = Number(b.amount);
   const remaining = limit - spent;
   const pct = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
-  const elapsedDays = Math.min(totalDays, daysBetween(start, todayISO()) + 1);
+  const elapsedDays = Math.min(totalDays, Math.max(1, daysBetween(start, todayISO()) + 1));
   const daysLeft = Math.max(0, totalDays - elapsedDays);
   const projected = elapsedDays > 0 ? (spent / elapsedDays) * totalDays : 0;
   return { start, end, spent, limit, remaining, pct, daysLeft, totalDays, projected };

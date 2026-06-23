@@ -10,6 +10,7 @@ import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu, Languages, Pale
 import { useI18n } from "@/lib/i18n";
 import { useTheme, THEMES, type Theme } from "@/lib/theme";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
@@ -164,7 +165,9 @@ function AppLayout() {
       </header>
 
       <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full">
-        <Outlet />
+        <PullToRefresh>
+          <Outlet />
+        </PullToRefresh>
       </main>
     </div>
   );
