@@ -128,9 +128,9 @@ function Money() {
                 <Label>{t("common.date")}</Label>
                 <Input type="date" value={form.occurredOn} onChange={(e) => setForm({ ...form, occurredOn: e.target.value })} />
               </div>
-              <div className="md:col-span-6 flex items-center justify-between gap-3 flex-wrap">
-                {formErr ? <p className="text-xs text-destructive">{formErr}</p> : <span />}
-                <Button type="submit" disabled={m.isPending}>
+              <div className="md:col-span-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+                {formErr ? <p className="text-xs text-destructive break-words">{formErr}</p> : <span className="hidden sm:block" />}
+                <Button type="submit" disabled={m.isPending} className="w-full sm:w-auto shrink-0">
                   <Plus className="h-4 w-4" /> {t("money.addTx")}
                 </Button>
               </div>
