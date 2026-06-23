@@ -245,6 +245,26 @@ export const createPersonalProfileFn = createServerFn({ method: "POST" })
     return row;
   });
 
+export const deletePersonalProfileFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const me = await requireSession();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const supa = getSupabaseAdmin();
+    // Ownership check before delete
+    const { data: prof, error: pErr } = await supa
+      .from("personal_profiles")
+      .select("id, owner_user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    if (!prof || prof.owner_user_id !== me.userId) throw new Error("Not found");
+    // FKs on personal_* tables cascade from profile_id.
+    const { error } = await supa.from("personal_profiles").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const getPersonalProfileFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
