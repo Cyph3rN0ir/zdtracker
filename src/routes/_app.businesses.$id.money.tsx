@@ -169,37 +169,67 @@ function Section({ title, rows, onDelete }: { title: string; rows: any[]; onDele
         <CardTitle className="text-base break-words min-w-0">{title}</CardTitle>
         <div className="text-sm font-mono whitespace-nowrap text-muted-foreground sm:text-foreground">{t("common.total")}: {fmt(total)}</div>
       </CardHeader>
-      <CardContent className="p-0 overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-32 pl-6">{t("common.date")}</TableHead>
-              <TableHead className="w-40">{t("money.party")}</TableHead>
-              <TableHead>{t("common.note")}</TableHead>
-              <TableHead className="text-right w-32">{t("common.amount")}</TableHead>
-              {onDelete && <TableHead className="w-12 pr-6"></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow><TableCell colSpan={onDelete ? 5 : 4} className="text-center py-6 text-muted-foreground text-xs">{t("common.none")}</TableCell></TableRow>
-            ) : rows.map((tx) => (
-              <TableRow key={tx.id}>
-                <TableCell className="font-mono text-xs pl-6">{tx.occurred_on}</TableCell>
-                <TableCell>{tx.party?.username ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                <TableCell>{tx.note}</TableCell>
-                <TableCell className="text-right font-mono">{fmt(tx.amount)}</TableCell>
-                {onDelete && (
-                  <TableCell className="text-right pr-6">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(tx.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <CardContent className="p-0">
+        {rows.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-xs px-4">{t("common.none")}</div>
+        ) : (
+          <>
+            {/* Mobile: stacked card list */}
+            <ul className="divide-y sm:hidden">
+              {rows.map((tx) => (
+                <li key={tx.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="font-mono">{tx.occurred_on}</span>
+                      <span>·</span>
+                      <span className="truncate">{tx.party?.username ?? "—"}</span>
+                    </div>
+                    {tx.note && <div className="break-words">{tx.note}</div>}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <div className="font-mono text-sm">{fmt(tx.amount)}</div>
+                    {onDelete && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(tx.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {/* Desktop: table */}
+            <div className="hidden sm:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-32 pl-6">{t("common.date")}</TableHead>
+                    <TableHead className="w-40">{t("money.party")}</TableHead>
+                    <TableHead>{t("common.note")}</TableHead>
+                    <TableHead className="text-right w-32">{t("common.amount")}</TableHead>
+                    {onDelete && <TableHead className="w-12 pr-6"></TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((tx) => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="font-mono text-xs pl-6">{tx.occurred_on}</TableCell>
+                      <TableCell>{tx.party?.username ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                      <TableCell>{tx.note}</TableCell>
+                      <TableCell className="text-right font-mono">{fmt(tx.amount)}</TableCell>
+                      {onDelete && (
+                        <TableCell className="text-right pr-6">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(tx.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

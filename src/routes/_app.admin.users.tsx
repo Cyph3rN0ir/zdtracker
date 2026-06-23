@@ -133,43 +133,72 @@ function UsersPage() {
           ) : q.error ? (
             <div className="p-6"><ErrorBox error={q.error} /></div>
           ) : q.data && q.data.length ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-6">{t("auth.username")}</TableHead>
-                    <TableHead>{t("auth.displayName")}</TableHead>
-                    <TableHead>{t("common.role")}</TableHead>
-                    <TableHead>{t("common.created")}</TableHead>
-                    <TableHead className="w-24 pr-6 text-right">{t("common.actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {q.data.map((u: any) => (
-                    <TableRow key={u.id}>
-                      <TableCell className="font-mono pl-6 break-all">{u.username}</TableCell>
-                      <TableCell>{u.display_name}</TableCell>
-                      <TableCell><Badge variant="secondary">{roleLabel(u.role, t)}</Badge></TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="inline-flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title={t("common.edit")}
-                            onClick={() => setEditing(u)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          {u.username !== "admin" && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => { if (confirm(t("users.confirmDelete", { name: u.username }))) dm.mutate(u.id); }}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
+            <>
+              {/* Mobile: stacked card list */}
+              <ul className="divide-y sm:hidden">
+                {q.data.map((u: any) => (
+                  <li key={u.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono break-all">{u.username}</span>
+                        <Badge variant="secondary">{roleLabel(u.role, t)}</Badge>
+                      </div>
+                      {u.display_name && <div className="text-muted-foreground truncate">{u.display_name}</div>}
+                      <div className="text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div className="inline-flex gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title={t("common.edit")} onClick={() => setEditing(u)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      {u.username !== "admin" && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => { if (confirm(t("users.confirmDelete", { name: u.username }))) dm.mutate(u.id); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {/* Desktop: table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-6">{t("auth.username")}</TableHead>
+                      <TableHead>{t("auth.displayName")}</TableHead>
+                      <TableHead>{t("common.role")}</TableHead>
+                      <TableHead>{t("common.created")}</TableHead>
+                      <TableHead className="w-24 pr-6 text-right">{t("common.actions")}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {q.data.map((u: any) => (
+                      <TableRow key={u.id}>
+                        <TableCell className="font-mono pl-6 break-all">{u.username}</TableCell>
+                        <TableCell>{u.display_name}</TableCell>
+                        <TableCell><Badge variant="secondary">{roleLabel(u.role, t)}</Badge></TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="inline-flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" title={t("common.edit")}
+                              onClick={() => setEditing(u)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            {u.username !== "admin" && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={() => { if (confirm(t("users.confirmDelete", { name: u.username }))) dm.mutate(u.id); }}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           ) : (
             <div className="p-6"><EmptyState message={t("users.empty")} /></div>
           )}
