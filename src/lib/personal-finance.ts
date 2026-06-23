@@ -62,16 +62,19 @@ export function isIncome(k: TxKind) {
   return k === "income";
 }
 
-export function fmtMoney(n: number | string, currency = "INR") {
+export function fmtMoney(n: number | string, currency = "BDT") {
   const v = Number(n) || 0;
+  // Force a locale that renders the BDT symbol (৳) inline; other locales
+  // would print "BDT 1,234.00" instead of "৳1,234.00".
+  const locale = currency === "BDT" ? "bn-BD" : undefined;
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency,
       maximumFractionDigits: 2,
     }).format(v);
   } catch {
-    return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `৳${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 }
 

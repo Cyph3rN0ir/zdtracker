@@ -52,7 +52,7 @@ function PersonalDetail() {
   const loans = useQuery({ queryKey: ["personal-loans", id], queryFn: () => listLoans({ data: { profileId: id } }) });
   const budgets = useQuery({ queryKey: ["personal-budgets", id], queryFn: () => listBudgets({ data: { profileId: id } }) });
 
-  const currency = "INR";
+  const currency = "BDT";
 
   // Budget threshold toast (per-period, per-budget, session-deduped via localStorage).
   useEffect(() => {

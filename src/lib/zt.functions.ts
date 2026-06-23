@@ -476,7 +476,7 @@ export const upsertPersonalAccountFn = createServerFn({ method: "POST" })
       name: z.string().trim().min(1).max(80),
       type: z.enum(["cash", "bank", "wallet", "card", "investment", "savings", "other"]),
       openingBalance: z.number().default(0),
-      currency: z.string().trim().min(1).max(8).default("INR"),
+      currency: z.string().trim().min(1).max(8).default("BDT"),
       archived: z.boolean().default(false),
     }).parse(d),
   )
