@@ -65,7 +65,7 @@ export function PersonalOverview({
     for (let i = 29; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      days.push({ date: d.toISOString().slice(0, 10), income: 0, expense: 0 });
+      days.push({ date: toLocalISO(d), income: 0, expense: 0 });
     }
     const idx = new Map(days.map((d, i) => [d.date, i]));
     for (const t of tx) {
@@ -117,7 +117,7 @@ export function PersonalOverview({
     }
     for (let i = 29; i >= 0; i--) {
       const d = new Date(todayDate); d.setDate(d.getDate() - i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = toLocalISO(d);
       running += dayDelta.get(iso) ?? 0;
       points.push({ date: iso, label: iso.slice(5), value: Math.round(running * 100) / 100 });
     }
