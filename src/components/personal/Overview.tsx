@@ -301,14 +301,14 @@ export function PersonalOverview({
               const sign = dir === "in" ? "+" : dir === "out" ? "−" : "";
               const color = dir === "in" ? "text-emerald-500" : dir === "out" ? "text-rose-500" : "text-muted-foreground";
               return (
-                <div key={t.id} className="flex items-center justify-between py-2 text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="secondary" className="text-[10px] capitalize">{TX_KIND_LABEL[t.kind]}</Badge>
+                <div key={t.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Badge variant="secondary" className="text-[10px] capitalize shrink-0">{TX_KIND_LABEL[t.kind]}</Badge>
                     <span className="truncate text-muted-foreground">{t.note || catMap.get(t.category_id ?? "")?.name || "—"}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground font-mono">{t.occurred_on}</span>
-                    <span className={`font-mono ${color}`}>{sign}{fmtMoney(t.amount, currency)}</span>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0 sm:flex-row sm:items-center sm:gap-3">
+                    <span className="text-[10px] sm:text-xs text-muted-foreground font-mono">{t.occurred_on}</span>
+                    <span className={`font-mono text-xs sm:text-sm break-all text-right ${color}`}>{sign}{fmtMoney(t.amount, currency)}</span>
                   </div>
                 </div>
               );
