@@ -47,32 +47,16 @@ export async function registerPWA(onUpdate?: UpdateCallback): Promise<(() => Pro
   }
 
   try {
-    const { Workbox } = await import("workbox-window");
-    const wb = new Workbox("/sw.js");
-
-    let waitingReg: ServiceWorkerRegistration | null = null;
-
-    wb.addEventListener("waiting", () => {
-      onUpdate?.();
-    });
-    wb.addEventListener("controlling", () => {
-      window.location.reload();
-    });
-
-    const reg = await wb.register();
-    waitingReg = reg ?? null;
-
-    return async () => {
-      if (!waitingReg) return;
-      // Tell the waiting worker to take over; the controlling listener reloads.
-      try {
-        await wb.messageSkipWaiting();
-      } catch {
-        window.location.reload();
-      }
-    };
+    // Plain registration — the generated SW already uses skipWaiting +
+    // clientsClaim, so there is no "waiting" state to coordinate from the
+    // page. Avoid workbox-window's update plumbing to keep installs simple
+    // and prevent extra reloads on first activation.
+    await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    onUpdate?.();
+    return null;
   } catch (err) {
     console.warn("[pwa] registration failed", err);
     return null;
   }
 }
+
