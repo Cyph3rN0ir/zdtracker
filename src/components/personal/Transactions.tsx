@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   addPersonalTxExFn, deletePersonalTxFn, updatePersonalTxFn,
 } from "@/lib/zt.functions";
-import { registerOfflineRunner, runOrQueue } from "@/lib/offline-queue";
+import { runOrQueue } from "@/lib/offline-queue";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
