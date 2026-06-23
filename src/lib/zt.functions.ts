@@ -852,7 +852,7 @@ export const updatePersonalTxFn = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }) => {
-    const { supa } = await assertProfileOwner(data.profileId);
+    const { me, supa } = await assertProfileOwner(data.profileId);
     const { error } = await supa.from("personal_transactions").update({
       kind: data.kind,
       amount: data.amount,
@@ -863,7 +863,7 @@ export const updatePersonalTxFn = createServerFn({ method: "POST" })
       counterparty_id: data.counterpartyId ?? null,
       transfer_account_id: data.transferAccountId ?? null,
       linked_loan_id: data.linkedLoanId ?? null,
-    }).eq("id", data.id).eq("profile_id", data.profileId);
+    }).eq("id", data.id).eq("profile_id", data.profileId).eq("owner_user_id", me.userId!);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
