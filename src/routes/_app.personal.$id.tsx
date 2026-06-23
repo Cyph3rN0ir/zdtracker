@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { PersonalOverview } from "@/components/personal/Overview";
 import { PersonalTransactions } from "@/components/personal/Transactions";
+import { PersonalLoans } from "@/components/personal/Loans";
+import { PersonalCategories } from "@/components/personal/Categories";
 import { computeBudgetStatus, fmtMoney, todayISO, BudgetRow, TxRow } from "@/lib/personal-finance";
 import { Progress } from "@/components/ui/progress";
 
