@@ -168,7 +168,10 @@ function AccountsTab({ profileId, accounts, currency }: { profileId: string; acc
   });
   const dm = useMutation({
     mutationFn: (id: string) => del({ data: { id, profileId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personal-accts", profileId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["personal-accts", profileId] });
+      qc.invalidateQueries({ queryKey: ["personal-tx", profileId] });
+    },
   });
   return (
     <div className="space-y-4">
