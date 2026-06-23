@@ -170,6 +170,7 @@ function AppLayout() {
           <Outlet />
         </PullToRefresh>
       </main>
+      <OfflineIndicator />
     </div>
   );
 }
