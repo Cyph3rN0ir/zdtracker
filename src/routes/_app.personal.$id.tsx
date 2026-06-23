@@ -314,3 +314,9 @@ function CounterpartiesTab({ profileId, counterparties }: { profileId: string; c
     </div>
   );
 }
+
+// Backward compat: business pages import { fmt } from this file (plain 2-dp number).
+export function fmt(n: number | string) {
+  const v = Number(n) || 0;
+  return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
