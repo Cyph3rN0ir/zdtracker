@@ -2,14 +2,26 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createBusinessFn, listBusinessesFn } from "@/lib/zt.functions";
+import { createBusinessFn, deleteBusinessFn, listBusinessesFn } from "@/lib/zt.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Plus, Building2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { ArrowRight, Plus, Building2, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
@@ -20,6 +32,7 @@ function Dashboard() {
   const { me } = Route.useRouteContext() as any;
   const list = useServerFn(listBusinessesFn);
   const create = useServerFn(createBusinessFn);
+  const del = useServerFn(deleteBusinessFn);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["businesses"], queryFn: () => list() });
   const [name, setName] = useState("");
@@ -29,6 +42,14 @@ function Dashboard() {
       setName("");
       qc.invalidateQueries({ queryKey: ["businesses"] });
     },
+  });
+  const delM = useMutation({
+    mutationFn: (id: string) => del({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Business deleted");
+      qc.invalidateQueries({ queryKey: ["businesses"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
 
   return (
@@ -86,7 +107,7 @@ function Dashboard() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="w-24 text-right"></TableHead>
+                    <TableHead className="w-32 text-right"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -97,11 +118,46 @@ function Dashboard() {
                         {new Date(b.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button asChild size="sm" variant="ghost">
-                          <Link to="/businesses/$id" params={{ id: b.id }}>
-                            Open <ArrowRight className="h-3 w-3" />
-                          </Link>
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button asChild size="sm" variant="ghost">
+                            <Link to="/businesses/$id" params={{ id: b.id }}>
+                              Open <ArrowRight className="h-3 w-3" />
+                            </Link>
+                          </Button>
+                          {me.role === "admin" && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
+                                  aria-label={`Delete ${b.name}`}
+                                  disabled={delM.isPending}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete "{b.name}"?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This permanently removes the business and all its members,
+                                    money transactions, and tasks. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => delM.mutate(b.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
