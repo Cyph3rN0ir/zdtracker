@@ -56,7 +56,6 @@ export function PersonalLoans({
     direction: "i_owe" as "i_owe" | "owed_to_me",
     counterpartyId: "",
     principal: "",
-    interestRate: "",
     startedOn: todayISO(),
     dueOn: "",
     note: "",
@@ -69,7 +68,7 @@ export function PersonalLoans({
         direction: form.direction,
         counterpartyId: form.counterpartyId || null,
         principal: Number(form.principal),
-        interestRate: Number(form.interestRate || 0),
+        interestRate: 0,
         startedOn: form.startedOn,
         dueOn: form.dueOn || null,
         status: "open",
@@ -78,7 +77,7 @@ export function PersonalLoans({
     }),
     onSuccess: () => {
       toast.success("Loan added");
-      setForm({ ...form, principal: "", interestRate: "", dueOn: "", note: "" });
+      setForm({ ...form, principal: "", dueOn: "", note: "" });
       invalidate();
     },
   });
