@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppPersonalRouteImport } from './routes/_app.personal'
+import { Route as AppPersonalIndexRouteImport } from './routes/_app.personal.index'
 import { Route as AppPersonalIdRouteImport } from './routes/_app.personal.$id'
 import { Route as AppMyTasksRouteImport } from './routes/_app.my.tasks'
 import { Route as AppBusinessesIdRouteImport } from './routes/_app.businesses.$id'
@@ -41,6 +42,11 @@ const AppPersonalRoute = AppPersonalRouteImport.update({
   id: '/personal',
   path: '/personal',
   getParentRoute: () => AppRoute,
+} as any)
+const AppPersonalIndexRoute = AppPersonalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppPersonalRoute,
 } as any)
 const AppPersonalIdRoute = AppPersonalIdRouteImport.update({
   id: '/$id',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/businesses/$id': typeof AppBusinessesIdRouteWithChildren
   '/my/tasks': typeof AppMyTasksRoute
   '/personal/$id': typeof AppPersonalIdRoute
+  '/personal/': typeof AppPersonalIndexRoute
   '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
   '/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
@@ -104,11 +111,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
-  '/personal': typeof AppPersonalRouteWithChildren
   '/': typeof AppIndexRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/my/tasks': typeof AppMyTasksRoute
   '/personal/$id': typeof AppPersonalIdRoute
+  '/personal': typeof AppPersonalIndexRoute
   '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
   '/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
@@ -125,6 +132,7 @@ export interface FileRoutesById {
   '/_app/businesses/$id': typeof AppBusinessesIdRouteWithChildren
   '/_app/my/tasks': typeof AppMyTasksRoute
   '/_app/personal/$id': typeof AppPersonalIdRoute
+  '/_app/personal/': typeof AppPersonalIndexRoute
   '/_app/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/_app/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
   '/_app/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
@@ -141,6 +149,7 @@ export interface FileRouteTypes {
     | '/businesses/$id'
     | '/my/tasks'
     | '/personal/$id'
+    | '/personal/'
     | '/businesses/$id/money'
     | '/businesses/$id/people'
     | '/businesses/$id/profit'
@@ -149,11 +158,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
-    | '/personal'
     | '/'
     | '/admin/users'
     | '/my/tasks'
     | '/personal/$id'
+    | '/personal'
     | '/businesses/$id/money'
     | '/businesses/$id/people'
     | '/businesses/$id/profit'
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/_app/businesses/$id'
     | '/_app/my/tasks'
     | '/_app/personal/$id'
+    | '/_app/personal/'
     | '/_app/businesses/$id/money'
     | '/_app/businesses/$id/people'
     | '/_app/businesses/$id/profit'
@@ -210,6 +220,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/personal'
       preLoaderRoute: typeof AppPersonalRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/personal/': {
+      id: '/_app/personal/'
+      path: '/'
+      fullPath: '/personal/'
+      preLoaderRoute: typeof AppPersonalIndexRouteImport
+      parentRoute: typeof AppPersonalRoute
     }
     '/_app/personal/$id': {
       id: '/_app/personal/$id'
@@ -279,10 +296,12 @@ declare module '@tanstack/react-router' {
 
 interface AppPersonalRouteChildren {
   AppPersonalIdRoute: typeof AppPersonalIdRoute
+  AppPersonalIndexRoute: typeof AppPersonalIndexRoute
 }
 
 const AppPersonalRouteChildren: AppPersonalRouteChildren = {
   AppPersonalIdRoute: AppPersonalIdRoute,
+  AppPersonalIndexRoute: AppPersonalIndexRoute,
 }
 
 const AppPersonalRouteWithChildren = AppPersonalRoute._addFileChildren(
