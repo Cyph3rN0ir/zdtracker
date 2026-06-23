@@ -31,9 +31,37 @@ export function PersonalOverview({
     .reduce((s, t) => s + Number(t.amount), 0);
   const monthSpend = tx.filter((t) => isSpend(t.kind) && t.occurred_on >= month.start && t.occurred_on <= month.end)
     .reduce((s, t) => s + Number(t.amount), 0);
-  const monthIncome = tx.filter((t) => isIncome(t.kind) && t.occurred_on >= month.start && t.occurred_on <= month.end)
-    .reduce((s, t) => s + Number(t.amount), 0);
-  const savingsRate = monthIncome > 0 ? Math.max(0, ((monthIncome - monthSpend) / monthIncome) * 100) : 0;
+
+  // Savings: balance held in accounts of type 'savings' + net deposits this month.
+  const savingsAcctIds = new Set(accounts.filter((a) => a.type === "savings").map((a) => a.id));
+  const savingsBase = accounts
+    .filter((a) => savingsAcctIds.has(a.id))
+    .reduce((s, a) => s + Number(a.opening_balance || 0), 0);
+  const savingsDelta = tx.reduce((s, t) => {
+    const amt = Number(t.amount);
+    // Net change to any savings-type account.
+    if (t.account_id && savingsAcctIds.has(t.account_id)) {
+      if (t.kind === "transfer") return s - amt;
+      const d = txDirection(t.kind);
+      if (d === "in") return s + amt;
+      if (d === "out") return s - amt;
+    }
+    if (t.kind === "transfer" && t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id)) {
+      return s + amt;
+    }
+    return s;
+  }, 0);
+  const savingsBalance = savingsBase + savingsDelta;
+  const savedThisMonth = tx
+    .filter((t) => t.occurred_on >= month.start && t.occurred_on <= month.end)
+    .reduce((s, t) => {
+      const amt = Number(t.amount);
+      if (t.kind === "savings_deposit") return s + amt;
+      if (t.kind === "savings_withdraw") return s - amt;
+      if (t.kind === "transfer" && t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id)) return s + amt;
+      if (t.kind === "transfer" && t.account_id && savingsAcctIds.has(t.account_id)) return s - amt;
+      return s;
+    }, 0);
 
   const netWorth = useMemo(() => {
     const acctBase = accounts.reduce((s, a) => s + Number(a.opening_balance || 0), 0);
