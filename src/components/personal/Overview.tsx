@@ -276,12 +276,12 @@ export function PersonalOverview({
             <div className="divide-y">
               {accountBalances.length === 0 && <div className="py-6 text-center text-sm text-muted-foreground">No accounts yet.</div>}
               {accountBalances.map((a) => (
-                <div key={a.id} className="flex items-center justify-between py-2 text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="secondary" className="text-[10px] capitalize">{a.type}</Badge>
+                <div key={a.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Badge variant="secondary" className="text-[10px] capitalize shrink-0">{a.type}</Badge>
                     <span className="truncate">{a.name}</span>
                   </div>
-                  <span className={`font-mono ${a.balance < 0 ? "text-rose-500" : ""}`}>{fmtMoney(a.balance, currency)}</span>
+                  <span className={`font-mono text-xs sm:text-sm shrink-0 break-all text-right ${a.balance < 0 ? "text-rose-500" : ""}`}>{fmtMoney(a.balance, currency)}</span>
                 </div>
               ))}
             </div>
@@ -323,13 +323,13 @@ export function PersonalOverview({
 
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <Card>
+    <Card className="min-w-0 overflow-hidden">
       <CardHeader className="pb-1.5">
-        <CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{label}</CardTitle>
+        <CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium truncate">{label}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="text-lg font-mono font-semibold">{value}</div>
-        {hint && <div className="text-[10px] mt-0.5 text-muted-foreground font-mono">{hint}</div>}
+      <CardContent className="min-w-0">
+        <div className="text-sm sm:text-base lg:text-lg font-mono font-semibold break-all leading-tight">{value}</div>
+        {hint && <div className="text-[10px] mt-0.5 text-muted-foreground font-mono break-all">{hint}</div>}
       </CardContent>
     </Card>
   );
@@ -351,11 +351,11 @@ function BudgetCard({ budget, tx, currency }: { budget: BudgetRow; tx: TxRow[]; 
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-baseline justify-between">
-          <div className={`text-2xl font-mono font-semibold ${tone}`}>
+        <div className="flex items-baseline justify-between gap-2 min-w-0">
+          <div className={`text-xl sm:text-2xl font-mono font-semibold break-all min-w-0 ${tone}`}>
             {fmtMoney(Math.max(0, s.remaining), currency)}
           </div>
-          <div className="text-xs text-muted-foreground font-mono">
+          <div className="text-[10px] sm:text-xs text-muted-foreground font-mono text-right break-all shrink-0">
             {fmtMoney(s.spent, currency)} / {fmtMoney(s.limit, currency)}
           </div>
         </div>
