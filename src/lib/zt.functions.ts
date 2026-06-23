@@ -72,6 +72,18 @@ export const getBusinessFn = createServerFn({ method: "GET" })
     return row;
   });
 
+export const deleteBusinessFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    // FKs on business_members, business_transactions, tasks all use
+    // ON DELETE CASCADE, so removing the business cleans everything up.
+    const { error } = await getSupabaseAdmin().from("businesses").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // ---------- Members ----------
 export const listMembersFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
