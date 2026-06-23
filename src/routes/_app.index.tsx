@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createBusinessFn, deleteBusinessFn, listBusinessesFn } from "@/lib/zt.functions";
+import { createBusinessFn, deleteBusinessFn, listBusinessesFn, renameBusinessFn } from "@/lib/zt.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,10 +18,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { ArrowRight, Plus, Building2, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, Building2, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
@@ -33,6 +46,7 @@ function Dashboard() {
   const list = useServerFn(listBusinessesFn);
   const create = useServerFn(createBusinessFn);
   const del = useServerFn(deleteBusinessFn);
+  const ren = useServerFn(renameBusinessFn);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["businesses"], queryFn: () => list() });
   const [name, setName] = useState("");
@@ -51,6 +65,18 @@ function Dashboard() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
+  const renM = useMutation({
+    mutationFn: (v: { id: string; name: string }) => ren({ data: v }),
+    onSuccess: () => {
+      toast.success("Renamed");
+      setRenameTarget(null);
+      qc.invalidateQueries({ queryKey: ["businesses"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to rename"),
+  });
+
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <div className="space-y-6">
