@@ -41,11 +41,9 @@ export function PersonalTransactions({
   const upd = useServerFn(updatePersonalTxFn);
   const del = useServerFn(deletePersonalTxFn);
 
-  // Register this session's runner so any queued add_personal_tx from a
-  // previous offline session can be replayed when we come back online.
-  useEffect(() => {
-    return registerOfflineRunner("addPersonalTxEx", (data: any) => addEx({ data }));
-  }, [addEx]);
+  // Offline runner for addPersonalTxEx is registered once at the route
+  // layout level (see _app.personal.$id.tsx) so queued writes still replay
+  // even when the user is on a different tab when connectivity returns.
 
   const [form, setForm] = useState({
     kind: "expense" as TxKind,
