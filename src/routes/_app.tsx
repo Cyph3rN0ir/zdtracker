@@ -49,7 +49,6 @@ function AppLayout() {
     <>
       <div className="p-5 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <img src="/icon-192.png" alt="ZeroSync" width={32} height={32} className="h-8 w-8 rounded-md shrink-0" />
           <div className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-muted-foreground">
             {t("brand")}
           </div>
