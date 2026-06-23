@@ -165,9 +165,9 @@ function Section({ title, rows, onDelete }: { title: string; rows: any[]; onDele
   const total = rows.reduce((s, t) => s + Number(t.amount), 0);
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0 gap-3">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <div className="text-sm font-mono whitespace-nowrap">{t("common.total")}: {fmt(total)}</div>
+      <CardHeader className="gap-2 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <CardTitle className="text-base break-words min-w-0">{title}</CardTitle>
+        <div className="text-sm font-mono whitespace-nowrap text-muted-foreground sm:text-foreground">{t("common.total")}: {fmt(total)}</div>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
