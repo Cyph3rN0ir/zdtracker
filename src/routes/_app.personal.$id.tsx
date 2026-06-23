@@ -64,6 +64,12 @@ function PersonalDetail() {
   const listCps = useServerFn(listPersonalCounterpartiesFn);
   const listLoans = useServerFn(listPersonalLoansFn);
   const listBudgets = useServerFn(listPersonalBudgetsFn);
+  const addTxFn = useServerFn(addTxFnImport);
+
+  // Register the offline runner at the route layout level so queued
+  // transactions still flush even if the user is not on the Transactions tab
+  // when connectivity returns.
+  useEffect(() => registerOfflineRunner("addPersonalTxEx", (d: any) => addTxFn({ data: d })), [addTxFn]);
 
   const prof = useQuery({ queryKey: ["personal", id], queryFn: () => getProf({ data: { id } }) });
   const tx = useQuery({ queryKey: ["personal-tx", id], queryFn: () => listTx({ data: { profileId: id } }) });
