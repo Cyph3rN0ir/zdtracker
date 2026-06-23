@@ -201,15 +201,17 @@ export function PersonalLoans({
                 const repaid = repaidByLoan.get(l.id) ?? 0;
                 const outstanding = Math.max(0, Number(l.principal) - repaid);
                 return (
-                  <div key={l.id} className="px-4 py-3 grid grid-cols-12 gap-2 items-center text-sm">
-                    <div className="col-span-3">
-                      <div className="font-medium">{cpName(l.counterparty_id)}</div>
+                  <div key={l.id} className="px-3 sm:px-4 py-3 flex flex-col gap-2 text-sm sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center">
+                    <div className="sm:col-span-3 min-w-0">
+                      <div className="font-medium truncate">{cpName(l.counterparty_id)}</div>
                       <div className="text-xs text-muted-foreground">{l.started_on}{l.due_on ? ` → ${l.due_on}` : ""}</div>
                     </div>
-                    <div className="col-span-2 text-xs text-muted-foreground">Principal<br /><span className="font-mono text-foreground">{fmtMoney(l.principal, currency)}</span></div>
-                    <div className="col-span-2 text-xs text-muted-foreground">Repaid<br /><span className="font-mono text-foreground">{fmtMoney(repaid, currency)}</span></div>
-                    <div className="col-span-2 text-xs text-muted-foreground">Outstanding<br /><span className={`font-mono ${outstanding > 0 ? "text-foreground" : "text-emerald-500"}`}>{fmtMoney(outstanding, currency)}</span></div>
-                    <div className="col-span-3 flex justify-end gap-1.5">
+                    <div className="grid grid-cols-3 gap-2 sm:contents">
+                      <div className="sm:col-span-2 text-xs text-muted-foreground">Principal<br /><span className="font-mono text-foreground">{fmtMoney(l.principal, currency)}</span></div>
+                      <div className="sm:col-span-2 text-xs text-muted-foreground">Repaid<br /><span className="font-mono text-foreground">{fmtMoney(repaid, currency)}</span></div>
+                      <div className="sm:col-span-2 text-xs text-muted-foreground">Outstanding<br /><span className={`font-mono ${outstanding > 0 ? "text-foreground" : "text-emerald-500"}`}>{fmtMoney(outstanding, currency)}</span></div>
+                    </div>
+                    <div className="flex justify-end gap-1.5 sm:col-span-3 flex-wrap">
                       <RepaymentDialog loan={l} accounts={accounts} currency={currency}
                         onAdd={async (amount, accountId, note, occurredOn) => {
                           await addTx({
