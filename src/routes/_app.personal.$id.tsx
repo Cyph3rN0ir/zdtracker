@@ -87,15 +87,17 @@ function PersonalDetail() {
       {err && <ErrorBox error={err} />}
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="tx">Transactions</TabsTrigger>
-          <TabsTrigger value="loans">Loans</TabsTrigger>
-          <TabsTrigger value="accounts">Accounts</TabsTrigger>
-          <TabsTrigger value="budgets">Budgets</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="people">People</TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className="inline-flex w-max">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="tx">Transactions</TabsTrigger>
+            <TabsTrigger value="loans">Loans</TabsTrigger>
+            <TabsTrigger value="accounts">Accounts</TabsTrigger>
+            <TabsTrigger value="budgets">Budgets</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="people">People</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview">
           <PersonalOverview
