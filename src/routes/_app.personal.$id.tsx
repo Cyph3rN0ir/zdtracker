@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { registerOfflineRunner } from "@/lib/offline-queue";
+import { addPersonalTxExFn as addTxFnImport } from "@/lib/zt.functions";
 import {
   getPersonalProfileFn, listPersonalTxExFn,
   listPersonalAccountsFn, upsertPersonalAccountFn, deletePersonalAccountFn,
@@ -30,6 +32,25 @@ import { Progress } from "@/components/ui/progress";
 export const Route = createFileRoute("/_app/personal/$id")({
   component: PersonalDetail,
   head: () => ({ meta: [{ title: "Profile — ZeroSync" }] }),
+  errorComponent: ({ error, reset }) => {
+    const router = useRouter();
+    return (
+      <div className="mx-auto max-w-md mt-16 p-6 text-center space-y-3">
+        <h2 className="text-lg font-semibold">Couldn’t load this profile</h2>
+        <p className="text-sm text-muted-foreground">{(error as Error)?.message ?? "Something went wrong."}</p>
+        <div className="flex justify-center gap-2">
+          <button className="text-sm underline" onClick={() => { router.invalidate(); reset(); }}>Try again</button>
+          <Link to="/personal" className="text-sm underline">Back to profiles</Link>
+        </div>
+      </div>
+    );
+  },
+  notFoundComponent: () => (
+    <div className="mx-auto max-w-md mt-16 p-6 text-center space-y-3">
+      <h2 className="text-lg font-semibold">Profile not found</h2>
+      <Link to="/personal" className="text-sm underline">Back to profiles</Link>
+    </div>
+  ),
 });
 
 const NONE = "__none__";
@@ -43,6 +64,12 @@ function PersonalDetail() {
   const listCps = useServerFn(listPersonalCounterpartiesFn);
   const listLoans = useServerFn(listPersonalLoansFn);
   const listBudgets = useServerFn(listPersonalBudgetsFn);
+  const addTxFn = useServerFn(addTxFnImport);
+
+  // Register the offline runner at the route layout level so queued
+  // transactions still flush even if the user is not on the Transactions tab
+  // when connectivity returns.
+  useEffect(() => registerOfflineRunner("addPersonalTxEx", (d: any) => addTxFn({ data: d })), [addTxFn]);
 
   const prof = useQuery({ queryKey: ["personal", id], queryFn: () => getProf({ data: { id } }) });
   const tx = useQuery({ queryKey: ["personal-tx", id], queryFn: () => listTx({ data: { profileId: id } }) });

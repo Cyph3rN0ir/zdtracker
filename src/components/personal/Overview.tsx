@@ -32,22 +32,23 @@ export function PersonalOverview({
   const monthSpend = tx.filter((t) => isSpend(t.kind) && t.occurred_on >= month.start && t.occurred_on <= month.end)
     .reduce((s, t) => s + Number(t.amount), 0);
 
-  // Savings: balance held in accounts of type 'savings' + net deposits this month.
+  // Savings: opening balance of savings-typed accounts + net effect of
+  // savings-kinded transactions on those accounts. Uses the same rule as
+  // accountBalances so the two never drift apart.
   const savingsAcctIds = new Set(accounts.filter((a) => a.type === "savings").map((a) => a.id));
   const savingsBase = accounts
     .filter((a) => savingsAcctIds.has(a.id))
     .reduce((s, a) => s + Number(a.opening_balance || 0), 0);
   const savingsDelta = tx.reduce((s, t) => {
     const amt = Number(t.amount);
-    // Net change to any savings-type account.
-    if (t.account_id && savingsAcctIds.has(t.account_id)) {
-      if (t.kind === "transfer") return s - amt;
-      const d = txDirection(t.kind);
-      if (d === "in") return s + amt;
-      if (d === "out") return s - amt;
-    }
-    if (t.kind === "transfer" && t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id)) {
-      return s + amt;
+    const onSav = t.account_id && savingsAcctIds.has(t.account_id);
+    const toSav = t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id);
+    if (t.kind === "savings_deposit" && onSav) return s + amt;
+    if (t.kind === "savings_withdraw" && onSav) return s - amt;
+    if (t.kind === "transfer") {
+      if (onSav) s -= amt;
+      if (toSav) s += amt;
+      return s;
     }
     return s;
   }, 0);
@@ -56,10 +57,12 @@ export function PersonalOverview({
     .filter((t) => t.occurred_on >= month.start && t.occurred_on <= month.end)
     .reduce((s, t) => {
       const amt = Number(t.amount);
-      if (t.kind === "savings_deposit") return s + amt;
-      if (t.kind === "savings_withdraw") return s - amt;
-      if (t.kind === "transfer" && t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id)) return s + amt;
-      if (t.kind === "transfer" && t.account_id && savingsAcctIds.has(t.account_id)) return s - amt;
+      const onSav = t.account_id && savingsAcctIds.has(t.account_id);
+      const toSav = t.transfer_account_id && savingsAcctIds.has(t.transfer_account_id);
+      if (t.kind === "savings_deposit" && onSav) return s + amt;
+      if (t.kind === "savings_withdraw" && onSav) return s - amt;
+      if (t.kind === "transfer" && toSav) return s + amt;
+      if (t.kind === "transfer" && onSav) return s - amt;
       return s;
     }, 0);
 
@@ -105,20 +108,31 @@ export function PersonalOverview({
     return days.map((d) => ({ ...d, label: d.date.slice(5) }));
   }, [tx]);
 
-  // Per-account current balance (opening + signed deltas, transfers handled).
+  // Per-account current balance (opening + signed deltas).
+  // - transfer: debit account_id, credit transfer_account_id.
+  // - savings_deposit / investment_buy: account_id IS the savings/investment
+  //   account being credited (the cash debit isn't tracked separately in this
+  //   single-account model). Without this special-case, txDirection ("out")
+  //   would debit the savings account, so its balance would never grow.
+  // - savings_withdraw / investment_sell: debit account_id (the savings/inv
+  //   account); the cash credit isn't tracked separately.
+  // - all other kinds: follow txDirection on account_id.
   const accountBalances = useMemo(() => {
     const base = new Map<string, number>();
     for (const a of accounts) base.set(a.id, Number(a.opening_balance || 0));
+    const credit = (id: string | null, n: number) => { if (id) base.set(id, (base.get(id) ?? 0) + n); };
     for (const t of tx) {
-      const d = txDirection(t.kind);
       const amt = Number(t.amount);
-      if (t.account_id) {
-        if (t.kind === "transfer") base.set(t.account_id, (base.get(t.account_id) ?? 0) - amt);
-        else if (d === "in")  base.set(t.account_id, (base.get(t.account_id) ?? 0) + amt);
-        else if (d === "out") base.set(t.account_id, (base.get(t.account_id) ?? 0) - amt);
-      }
-      if (t.kind === "transfer" && t.transfer_account_id) {
-        base.set(t.transfer_account_id, (base.get(t.transfer_account_id) ?? 0) + amt);
+      if (t.kind === "transfer") {
+        credit(t.account_id, -amt);
+        credit(t.transfer_account_id, +amt);
+      } else if (t.kind === "savings_deposit" || t.kind === "investment_buy") {
+        credit(t.account_id, +amt);
+      } else if (t.kind === "savings_withdraw" || t.kind === "investment_sell") {
+        credit(t.account_id, -amt);
+      } else {
+        const d = txDirection(t.kind);
+        credit(t.account_id, d === "in" ? +amt : d === "out" ? -amt : 0);
       }
     }
     return accounts.map((a) => ({ ...a, balance: base.get(a.id) ?? 0 }));

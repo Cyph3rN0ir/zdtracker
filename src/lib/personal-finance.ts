@@ -86,8 +86,11 @@ export function fmtMoney(n: number | string, currency = "BDT", langOverride?: "e
       return `${v.toFixed(2)} টাকা`;
     }
   }
+  // Non-BDT (or English mode): pick the locale to match the active language
+  // so digits render in the expected script.
+  const locale = lang === "bn" ? "bn-BD" : "en-US";
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency,
       currencyDisplay: "code",
@@ -95,7 +98,7 @@ export function fmtMoney(n: number | string, currency = "BDT", langOverride?: "e
       minimumFractionDigits: 2,
     }).format(v);
   } catch {
-    return `${currency} ${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${currency} ${v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 }
 
@@ -127,7 +130,9 @@ export function startOfMonthISO(d = new Date()) {
 }
 
 export function daysBetween(aIso: string, bIso: string) {
-  return Math.round((+new Date(bIso) - +new Date(aIso)) / 86_400_000);
+  // Parse as LOCAL midnight (suffix "T00:00:00") so DST/timezone offsets
+  // don't shift either side and produce off-by-one results in UTC+5:30/+6.
+  return Math.round((+new Date(bIso + "T00:00:00") - +new Date(aIso + "T00:00:00")) / 86_400_000);
 }
 
 export function periodWindow(period: "week" | "month", today = new Date()) {
