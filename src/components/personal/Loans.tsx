@@ -49,6 +49,7 @@ export function PersonalLoans({
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["personal-loans", profileId] });
     qc.invalidateQueries({ queryKey: ["personal-tx", profileId] });
+    qc.invalidateQueries({ queryKey: ["personal-accts", profileId] });
   };
 
   const [form, setForm] = useState({
