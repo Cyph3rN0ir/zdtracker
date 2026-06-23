@@ -128,9 +128,9 @@ function Money() {
                 <Label>{t("common.date")}</Label>
                 <Input type="date" value={form.occurredOn} onChange={(e) => setForm({ ...form, occurredOn: e.target.value })} />
               </div>
-              <div className="md:col-span-6 flex items-center justify-between gap-3 flex-wrap">
-                {formErr ? <p className="text-xs text-destructive">{formErr}</p> : <span />}
-                <Button type="submit" disabled={m.isPending}>
+              <div className="md:col-span-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+                {formErr ? <p className="text-xs text-destructive break-words">{formErr}</p> : <span className="hidden sm:block" />}
+                <Button type="submit" disabled={m.isPending} className="w-full sm:w-auto shrink-0">
                   <Plus className="h-4 w-4" /> {t("money.addTx")}
                 </Button>
               </div>
@@ -165,9 +165,9 @@ function Section({ title, rows, onDelete }: { title: string; rows: any[]; onDele
   const total = rows.reduce((s, t) => s + Number(t.amount), 0);
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0 gap-3">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <div className="text-sm font-mono whitespace-nowrap">{t("common.total")}: {fmt(total)}</div>
+      <CardHeader className="gap-2 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <CardTitle className="text-base break-words min-w-0">{title}</CardTitle>
+        <div className="text-sm font-mono whitespace-nowrap text-muted-foreground sm:text-foreground">{t("common.total")}: {fmt(total)}</div>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
