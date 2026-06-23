@@ -151,37 +151,31 @@ function Dashboard() {
                             </Link>
                           </Button>
                           {me.role === "admin" && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="text-destructive hover:text-destructive"
-                                  aria-label={`Delete ${b.name}`}
-                                  disabled={delM.isPending}
+                                  aria-label={`Actions for ${b.name}`}
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <MoreVertical className="h-4 w-4" />
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete "{b.name}"?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This permanently removes the business and all its members,
-                                    money transactions, and tasks. This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => delM.mutate(b.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-40">
+                                <DropdownMenuItem
+                                  onSelect={() => setRenameTarget({ id: b.id, name: b.name })}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" /> Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onSelect={() => setDeleteTarget({ id: b.id, name: b.name })}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
                         </div>
                       </TableCell>
