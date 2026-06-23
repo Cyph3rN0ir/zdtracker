@@ -300,7 +300,7 @@ export const deletePersonalTxFn = createServerFn({ method: "POST" })
       .eq("id", data.profileId)
       .maybeSingle();
     if (!prof || prof.owner_user_id !== me.userId) throw new Error("Not found");
-    const { error } = await supa.from("personal_transactions").delete().eq("id", data.id);
+    const { error } = await supa.from("personal_transactions").delete().eq("id", data.id).eq("profile_id", data.profileId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
