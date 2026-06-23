@@ -151,7 +151,7 @@ export function computeBudgetStatus(b: BudgetRow, tx: TxRow[], today = new Date(
   const limit = Number(b.amount);
   const remaining = limit - spent;
   const pct = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
-  const elapsedDays = Math.min(totalDays, daysBetween(start, new Date().toISOString().slice(0, 10)) + 1);
+  const elapsedDays = Math.min(totalDays, daysBetween(start, todayISO()) + 1);
   const daysLeft = Math.max(0, totalDays - elapsedDays);
   const projected = elapsedDays > 0 ? (spent / elapsedDays) * totalDays : 0;
   return { start, end, spent, limit, remaining, pct, daysLeft, totalDays, projected };
