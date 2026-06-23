@@ -169,16 +169,6 @@ const MAP: Record<string, string> = {
   "Failed to delete": "মুছতে ব্যর্থ",
   "Failed to rename": "নাম পরিবর্তনে ব্যর্থ",
 
-  // Personal finance — top-level
-  "Personal — ZeroSync": "ব্যক্তিগত — জিরোসিঙ্ক",
-  "Personal ledger — fully separate from business accounts.": "ব্যক্তিগত খতিয়ান — ব্যবসার অ্যাকাউন্ট থেকে সম্পূর্ণ আলাদা।",
-  "All profiles": "সকল প্রোফাইল",
-  "Track your own money, separate from any business.": "ব্যবসা থেকে আলাদাভাবে নিজের অর্থ ট্র্যাক করুন।",
-  "No personal profiles yet.": "এখনো কোনো ব্যক্তিগত প্রোফাইল নেই।",
-  "New profile": "নতুন প্রোফাইল",
-  "Profile name": "প্রোফাইলের নাম",
-  "Profile": "প্রোফাইল",
-
   // Tabs
   "Loans": "ঋণ",
   "Accounts": "অ্যাকাউন্ট",
@@ -208,13 +198,10 @@ const MAP: Record<string, string> = {
   "projected": "প্রক্ষেপিত",
 
   // Transactions
-  "Add transaction": "লেনদেন যোগ করুন",
   "Transaction added": "লেনদেন যোগ হয়েছে",
   "Failed to add": "যোগ করতে ব্যর্থ",
   "Deleted": "মুছে ফেলা হয়েছে",
   "Saved offline — will sync when back online": "অফলাইনে সংরক্ষিত — অনলাইনে এলে সিঙ্ক হবে",
-  "Income": "আয়",
-  "Expense": "ব্যয়",
   "Transfer": "স্থানান্তর",
   "Investment buy": "বিনিয়োগ ক্রয়",
   "Investment sell": "বিনিয়োগ বিক্রয়",
