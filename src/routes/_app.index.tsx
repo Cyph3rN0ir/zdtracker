@@ -107,7 +107,7 @@ function Dashboard() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="w-24 text-right"></TableHead>
+                    <TableHead className="w-32 text-right"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -118,11 +118,46 @@ function Dashboard() {
                         {new Date(b.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button asChild size="sm" variant="ghost">
-                          <Link to="/businesses/$id" params={{ id: b.id }}>
-                            Open <ArrowRight className="h-3 w-3" />
-                          </Link>
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button asChild size="sm" variant="ghost">
+                            <Link to="/businesses/$id" params={{ id: b.id }}>
+                              Open <ArrowRight className="h-3 w-3" />
+                            </Link>
+                          </Button>
+                          {me.role === "admin" && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
+                                  aria-label={`Delete ${b.name}`}
+                                  disabled={delM.isPending}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete "{b.name}"?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This permanently removes the business and all its members,
+                                    money transactions, and tasks. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => delM.mutate(b.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
