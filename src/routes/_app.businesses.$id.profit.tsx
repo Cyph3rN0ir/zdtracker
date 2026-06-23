@@ -124,36 +124,66 @@ function Profit() {
           <CardTitle className="text-base">Distribution log</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-32 pl-6">Date</TableHead>
-                <TableHead className="w-40">Recipient</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead className="text-right w-32">Amount</TableHead>
-                {me.role === "admin" && <TableHead className="w-12 pr-6"></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {distRows.length === 0 ? (
-                <TableRow><TableCell colSpan={me.role === "admin" ? 5 : 4} className="text-center py-8 text-muted-foreground text-sm">No distributions yet.</TableCell></TableRow>
-              ) : distRows.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-mono text-xs pl-6">{t.occurred_on}</TableCell>
-                  <TableCell>{t.party?.username ?? "—"}</TableCell>
-                  <TableCell>{t.note}</TableCell>
-                  <TableCell className="text-right font-mono">{fmt(t.amount)}</TableCell>
-                  {me.role === "admin" && (
-                    <TableCell className="text-right pr-6">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(t.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {distRows.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm px-4">No distributions yet.</div>
+          ) : (
+            <>
+              {/* Mobile: stacked list */}
+              <ul className="divide-y sm:hidden">
+                {distRows.map((t) => (
+                  <li key={t.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-mono">{t.occurred_on}</span>
+                        <span>·</span>
+                        <span className="truncate">{t.party?.username ?? "—"}</span>
+                      </div>
+                      {t.note && <div className="break-words">{t.note}</div>}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <div className="font-mono text-sm">{fmt(t.amount)}</div>
+                      {me.role === "admin" && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(t.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {/* Desktop: table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-32 pl-6">Date</TableHead>
+                      <TableHead className="w-40">Recipient</TableHead>
+                      <TableHead>Note</TableHead>
+                      <TableHead className="text-right w-32">Amount</TableHead>
+                      {me.role === "admin" && <TableHead className="w-12 pr-6"></TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {distRows.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="font-mono text-xs pl-6">{t.occurred_on}</TableCell>
+                        <TableCell>{t.party?.username ?? "—"}</TableCell>
+                        <TableCell>{t.note}</TableCell>
+                        <TableCell className="text-right font-mono">{fmt(t.amount)}</TableCell>
+                        {me.role === "admin" && (
+                          <TableCell className="text-right pr-6">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(t.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
