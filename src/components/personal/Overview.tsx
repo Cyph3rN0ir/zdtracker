@@ -170,8 +170,8 @@ export function PersonalOverview({
   const monthlyBudgets = budgets.filter((b) => b.active && b.period === "month");
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="space-y-6 min-w-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 min-w-0">
         <StatCard label="Net worth" value={fmtMoney(netWorth, currency)} />
         <StatCard label="This week spend" value={fmtMoney(weekSpend, currency)} />
         <StatCard label="This month spend" value={fmtMoney(monthSpend, currency)} />
@@ -183,7 +183,7 @@ export function PersonalOverview({
       </div>
 
       {(weeklyBudgets.length + monthlyBudgets.length) > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
           {weeklyBudgets.map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
           {monthlyBudgets.map((b) => <BudgetCard key={b.id} budget={b} tx={tx} currency={currency} />)}
         </div>
@@ -276,12 +276,14 @@ export function PersonalOverview({
             <div className="divide-y">
               {accountBalances.length === 0 && <div className="py-6 text-center text-sm text-muted-foreground">No accounts yet.</div>}
               {accountBalances.map((a) => (
-                <div key={a.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <div key={a.id} className="flex items-center justify-between gap-2 py-2 text-sm min-w-0">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Badge variant="secondary" className="text-[10px] capitalize shrink-0">{a.type}</Badge>
                     <span className="truncate">{a.name}</span>
                   </div>
-                  <span className={`font-mono text-xs sm:text-sm shrink-0 break-all text-right ${a.balance < 0 ? "text-rose-500" : ""}`}>{fmtMoney(a.balance, currency)}</span>
+                  <Money className={`text-xs sm:text-sm text-right max-w-[55%] ${a.balance < 0 ? "text-rose-500" : ""}`}>
+                    {fmtMoney(a.balance, currency)}
+                  </Money>
                 </div>
               ))}
             </div>
@@ -301,14 +303,14 @@ export function PersonalOverview({
               const sign = dir === "in" ? "+" : dir === "out" ? "−" : "";
               const color = dir === "in" ? "text-emerald-500" : dir === "out" ? "text-rose-500" : "text-muted-foreground";
               return (
-                <div key={t.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <div key={t.id} className="flex items-center justify-between gap-2 py-2 text-sm min-w-0">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Badge variant="secondary" className="text-[10px] capitalize shrink-0">{TX_KIND_LABEL[t.kind]}</Badge>
                     <span className="truncate text-muted-foreground">{t.note || catMap.get(t.category_id ?? "")?.name || "—"}</span>
                   </div>
-                  <div className="flex flex-col items-end gap-0.5 shrink-0 sm:flex-row sm:items-center sm:gap-3">
+                  <div className="flex flex-col items-end gap-0.5 max-w-[55%] sm:flex-row sm:items-center sm:gap-3">
                     <span className="text-[10px] sm:text-xs text-muted-foreground font-mono">{t.occurred_on}</span>
-                    <span className={`font-mono text-xs sm:text-sm break-all text-right ${color}`}>{sign}{fmtMoney(t.amount, currency)}</span>
+                    <Money className={`text-xs sm:text-sm text-right ${color}`}>{sign}{fmtMoney(t.amount, currency)}</Money>
                   </div>
                 </div>
               );
@@ -321,15 +323,42 @@ export function PersonalOverview({
   );
 }
 
+// Render arbitrary-length localized money strings (e.g. Bangla "১,২৩৪,৫৬৭.৮৯ টাকা")
+// without overflowing parent flex/grid cells. Use everywhere a money value
+// appears so future overflow regressions don't reappear.
+function Money({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`font-mono tabular-nums [overflow-wrap:anywhere] ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
+
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <Card className="min-w-0 overflow-hidden">
-      <CardHeader className="pb-1.5">
-        <CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium truncate">{label}</CardTitle>
+      <CardHeader className="pb-1.5 min-w-0">
+        <CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium truncate">
+          {label}
+        </CardTitle>
       </CardHeader>
       <CardContent className="min-w-0">
-        <div className="text-sm sm:text-base lg:text-lg font-mono font-semibold break-all leading-tight">{value}</div>
-        {hint && <div className="text-[10px] mt-0.5 text-muted-foreground font-mono break-all">{hint}</div>}
+        <Money className="block text-sm sm:text-base lg:text-lg font-semibold leading-tight">
+          {value}
+        </Money>
+        {hint && (
+          <Money className="block text-[10px] mt-0.5 text-muted-foreground">
+            {hint}
+          </Money>
+        )}
       </CardContent>
     </Card>
   );
@@ -340,24 +369,24 @@ function BudgetCard({ budget, tx, currency }: { budget: BudgetRow; tx: TxRow[]; 
   const tone =
     s.pct >= 100 ? "text-rose-500" : s.pct >= 75 ? "text-amber-500" : "text-emerald-500";
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{budget.name}</CardTitle>
-          <Badge variant="secondary" className="capitalize">{budget.period}</Badge>
+    <Card className="min-w-0 overflow-hidden">
+      <CardHeader className="pb-2 min-w-0">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <CardTitle className="text-base truncate min-w-0">{budget.name}</CardTitle>
+          <Badge variant="secondary" className="capitalize shrink-0">{budget.period}</Badge>
         </div>
-        <CardDescription>
+        <CardDescription className="min-w-0 [overflow-wrap:anywhere]">
           {s.daysLeft} day{s.daysLeft === 1 ? "" : "s"} left · projected {fmtMoney(s.projected, currency)}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-baseline justify-between gap-2 min-w-0">
-          <div className={`text-xl sm:text-2xl font-mono font-semibold break-all min-w-0 ${tone}`}>
+      <CardContent className="min-w-0">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 min-w-0">
+          <Money className={`text-lg sm:text-2xl font-semibold min-w-0 ${tone}`}>
             {fmtMoney(Math.max(0, s.remaining), currency)}
-          </div>
-          <div className="text-[10px] sm:text-xs text-muted-foreground font-mono text-right break-all shrink-0">
+          </Money>
+          <Money className="text-[10px] sm:text-xs text-muted-foreground text-right min-w-0">
             {fmtMoney(s.spent, currency)} / {fmtMoney(s.limit, currency)}
-          </div>
+          </Money>
         </div>
         <Progress value={s.pct} className="mt-2 h-2" />
         <div className="mt-1 text-xs text-muted-foreground">remaining of {budget.period}ly budget</div>
