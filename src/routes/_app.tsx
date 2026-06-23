@@ -13,12 +13,56 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 
+type CachedMe = {
+  userId: string;
+  username: string;
+  role: "admin" | "owner" | "investor" | "member";
+  displayName: string;
+};
+
+const ME_CACHE_KEY = "zs:me:v1";
+
+function readCachedMe(): CachedMe | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(ME_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as CachedMe) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedMe(me: CachedMe) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ME_CACHE_KEY, JSON.stringify(me));
+  } catch {}
+}
+
+function isOfflineLikeError(error: unknown) {
+  const msg = String((error as any)?.message ?? error).toLowerCase();
+  return msg.includes("fetch") || msg.includes("network") || msg.includes("offline") || msg.includes("load failed");
+}
+
 export const Route = createFileRoute("/_app")({
   ssr: false,
   beforeLoad: async () => {
-    const me = await meFn();
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const cached = readCachedMe();
+      if (cached) return { me: cached, offline: true };
+    }
+
+    let me: CachedMe | null = null;
+    try {
+      me = await meFn();
+    } catch (error) {
+      const cached = readCachedMe();
+      if (cached && isOfflineLikeError(error)) return { me: cached, offline: true };
+      throw error;
+    }
     if (!me) throw redirect({ to: "/auth" });
-    return { me };
+    writeCachedMe(me);
+    return { me, offline: false };
   },
   component: AppLayout,
 });

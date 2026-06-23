@@ -125,7 +125,7 @@ function Dashboard() {
                 <Skeleton className="h-9 w-full" />
                 <Skeleton className="h-9 w-full" />
               </div>
-            ) : q.error ? (
+            ) : q.isError && !q.data && !q.isFetching ? (
               <ErrorBox error={q.error} />
             ) : q.data && q.data.length > 0 ? (
               <Table>

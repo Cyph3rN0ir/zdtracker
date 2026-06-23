@@ -33,7 +33,7 @@ function MyTasks() {
       <PageHeader title="My tasks" subtitle="Your assignments for the next 14 days." />
       {q.isLoading ? (
         <div className="text-sm text-muted-foreground">Loading…</div>
-      ) : q.error ? (
+      ) : q.isError && !q.data && !q.isFetching ? (
         <ErrorBox error={q.error} />
       ) : days.length === 0 ? (
         <EmptyState message="No tasks assigned." />

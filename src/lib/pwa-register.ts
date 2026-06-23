@@ -1,6 +1,5 @@
-// Guarded PWA service-worker registration. Never registers in dev,
+// Single guarded PWA service-worker registration point. Never registers in dev,
 // inside an iframe, in Lovable preview hosts, or when ?sw=off is set.
-// Returns an updater function the UI can call when the user accepts an update.
 
 type UpdateCallback = () => void;
 
@@ -47,12 +46,8 @@ export async function registerPWA(onUpdate?: UpdateCallback): Promise<(() => Pro
   }
 
   try {
-    // Plain registration — the generated SW already uses skipWaiting +
-    // clientsClaim, so there is no "waiting" state to coordinate from the
-    // page. Avoid workbox-window's update plumbing to keep installs simple
-    // and prevent extra reloads on first activation.
     await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-    onUpdate?.();
+    navigator.serviceWorker.addEventListener("controllerchange", () => onUpdate?.());
     return null;
   } catch (err) {
     console.warn("[pwa] registration failed", err);

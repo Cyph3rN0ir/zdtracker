@@ -9,9 +9,23 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useI18n } from "@/lib/i18n";
 
+const ME_CACHE_KEY = "zs:me:v1";
+
+function hasCachedMe() {
+  if (typeof window === "undefined") return false;
+  try {
+    return !!window.localStorage.getItem(ME_CACHE_KEY);
+  } catch {
+    return false;
+  }
+}
+
 export const Route = createFileRoute("/auth")({
   ssr: false,
   beforeLoad: async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine && hasCachedMe()) {
+      throw redirect({ to: "/" });
+    }
     const me = await meFn();
     if (me) throw redirect({ to: "/" });
   },

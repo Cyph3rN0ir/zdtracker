@@ -6,6 +6,8 @@ export const getRouter = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
+        gcTime: 1000 * 60 * 60 * 24 * 30,
+        networkMode: "offlineFirst",
         retry: (failureCount, error: any) => {
           // Don't retry permanent errors (auth / not found / validation)
           const msg = String(error?.message ?? "").toLowerCase();

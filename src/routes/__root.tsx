@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/lib/theme";
 import { PWAUpdater } from "@/lib/pwa-update-toast";
+import { OfflineQueryProvider } from "@/lib/offline-query-cache";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -136,7 +137,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <OfflineQueryProvider queryClient={queryClient}>
       <ThemeProvider>
         <I18nProvider>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
@@ -145,6 +146,6 @@ function RootComponent() {
           <PWAUpdater />
         </I18nProvider>
       </ThemeProvider>
-    </QueryClientProvider>
+    </OfflineQueryProvider>
   );
 }
