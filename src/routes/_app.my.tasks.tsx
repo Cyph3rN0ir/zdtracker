@@ -26,7 +26,9 @@ function MyTasks() {
   const today = new Date().toISOString().slice(0, 10);
   const groups: Record<string, any[]> = {};
   (q.data ?? []).forEach((t: any) => { (groups[t.due_date] = groups[t.due_date] || []).push(t); });
+  // Sort: overdue dates first (ascending), then today and future (ascending) — overdue naturally sort first since < today.
   const days = Object.keys(groups).sort();
+
 
   return (
     <div className="space-y-6">
@@ -41,17 +43,19 @@ function MyTasks() {
         <div className="space-y-3">
           {days.map((d) => {
             const open = groups[d].filter((t) => t.status !== "done").length;
+            const isOverdue = d < today;
             return (
-              <Card key={d}>
+              <Card key={d} className={isOverdue ? "border-destructive/40" : undefined}>
                 <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
                   <div>
-                    <CardTitle className="text-base">{formatDay(d, today)}</CardTitle>
+                    <CardTitle className={"text-base " + (isOverdue ? "text-destructive" : "")}>{formatDay(d, today)}</CardTitle>
                     <div className="text-xs text-muted-foreground font-mono mt-0.5">{d}</div>
                   </div>
-                  <Badge variant={open === 0 ? "secondary" : "default"}>
-                    {open === 0 ? "All done" : `${open} open`}
+                  <Badge variant={isOverdue ? "destructive" : open === 0 ? "secondary" : "default"}>
+                    {isOverdue ? `${open} due` : open === 0 ? "All done" : `${open} open`}
                   </Badge>
                 </CardHeader>
+
                 <CardContent className="pt-0">
                   <ul className="divide-y divide-border -mx-2">
                     {groups[d].map((t) => (
@@ -86,5 +90,8 @@ function formatDay(d: string, today: string) {
   const b = new Date(d + "T00:00:00");
   const diff = Math.round((b.getTime() - a.getTime()) / 86400000);
   if (diff === 1) return "Tomorrow";
+  if (diff === -1) return "Due • Yesterday";
+  if (diff < 0) return `Due • ${Math.abs(diff)} days ago`;
   return new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" });
 }
+
