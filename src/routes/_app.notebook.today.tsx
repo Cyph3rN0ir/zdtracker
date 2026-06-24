@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { TodoRow, type Todo } from "@/components/notebook/TodoRow";
 import { QuickAdd } from "@/components/notebook/QuickAdd";
+import { PageHeader, EmptyState } from "./_app.index";
 
 export const Route = createFileRoute("/_app/notebook/today")({
   component: TodayPage,
