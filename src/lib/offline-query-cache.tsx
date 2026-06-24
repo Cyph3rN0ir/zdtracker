@@ -3,7 +3,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { get as idbGet, set as idbSet, del as idbDel } from "idb-keyval";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 const QUERY_CACHE_KEY = "zs:query-cache:v2";
 const MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
@@ -66,7 +66,7 @@ export function OfflineQueryProvider({
   // Purge persisted cache on sign-out so the next user can't read stale data.
   useEffect(() => {
     if (skip) return;
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    const { data: sub } = getSupabaseBrowser().auth.onAuthStateChange((event: string) => {
       if (event === "SIGNED_OUT") {
         queryClient.clear();
         idbDel(QUERY_CACHE_KEY).catch(() => {});
@@ -74,6 +74,7 @@ export function OfflineQueryProvider({
     });
     return () => sub.subscription.unsubscribe();
   }, [skip, queryClient]);
+
 
   if (!persistOptions) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
