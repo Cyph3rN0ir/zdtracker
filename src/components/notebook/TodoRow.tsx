@@ -111,12 +111,12 @@ export function TodoRow({
           )}
         </div>
       </div>
-      <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 flex items-center gap-1 transition-opacity">
+      <div className="flex shrink-0 items-center gap-0.5 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
         <button
           type="button"
           aria-label="Edit"
           onClick={() => setEditing(true)}
-          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent"
+          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-accent"
         >
           <Pencil className="h-4 w-4" />
         </button>
@@ -126,7 +126,7 @@ export function TodoRow({
           onClick={() => {
             if (confirm("Delete this todo?")) mDelete.mutate();
           }}
-          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
           <Trash2 className="h-4 w-4" />
         </button>
