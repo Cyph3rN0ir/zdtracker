@@ -26,7 +26,9 @@ function MyTasks() {
   const today = new Date().toISOString().slice(0, 10);
   const groups: Record<string, any[]> = {};
   (q.data ?? []).forEach((t: any) => { (groups[t.due_date] = groups[t.due_date] || []).push(t); });
+  // Sort: overdue dates first (ascending), then today and future (ascending) — overdue naturally sort first since < today.
   const days = Object.keys(groups).sort();
+
 
   return (
     <div className="space-y-6">
