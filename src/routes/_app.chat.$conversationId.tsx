@@ -137,7 +137,11 @@ function ThreadView() {
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-sm truncate">{conv?.title ?? "Loading…"}</div>
           <div className="text-xs text-muted-foreground truncate">
-            {isGroup ? `${conv?.businessName} · ${conv?.members.length ?? 0} members` : conv?.businessName}
+            {isGroup ? (
+              <>{conv?.businessName} · {conv?.members.length ?? 0} members</>
+            ) : (
+              conv?.businessName
+            )}
           </div>
         </div>
         {isGroup && <UsersIcon className="h-4 w-4 text-muted-foreground" />}
