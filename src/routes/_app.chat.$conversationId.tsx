@@ -148,7 +148,7 @@ function ThreadView() {
         {isGroup && <UsersIcon className="h-4 w-4 text-muted-foreground" />}
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-3">
         {msgsQ.isLoading ? (
           <div className="text-sm text-muted-foreground text-center">Loading…</div>
         ) : (msgsQ.data?.length ?? 0) === 0 ? (
