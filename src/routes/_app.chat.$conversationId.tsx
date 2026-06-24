@@ -123,7 +123,8 @@ function ThreadView() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-1 min-h-0 flex-col h-full w-full bg-background">
+
       <header className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card">
         <Button
           variant="ghost"
