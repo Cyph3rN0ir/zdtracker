@@ -7,13 +7,14 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { LayoutDashboard, ListChecks, MessageSquare, User, Users, LogOut, Menu, Languages, Palette, Check, NotebookPen } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, onlineManager } from "@tanstack/react-query";
 import { unreadTotalFn } from "@/lib/chat.functions";
 import { useI18n } from "@/lib/i18n";
 import { useTheme, THEMES, type Theme } from "@/lib/theme";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { runOfflineWarmup } from "@/lib/offline-warmup";
 
 type CachedMe = {
   userId: string;
@@ -93,6 +94,19 @@ function AppLayout() {
 
   // Belt-and-braces: close drawer if pathname ever changes (e.g. browser back).
   useEffect(() => { setOpen(false); }, [pathname]);
+
+  // Phase 2 — proactive offline warmup. Prefetch the core working set into the
+  // persisted IndexedDB cache on mount, and again when the connection returns,
+  // so pages the user hasn't visited yet still have data on a cold offline launch.
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!me?.userId) return;
+    runOfflineWarmup(qc);
+    const unsub = onlineManager.subscribe((online) => {
+      if (online) runOfflineWarmup(qc);
+    });
+    return () => { unsub(); };
+  }, [qc, me?.userId]);
 
   // Close drawer BEFORE navigating so the sheet and route transition don't
   // animate at the same time (the main cause of mobile lag).
