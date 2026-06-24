@@ -86,10 +86,10 @@ function ListPage() {
 
   return (
     <div className="flex flex-col gap-4 pb-4">
-      <div className="flex items-center gap-2">
+      <div className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2">
         <Link
           to="/notebook/lists"
-          className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent"
           aria-label="Back to lists"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -108,13 +108,13 @@ function ListPage() {
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
               if (e.key === "Escape") setRenaming(false);
             }}
-            className="h-9"
+            className="h-10 min-w-0"
           />
         ) : (
           <button
             type="button"
             onClick={() => setRenaming(true)}
-            className="flex-1 text-left text-lg font-semibold truncate hover:underline"
+            className="min-w-0 text-left text-lg font-semibold truncate hover:underline"
           >
             {list?.title || "List"}
           </button>
@@ -125,7 +125,7 @@ function ListPage() {
           onClick={() => {
             if (confirm("Delete this list? Notes and todos inside will be unlinked but kept.")) mDeleteList.mutate();
           }}
-          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
           <Trash2 className="h-4 w-4" />
         </button>
