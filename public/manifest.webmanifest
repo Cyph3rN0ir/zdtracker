@@ -37,6 +37,12 @@
       "short_name": "Personal",
       "url": "/personal",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Chat",
+      "short_name": "Chat",
+      "url": "/chat",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
