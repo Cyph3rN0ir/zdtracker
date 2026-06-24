@@ -13,8 +13,10 @@ import { useI18n } from "@/lib/i18n";
 import { useTheme, THEMES, type Theme } from "@/lib/theme";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { runOfflineWarmup } from "@/lib/offline-warmup";
+import { useOfflineStatus } from "@/lib/offline-status";
+import { flushQueue, getQueueSize, subscribeQueue } from "@/lib/offline-queue";
+import { toast } from "sonner";
 
 type CachedMe = {
   userId: string;
