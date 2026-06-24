@@ -386,7 +386,7 @@ export const myTasksFn = createServerFn({ method: "GET" }).handler(async () => {
   // Upcoming window: today .. today+14
   const upcoming = await admin
     .from("tasks")
-    .select("id, business_id, title, details, due_date, status")
+    .select("id, business_id, title, details, due_date, status, created_by, remark, remark_at")
     .eq("assignee_user_id", me.userId!)
     .gte("due_date", today)
     .lte("due_date", in14.toISOString().slice(0, 10))
@@ -395,7 +395,7 @@ export const myTasksFn = createServerFn({ method: "GET" }).handler(async () => {
   // Overdue: due before today and still not done
   const overdue = await admin
     .from("tasks")
-    .select("id, business_id, title, details, due_date, status")
+    .select("id, business_id, title, details, due_date, status, created_by, remark, remark_at")
     .eq("assignee_user_id", me.userId!)
     .lt("due_date", today)
     .neq("status", "done")
