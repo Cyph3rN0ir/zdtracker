@@ -131,33 +131,62 @@ export function OfflineBanner() {
 
   if (status === "online" || status === "restoring") return null;
 
-  const tone =
+  // Monochrome surface, accent comes only from a tiny status dot — keeps the
+  // pill professional and unobtrusive while still readable on any background.
+  const dot =
     status === "offline"
-      ? "bg-amber-500/95 text-amber-950"
+      ? "bg-amber-400"
       : status === "sync-failed"
-        ? "bg-rose-500/95 text-rose-950"
-        : "bg-emerald-500/95 text-emerald-950";
+        ? "bg-rose-400"
+        : "bg-emerald-400"; // syncing / back online
+
+  const pulse = status === "syncing" || status === "sync-failed" ? false : true;
+  const spin = status === "syncing";
 
   const label =
     status === "offline"
-      ? "Offline — showing last synced data"
+      ? "Offline"
       : status === "syncing"
-        ? "Syncing offline data…"
+        ? "Syncing…"
         : status === "sync-failed"
-          ? "Some data couldn't sync"
-          : "Back online — syncing";
+          ? "Sync failed"
+          : "Back online";
+
+  const sub =
+    status === "offline"
+      ? "Showing last synced data"
+      : status === "syncing"
+        ? "Updating in background"
+        : status === "sync-failed"
+          ? "Tap retry when back online"
+          : "Catching up";
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className={
-        "fixed inset-x-0 bottom-3 z-[60] mx-auto w-fit max-w-[92vw] rounded-full px-3.5 py-1.5 text-xs font-medium shadow-lg backdrop-blur " +
-        tone
-      }
+      aria-label={`${label} — ${sub}`}
+      className="pointer-events-none fixed inset-x-0 bottom-3 z-[60] mx-auto flex w-fit max-w-[92vw] items-center gap-2.5 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
       style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      {label}
+      <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+        {pulse && (
+          <span
+            className={
+              "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 " +
+              dot
+            }
+          />
+        )}
+        {spin ? (
+          <span className="h-2 w-2 animate-spin rounded-full border border-emerald-400 border-t-transparent" />
+        ) : (
+          <span className={"relative inline-flex h-2 w-2 rounded-full " + dot} />
+        )}
+      </span>
+      <span className="font-medium text-foreground tracking-tight">{label}</span>
+      <span className="hidden sm:inline text-muted-foreground">·</span>
+      <span className="hidden sm:inline text-muted-foreground">{sub}</span>
     </div>
   );
 }
