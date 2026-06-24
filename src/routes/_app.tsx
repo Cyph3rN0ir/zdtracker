@@ -97,18 +97,48 @@ function AppLayout() {
   // Belt-and-braces: close drawer if pathname ever changes (e.g. browser back).
   useEffect(() => { setOpen(false); }, [pathname]);
 
-  // Phase 2 — proactive offline warmup. Prefetch the core working set into the
-  // persisted IndexedDB cache on mount, and again when the connection returns,
-  // so pages the user hasn't visited yet still have data on a cold offline launch.
+  // Phase 2 + 4 — proactive offline warmup, queue flushing, and unified
+  // sync-status reporting. Drives the shared OfflineBanner via OfflineStatus.
   const qc = useQueryClient();
+  const { setSyncing, setSyncFailed } = useOfflineStatus();
   useEffect(() => {
     if (!me?.userId) return;
-    runOfflineWarmup(qc);
-    const unsub = onlineManager.subscribe((online) => {
-      if (online) runOfflineWarmup(qc);
+
+    const runWarmup = async () => {
+      setSyncing(true);
+      setSyncFailed(false);
+      try {
+        await runOfflineWarmup(qc);
+      } catch {
+        setSyncFailed(true);
+      } finally {
+        setSyncing(false);
+      }
+    };
+
+    const flushPending = async () => {
+      if (getQueueSize() === 0) return;
+      const res = await flushQueue();
+      if (res.ok > 0) {
+        toast.success(`Synced ${res.ok} offline change${res.ok === 1 ? "" : "s"}`);
+        qc.invalidateQueries();
+      }
+      if (res.failed) toast.error("Some offline changes failed to sync");
+    };
+
+    runWarmup();
+    flushPending();
+
+    const unsubOnline = onlineManager.subscribe((online) => {
+      if (!online) return;
+      runWarmup();
+      flushPending();
     });
-    return () => { unsub(); };
-  }, [qc, me?.userId]);
+    const unsubQueue = subscribeQueue(() => {
+      // queue changed; nothing to render here — banner reads sync status.
+    });
+    return () => { unsubOnline(); unsubQueue(); };
+  }, [qc, me?.userId, setSyncing, setSyncFailed]);
 
   // Close drawer BEFORE navigating so the sheet and route transition don't
   // animate at the same time (the main cause of mobile lag).
