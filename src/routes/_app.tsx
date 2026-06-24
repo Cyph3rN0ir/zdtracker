@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, ListChecks, User, Users, LogOut, Menu, Languages, Palette, Check } from "lucide-react";
+import { LayoutDashboard, ListChecks, MessageSquare, User, Users, LogOut, Menu, Languages, Palette, Check } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { unreadTotalFn } from "@/lib/chat.functions";
 import { useI18n } from "@/lib/i18n";
 import { useTheme, THEMES, type Theme } from "@/lib/theme";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -102,6 +104,15 @@ function AppLayout() {
     navigate({ to: "/auth" });
   }
 
+  const unreadQ = useQuery({
+    queryKey: ["chat", "unread-total"],
+    queryFn: useServerFn(unreadTotalFn),
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+  });
+  const unreadTotal = unreadQ.data?.total ?? 0;
+
+
   const nav = useMemo(() => (
     <>
       <div className="p-5 border-b border-border">
@@ -126,6 +137,7 @@ function AppLayout() {
       <nav className="flex flex-col gap-0.5 p-3">
         <NavLink to="/" onNavigate={closeDrawer} icon={<LayoutDashboard className="h-4 w-4" />}>{t("nav.dashboard")}</NavLink>
         <NavLink to="/my/tasks" onNavigate={closeDrawer} icon={<ListChecks className="h-4 w-4" />}>{t("nav.myTasks")}</NavLink>
+        <NavLink to="/chat" onNavigate={closeDrawer} icon={<MessageSquare className="h-4 w-4" />} badge={unreadTotal}>Chat</NavLink>
         <NavLink to="/personal" onNavigate={closeDrawer} icon={<User className="h-4 w-4" />}>{t("nav.personal")}</NavLink>
         {me.role === "admin" && (
           <NavLink to="/admin/users" onNavigate={closeDrawer} icon={<Users className="h-4 w-4" />}>{t("nav.users")}</NavLink>
@@ -190,7 +202,7 @@ function AppLayout() {
         </Button>
       </div>
     </>
-  ), [me, t, lang, setLang, theme, setTheme, activeTheme, closeDrawer]);
+  ), [me, t, lang, setLang, theme, setTheme, activeTheme, closeDrawer, unreadTotal]);
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[240px_1fr] bg-muted/30">
@@ -230,7 +242,7 @@ function AppLayout() {
   );
 }
 
-function NavLink({ to, icon, children, onNavigate }: { to: string; icon: React.ReactNode; children: React.ReactNode; onNavigate?: () => void }) {
+function NavLink({ to, icon, children, onNavigate, badge }: { to: string; icon: React.ReactNode; children: React.ReactNode; onNavigate?: () => void; badge?: number }) {
   return (
     <Link
       to={to}
@@ -240,7 +252,10 @@ function NavLink({ to, icon, children, onNavigate }: { to: string; icon: React.R
       activeProps={{ "data-status": "active" } as any}
     >
       {icon}
-      {children}
+      <span className="flex-1">{children}</span>
+      {badge && badge > 0 ? (
+        <Badge className="h-5 min-w-5 px-1.5 text-[10px]">{badge > 99 ? "99+" : badge}</Badge>
+      ) : null}
     </Link>
   );
 }
