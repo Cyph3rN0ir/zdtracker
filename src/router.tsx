@@ -22,7 +22,9 @@ export const getRouter = () => {
           return failureCount < 3;
         },
         retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
-        staleTime: 30_000,
+        // 5 min: navigation reuses cached data immediately without a refetch
+        // flicker. Mutations still invalidate explicitly when data changes.
+        staleTime: 1000 * 60 * 5,
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
       },
