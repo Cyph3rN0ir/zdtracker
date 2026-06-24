@@ -44,11 +44,11 @@ function ListsPage() {
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="New list title (e.g. Groceries)"
-            className="h-11 text-base"
+            placeholder="New list (e.g. Groceries)"
+            className="h-11 min-w-0 flex-1 text-base"
           />
-          <Button type="submit" disabled={!title.trim() || m.isPending} className="h-11 px-4">
-            <Plus className="h-4 w-4 mr-1" /> Create
+          <Button type="submit" disabled={!title.trim() || m.isPending} className="h-11 shrink-0 px-3 sm:px-4">
+            <Plus className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Create</span>
           </Button>
         </div>
         <div className="mt-2 flex items-center gap-2">
