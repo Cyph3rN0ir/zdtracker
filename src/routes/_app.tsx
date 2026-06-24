@@ -285,7 +285,7 @@ function AppLayout() {
           <Outlet />
         </PullToRefresh>
       </main>
-      <OfflineIndicator />
+      {/* Unified offline/sync indicator is mounted in __root via OfflineBanner. */}
     </div>
   );
 }
