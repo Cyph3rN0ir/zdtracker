@@ -32,7 +32,7 @@ function NewDirectChat() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-1 min-h-0 flex-col h-full w-full bg-background">
       <header className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card">
         <Button
           variant="ghost"
@@ -48,7 +48,7 @@ function NewDirectChat() {
       <div className="p-3 border-b border-border">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" />
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {peersQ.isLoading ? (
           <div className="p-4 text-sm text-muted-foreground">Loading…</div>
         ) : filtered.length === 0 ? (
