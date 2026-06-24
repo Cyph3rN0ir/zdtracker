@@ -32,7 +32,8 @@ import {
 import { listListsFn, listNotesFn, listTodosFn } from "@/lib/notebook.functions";
 import { unreadTotalFn } from "@/lib/chat.functions";
 
-const FIVE_MIN = 1000 * 60 * 5;
+import { OFFLINE_BOUNDS } from "@/lib/offline-manifest";
+const FIVE_MIN = OFFLINE_BOUNDS.STALE_TIME_MS;
 
 function localToday(): string {
   const d = new Date();
@@ -87,7 +88,7 @@ async function doWarmup(qc: QueryClient): Promise<void> {
   // Notebook: prefetch notes per list (component key: ["notebook","notes",listId]).
   const lists = (qc.getQueryData(["notebook", "lists"]) as Array<{ id: string }> | undefined) ?? [];
   await Promise.all(
-    lists.slice(0, 20).map((l) =>
+    lists.slice(0, OFFLINE_BOUNDS.MAX_LISTS).map((l) =>
       safe(qc.prefetchQuery({
         queryKey: ["notebook", "notes", l.id],
         queryFn: () => listNotesFn({ data: { listId: l.id } }),
@@ -104,7 +105,7 @@ async function doWarmup(qc: QueryClient): Promise<void> {
   //   tx       -> ["btx", id]
   const biz = (qc.getQueryData(["businesses"]) as Array<{ id: string }> | undefined) ?? [];
   await Promise.all(
-    biz.slice(0, 20).flatMap((b) => [
+    biz.slice(0, OFFLINE_BOUNDS.MAX_BUSINESSES).flatMap((b) => [
       safe(qc.prefetchQuery({
         queryKey: ["business", b.id],
         queryFn: () => getBusinessFn({ data: { id: b.id } }),
@@ -139,7 +140,7 @@ async function doWarmup(qc: QueryClient): Promise<void> {
   //   budgets   -> ["personal-budgets", id]
   const profs = (qc.getQueryData(["personal"]) as Array<{ id: string }> | undefined) ?? [];
   await Promise.all(
-    profs.slice(0, 20).flatMap((p) => [
+    profs.slice(0, OFFLINE_BOUNDS.MAX_PERSONAL_PROFILES).flatMap((p) => [
       safe(qc.prefetchQuery({ queryKey: ["personal", p.id], queryFn: () => getPersonalProfileFn({ data: { id: p.id } }), staleTime: FIVE_MIN })),
       safe(qc.prefetchQuery({ queryKey: ["personal-tx", p.id], queryFn: () => listPersonalTxFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
       safe(qc.prefetchQuery({ queryKey: ["personal-accts", p.id], queryFn: () => listPersonalAccountsFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
