@@ -1,36 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-
-async function requireSession() {
-  const { getSession } = await import("@/lib/session.server");
-  const s = await getSession();
-  if (!s.data.userId) throw new Error("Not signed in");
-  return s.data;
-}
-
-async function requireMember(conversationId: string, userId: string) {
-  const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-  const supa = getSupabaseAdmin();
-  const { data, error } = await supa
-    .from("conversation_members")
-    .select("user_id")
-    .eq("conversation_id", conversationId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-  return supa;
-}
-
-async function broadcast(channelName: string, payload: Record<string, unknown>) {
-  const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-  const ch = getSupabaseAdmin().channel(channelName, { config: { broadcast: { ack: false } } });
-  try {
-    await ch.send({ type: "broadcast", event: "ping", payload });
-  } finally {
-    await getSupabaseAdmin().removeChannel(ch);
-  }
-}
+import { requireSession, requireMember, broadcast } from "@/lib/chat.server";
 
 // ---------------- List conversations ----------------
 export const listConversationsFn = createServerFn({ method: "GET" }).handler(async () => {
