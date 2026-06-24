@@ -75,7 +75,7 @@ function ConversationListPanel() {
           <Plus className="h-3 w-3" /> Private
         </Link>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {isLoading ? (
           <div className="p-4 text-sm text-muted-foreground">Loading…</div>
         ) : !data || data.length === 0 ? (
