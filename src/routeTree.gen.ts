@@ -18,6 +18,7 @@ import { Route as AppPersonalIndexRouteImport } from './routes/_app.personal.ind
 import { Route as AppChatIndexRouteImport } from './routes/_app.chat.index'
 import { Route as AppPersonalIdRouteImport } from './routes/_app.personal.$id'
 import { Route as AppMyTasksRouteImport } from './routes/_app.my.tasks'
+import { Route as AppChatNewRouteImport } from './routes/_app.chat.new'
 import { Route as AppChatConversationIdRouteImport } from './routes/_app.chat.$conversationId'
 import { Route as AppBusinessesIdRouteImport } from './routes/_app.businesses.$id'
 import { Route as AppAdminUsersRouteImport } from './routes/_app.admin.users'
@@ -71,6 +72,11 @@ const AppMyTasksRoute = AppMyTasksRouteImport.update({
   path: '/my/tasks',
   getParentRoute: () => AppRoute,
 } as any)
+const AppChatNewRoute = AppChatNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppChatRoute,
+} as any)
 const AppChatConversationIdRoute = AppChatConversationIdRouteImport.update({
   id: '/$conversationId',
   path: '/$conversationId',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AppAdminUsersRoute
   '/businesses/$id': typeof AppBusinessesIdRouteWithChildren
   '/chat/$conversationId': typeof AppChatConversationIdRoute
+  '/chat/new': typeof AppChatNewRoute
   '/my/tasks': typeof AppMyTasksRoute
   '/personal/$id': typeof AppPersonalIdRoute
   '/chat/': typeof AppChatIndexRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/chat/$conversationId': typeof AppChatConversationIdRoute
+  '/chat/new': typeof AppChatNewRoute
   '/my/tasks': typeof AppMyTasksRoute
   '/personal/$id': typeof AppPersonalIdRoute
   '/chat': typeof AppChatIndexRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/businesses/$id': typeof AppBusinessesIdRouteWithChildren
   '/_app/chat/$conversationId': typeof AppChatConversationIdRoute
+  '/_app/chat/new': typeof AppChatNewRoute
   '/_app/my/tasks': typeof AppMyTasksRoute
   '/_app/personal/$id': typeof AppPersonalIdRoute
   '/_app/chat/': typeof AppChatIndexRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/businesses/$id'
     | '/chat/$conversationId'
+    | '/chat/new'
     | '/my/tasks'
     | '/personal/$id'
     | '/chat/'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/chat/$conversationId'
+    | '/chat/new'
     | '/my/tasks'
     | '/personal/$id'
     | '/chat'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/_app/admin/users'
     | '/_app/businesses/$id'
     | '/_app/chat/$conversationId'
+    | '/_app/chat/new'
     | '/_app/my/tasks'
     | '/_app/personal/$id'
     | '/_app/chat/'
@@ -290,6 +302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMyTasksRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/chat/new': {
+      id: '/_app/chat/new'
+      path: '/new'
+      fullPath: '/chat/new'
+      preLoaderRoute: typeof AppChatNewRouteImport
+      parentRoute: typeof AppChatRoute
+    }
     '/_app/chat/$conversationId': {
       id: '/_app/chat/$conversationId'
       path: '/$conversationId'
@@ -351,11 +370,13 @@ declare module '@tanstack/react-router' {
 
 interface AppChatRouteChildren {
   AppChatConversationIdRoute: typeof AppChatConversationIdRoute
+  AppChatNewRoute: typeof AppChatNewRoute
   AppChatIndexRoute: typeof AppChatIndexRoute
 }
 
 const AppChatRouteChildren: AppChatRouteChildren = {
   AppChatConversationIdRoute: AppChatConversationIdRoute,
+  AppChatNewRoute: AppChatNewRoute,
   AppChatIndexRoute: AppChatIndexRoute,
 }
 
