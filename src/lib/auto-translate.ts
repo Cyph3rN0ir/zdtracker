@@ -300,6 +300,35 @@ const MAP: Record<string, string> = {
   "Syncing": "সিঙ্ক হচ্ছে",
   "change": "পরিবর্তন",
   "changes": "পরিবর্তনসমূহ",
+
+  // Chat
+  "Chat": "চ্যাট",
+  "Conversations": "কথোপকথন",
+  "Private": "ব্যক্তিগত",
+  "Group": "গ্রুপ",
+  "Direct": "সরাসরি",
+  "No conversations yet. They appear automatically when you join a business.":
+    "এখনো কোনো কথোপকথন নেই। ব্যবসায় যোগ দিলে স্বয়ংক্রিয়ভাবে দেখাবে।",
+  "No messages yet": "এখনো কোনো বার্তা নেই",
+  "No messages yet. Say hi!": "এখনো কোনো বার্তা নেই। হাই বলুন!",
+  "No messages yet · Say hi!": "এখনো কোনো বার্তা নেই · হাই বলুন!",
+  "Select a conversation to start chatting.": "চ্যাট শুরু করতে একটি কথোপকথন বেছে নিন।",
+  "Select a conversation": "একটি কথোপকথন বেছে নিন",
+  "Type a message…": "একটি বার্তা লিখুন…",
+  "Type a message...": "একটি বার্তা লিখুন…",
+  "Send": "পাঠান",
+  "Reply": "উত্তর",
+  "Replying to": "উত্তর দিচ্ছেন",
+  "Cancel reply": "উত্তর বাতিল",
+  "Back": "পেছনে",
+  "Start a private chat": "ব্যক্তিগত চ্যাট শুরু করুন",
+  "Search people…": "মানুষ খুঁজুন…",
+  "Search people...": "মানুষ খুঁজুন…",
+  "No people available. You can only chat with members of businesses you share.":
+    "কেউ উপলব্ধ নেই। আপনি কেবল একই ব্যবসার সদস্যদের সাথে চ্যাট করতে পারেন।",
+  "members": "সদস্য",
+  "member": "সদস্য",
+  "No messages yet.": "এখনো কোনো বার্তা নেই।",
 };
 
 // Word-level fallback so partial English fragments (e.g. inside concatenated
@@ -313,6 +342,9 @@ const WORD_MAP: Record<string, string> = {
   "Investor": "বিনিয়োগকারী",
   "Member": "সদস্য",
   "Worker": "কর্মী",
+  "members": "সদস্য",
+  "member": "সদস্য",
+  "Group": "গ্রুপ",
   "total": "মোট",
   "of": "এর",
   "done": "সম্পন্ন",
