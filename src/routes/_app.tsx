@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, ListChecks, MessageSquare, User, Users, LogOut, Menu, Languages, Palette, Check } from "lucide-react";
+import { LayoutDashboard, ListChecks, MessageSquare, User, Users, LogOut, Menu, Languages, Palette, Check, NotebookPen } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { unreadTotalFn } from "@/lib/chat.functions";
 import { useI18n } from "@/lib/i18n";
@@ -137,6 +137,8 @@ function AppLayout() {
       <nav className="flex flex-col gap-0.5 p-3">
         <NavLink to="/" onNavigate={closeDrawer} icon={<LayoutDashboard className="h-4 w-4" />}>{t("nav.dashboard")}</NavLink>
         <NavLink to="/my/tasks" onNavigate={closeDrawer} icon={<ListChecks className="h-4 w-4" />}>{t("nav.myTasks")}</NavLink>
+        <NavLink to="/notebook/today" onNavigate={closeDrawer} icon={<NotebookPen className="h-4 w-4" />}>{t("nav.notebook")}</NavLink>
+
         <NavLink to="/chat" onNavigate={closeDrawer} icon={<MessageSquare className="h-4 w-4" />} badge={unreadTotal}>Chat</NavLink>
         <NavLink to="/personal" onNavigate={closeDrawer} icon={<User className="h-4 w-4" />}>{t("nav.personal")}</NavLink>
         {me.role === "admin" && (
