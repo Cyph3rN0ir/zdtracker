@@ -1,12 +1,53 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { myTasksFn, toggleTaskFn } from "@/lib/zt.functions";
+import { useEffect, useState } from "react";
+import { myTasksFn, toggleTaskFn, deleteTaskFn, setTaskRemarkFn } from "@/lib/zt.functions";
 import { PageHeader, ErrorBox, EmptyState } from "./_app.index";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { MoreHorizontal, MessageSquarePlus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
+type Task = {
+  id: string;
+  business_id: string;
+  title: string;
+  details: string | null;
+  due_date: string;
+  status: string;
+  created_by: string | null;
+  remark: string | null;
+  remark_at: string | null;
+};
 
 export const Route = createFileRoute("/_app/my/tasks")({
   component: MyTasks,
@@ -16,19 +57,37 @@ export const Route = createFileRoute("/_app/my/tasks")({
 function MyTasks() {
   const list = useServerFn(myTasksFn);
   const toggle = useServerFn(toggleTaskFn);
+  const del = useServerFn(deleteTaskFn);
+  const setRemark = useServerFn(setTaskRemarkFn);
   const qc = useQueryClient();
+
   const q = useQuery({ queryKey: ["my-tasks"], queryFn: () => list() });
-  const m = useMutation({
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["my-tasks"] });
+
+  const toggleM = useMutation({
     mutationFn: (v: { id: string; done: boolean }) => toggle({ data: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-tasks"] }),
+    onSuccess: invalidate,
+    onError: (e: any) => toast.error(e?.message ?? "Failed to update task"),
+  });
+  const deleteM = useMutation({
+    mutationFn: (id: string) => del({ data: { id } }),
+    onSuccess: () => { toast.success("Task deleted"); invalidate(); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to delete task"),
+  });
+  const remarkM = useMutation({
+    mutationFn: (v: { id: string; remark: string }) => setRemark({ data: v }),
+    onSuccess: () => { toast.success("Remark saved"); invalidate(); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to save remark"),
   });
 
-  const today = new Date().toISOString().slice(0, 10);
-  const groups: Record<string, any[]> = {};
-  (q.data ?? []).forEach((t: any) => { (groups[t.due_date] = groups[t.due_date] || []).push(t); });
-  // Sort: overdue dates first (ascending), then today and future (ascending) — overdue naturally sort first since < today.
-  const days = Object.keys(groups).sort();
+  const [remarkFor, setRemarkFor] = useState<Task | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Task | null>(null);
 
+  const today = new Date().toISOString().slice(0, 10);
+  const tasks: Task[] = (q.data ?? []) as Task[];
+  const groups: Record<string, Task[]> = {};
+  tasks.forEach((t) => { (groups[t.due_date] = groups[t.due_date] || []).push(t); });
+  const days = Object.keys(groups).sort();
 
   return (
     <div className="space-y-6">
@@ -62,15 +121,46 @@ function MyTasks() {
                       <li key={t.id} className="px-2 py-2.5 flex items-start gap-3">
                         <Checkbox
                           checked={t.status === "done"}
-                          onCheckedChange={(c) => m.mutate({ id: t.id, done: !!c })}
+                          onCheckedChange={(c) => toggleM.mutate({ id: t.id, done: !!c })}
                           className="mt-0.5"
+                          aria-label={t.status === "done" ? "Mark as not done" : "Mark as done"}
                         />
                         <div className="flex-1 min-w-0">
                           <div className={"text-sm " + (t.status === "done" ? "line-through text-muted-foreground" : "font-medium")}>
                             {t.title}
                           </div>
                           {t.details && <div className="text-xs text-muted-foreground mt-0.5">{t.details}</div>}
+                          {t.remark && (
+                            <div className="mt-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-900 dark:text-amber-200">
+                              <div className="font-medium text-[11px] uppercase tracking-wide opacity-70">Remark</div>
+                              <div className="whitespace-pre-wrap">{t.remark}</div>
+                            </div>
+                          )}
                         </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 -mr-1" aria-label="Task actions">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onSelect={() => toggleM.mutate({ id: t.id, done: t.status !== "done" })}>
+                              {t.status === "done" ? "Mark as not done" : "Mark as done"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setRemarkFor(t)}>
+                              <MessageSquarePlus className="h-4 w-4" />
+                              {t.remark ? "Edit remark" : "Add remark"}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onSelect={() => setConfirmDelete(t)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete task
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </li>
                     ))}
                   </ul>
@@ -80,7 +170,114 @@ function MyTasks() {
           })}
         </div>
       )}
+
+      <RemarkDialog
+        task={remarkFor}
+        onClose={() => setRemarkFor(null)}
+        onSave={(remark) => {
+          if (!remarkFor) return;
+          remarkM.mutate(
+            { id: remarkFor.id, remark },
+            { onSuccess: () => setRemarkFor(null) },
+          );
+        }}
+        saving={remarkM.isPending}
+      />
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete?.title
+                ? `"${confirmDelete.title}" will be permanently removed.`
+                : "This task will be permanently removed."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!confirmDelete) return;
+                deleteM.mutate(confirmDelete.id, {
+                  onSuccess: () => setConfirmDelete(null),
+                });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function RemarkDialog({
+  task,
+  onClose,
+  onSave,
+  saving,
+}: {
+  task: Task | null;
+  onClose: () => void;
+  onSave: (remark: string) => void;
+  saving: boolean;
+}) {
+  const [value, setValue] = useState("");
+  const open = !!task;
+  useEffect(() => {
+    if (task) setValue(task.remark ?? "");
+    else setValue("");
+  }, [task]);
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) { setValue(""); onClose(); }
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{task?.remark ? "Edit remark" : "Add remark"}</DialogTitle>
+          <DialogDescription>
+            Explain progress, blockers, or why this task is still pending. The
+            person who created it will see this note.
+          </DialogDescription>
+        </DialogHeader>
+        <Textarea
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="e.g. Blocked on vendor reply — expecting answer Monday."
+          rows={5}
+          maxLength={1000}
+        />
+        <div className="text-[11px] text-muted-foreground text-right">
+          {value.length} / 1000
+        </div>
+        <DialogFooter className="gap-2 sm:gap-2">
+          {task?.remark && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onSave("")}
+              disabled={saving}
+              className="mr-auto text-destructive hover:text-destructive"
+            >
+              Clear
+            </Button>
+          )}
+          <Button type="button" variant="outline" onClick={() => { setValue(""); onClose(); }} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={() => onSave(value)} disabled={saving || value.trim().length === 0}>
+            {saving ? "Saving…" : "Save remark"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -94,4 +291,3 @@ function formatDay(d: string, today: string) {
   if (diff < 0) return `Due • ${Math.abs(diff)} days ago`;
   return new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" });
 }
-
