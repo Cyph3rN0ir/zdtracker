@@ -394,7 +394,6 @@ const MAP: Record<string, string> = {
   "Low": "নিম্ন",
   "Med": "মাঝারি",
   "High": "উচ্চ",
-  "Color": "রঙ",
 
   // Heads
   "Today — Notebook — ZeroSync": "আজ — নোটবুক — জিরোসিঙ্ক",
