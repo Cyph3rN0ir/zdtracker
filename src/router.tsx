@@ -39,16 +39,18 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
-    // Preload route code + loader data on link hover/focus so navigation
-    // feels instant. 50ms delay avoids preloading on quick mouse-over.
-    defaultPreload: "intent",
+    // Preload route code + loader data when a link enters the viewport, so
+    // visible nav items are warm by the time the user taps. Intent (hover/
+    // focus) is implicit fallback for off-screen links.
+    defaultPreload: "viewport",
     defaultPreloadDelay: 50,
     // Query owns freshness; let preload always re-check.
     defaultPreloadStaleTime: 0,
-    // Keep the previous page mounted briefly so users don't see a blank
-    // flash before the new route's loader resolves from cache.
+    // Show a skeleton instead of a blank flash when a route's loader takes
+    // longer than 200ms. Cached routes resolve faster than that and skip it.
     defaultPendingMs: 200,
     defaultPendingMinMs: 0,
+    defaultPendingComponent: RouteSkeleton,
   });
 
   return router;
