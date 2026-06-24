@@ -226,12 +226,11 @@ function RemarkDialog({
   saving: boolean;
 }) {
   const [value, setValue] = useState("");
-  // Reset textarea whenever a new task is opened.
   const open = !!task;
-  if (open && value === "" && task?.remark) {
-    // Pre-fill once per open via lazy initialization.
-    setValue(task.remark);
-  }
+  useEffect(() => {
+    if (task) setValue(task.remark ?? "");
+    else setValue("");
+  }, [task]);
   return (
     <Dialog
       open={open}
