@@ -81,21 +81,40 @@ export function OfflineQueryProvider({
   }
 
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={persistOptions}
+      onSuccess={() => {
+        // After cache rehydrates from IndexedDB, refresh stale data in the
+        // background when online — keeps screens snappy + eventually fresh.
+        if (typeof navigator === "undefined" || navigator.onLine) {
+          queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
+        }
+      }}
+    >
       {children}
     </PersistQueryClientProvider>
   );
 }
 
-/** Listens to navigator online/offline and renders a subtle banner when offline. */
+/** Subtle bottom strip: shows "Offline" while disconnected, briefly "Back online" on reconnect. */
 export function OfflineBanner() {
   const [online, setOnline] = useState(
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
+  const [justReconnected, setJustReconnected] = useState(false);
 
   useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
+    const on = () => {
+      setOnline(true);
+      setJustReconnected(true);
+      const t = setTimeout(() => setJustReconnected(false), 2500);
+      return () => clearTimeout(t);
+    };
+    const off = () => {
+      setOnline(false);
+      setJustReconnected(false);
+    };
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
     return () => {
@@ -104,10 +123,22 @@ export function OfflineBanner() {
     };
   }, []);
 
-  if (online) return null;
+  if (online && !justReconnected) return null;
+  const offline = !online;
   return (
-    <div className="fixed inset-x-0 top-0 z-[60] bg-amber-500/90 text-amber-950 text-xs font-medium text-center py-1 px-3 shadow-sm">
-      Offline — showing last saved data
+    <div
+      role="status"
+      aria-live="polite"
+      className={
+        "fixed inset-x-0 bottom-3 z-[60] mx-auto w-fit max-w-[92vw] rounded-full px-3.5 py-1.5 text-xs font-medium shadow-lg backdrop-blur " +
+        (offline
+          ? "bg-amber-500/95 text-amber-950"
+          : "bg-emerald-500/95 text-emerald-950")
+      }
+      style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
+      {offline ? "Offline — showing last saved data" : "Back online — syncing"}
     </div>
   );
 }
+
