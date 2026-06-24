@@ -43,17 +43,19 @@ function MyTasks() {
         <div className="space-y-3">
           {days.map((d) => {
             const open = groups[d].filter((t) => t.status !== "done").length;
+            const isOverdue = d < today;
             return (
-              <Card key={d}>
+              <Card key={d} className={isOverdue ? "border-destructive/40" : undefined}>
                 <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
                   <div>
-                    <CardTitle className="text-base">{formatDay(d, today)}</CardTitle>
+                    <CardTitle className={"text-base " + (isOverdue ? "text-destructive" : "")}>{formatDay(d, today)}</CardTitle>
                     <div className="text-xs text-muted-foreground font-mono mt-0.5">{d}</div>
                   </div>
-                  <Badge variant={open === 0 ? "secondary" : "default"}>
-                    {open === 0 ? "All done" : `${open} open`}
+                  <Badge variant={isOverdue ? "destructive" : open === 0 ? "secondary" : "default"}>
+                    {isOverdue ? `${open} due` : open === 0 ? "All done" : `${open} open`}
                   </Badge>
                 </CardHeader>
+
                 <CardContent className="pt-0">
                   <ul className="divide-y divide-border -mx-2">
                     {groups[d].map((t) => (
