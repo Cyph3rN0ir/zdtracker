@@ -48,7 +48,7 @@ function NewDirectChat() {
       <div className="p-3 border-b border-border">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" />
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {peersQ.isLoading ? (
           <div className="p-4 text-sm text-muted-foreground">Loading…</div>
         ) : filtered.length === 0 ? (
