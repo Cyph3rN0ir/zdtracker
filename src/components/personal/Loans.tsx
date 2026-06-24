@@ -200,6 +200,9 @@ export function PersonalLoans({
                     <div className="sm:col-span-3 min-w-0">
                       <div className="font-medium truncate">{cpName(l.counterparty_id)}</div>
                       <div className="text-xs text-muted-foreground">{l.started_on}{l.due_on ? ` → ${l.due_on}` : ""}</div>
+                      {l.note ? (
+                        <div className="text-xs text-muted-foreground mt-0.5 italic break-words">{l.note}</div>
+                      ) : null}
                     </div>
                     <div className="grid grid-cols-3 gap-2 sm:contents">
                       <div className="sm:col-span-2 text-xs text-muted-foreground">Principal<br /><span className="font-mono text-foreground">{fmtMoney(l.principal, currency)}</span></div>
