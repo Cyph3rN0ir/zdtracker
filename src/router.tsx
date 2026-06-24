@@ -1,6 +1,7 @@
 import { QueryClient, keepPreviousData } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { RouteSkeleton } from "./components/RouteSkeleton";
 
 export const getRouter = () => {
   const queryClient = new QueryClient({
