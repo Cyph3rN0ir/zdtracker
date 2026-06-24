@@ -103,7 +103,9 @@ function ConversationListPanel() {
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
-                      {c.kind === "group" ? "Group" : c.subtitle} · {c.lastMessage ?? "No messages yet"}
+                      <span>{c.kind === "group" ? "Group" : c.subtitle}</span>
+                      <span> · </span>
+                      <span>{c.lastMessage ?? "No messages yet"}</span>
                     </div>
                   </div>
                 </Link>
