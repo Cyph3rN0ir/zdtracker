@@ -10,16 +10,13 @@ function ChatLayout() {
   // for side-by-side, mobile uses block + conditional content via Outlet.
   const onThread = /^\/chat\/[^/]+/.test(pathname);
   return (
-    <div
-      className="fixed inset-x-0 bottom-0 top-[3.25rem] md:top-0 md:left-60 bg-background z-30 flex md:grid md:grid-cols-[320px_1fr]"
-      style={{ height: "calc(100dvh - 3.25rem)" }}
-    >
+    <div className="fixed inset-x-0 bottom-0 top-[3.25rem] md:top-0 md:left-60 h-[calc(100dvh-3.25rem)] md:h-dvh bg-background z-30 flex md:grid md:grid-cols-[320px_1fr]">
       <aside
-        className={`border-r border-border bg-card overflow-hidden h-full w-full md:w-auto ${onThread ? "hidden md:block" : "block"}`}
+        className={`border-r border-border bg-card overflow-hidden h-full w-full md:w-auto ${onThread ? "hidden md:flex md:flex-col" : "flex flex-col"}`}
       >
         <ConversationListPanel />
       </aside>
-      <section className={`overflow-hidden h-full min-h-0 w-full ${onThread ? "block" : "hidden md:block"}`}>
+      <section className={`overflow-hidden h-full min-h-0 w-full ${onThread ? "flex flex-col" : "hidden md:flex md:flex-col"}`}>
         <Outlet />
       </section>
     </div>
