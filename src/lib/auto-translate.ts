@@ -329,6 +329,78 @@ const MAP: Record<string, string> = {
   "members": "সদস্য",
   "member": "সদস্য",
   "No messages yet.": "এখনো কোনো বার্তা নেই।",
+
+  // My tasks (extras)
+  "Task actions": "কাজের ক্রিয়া",
+  "Mark as done": "সম্পন্ন চিহ্নিত করুন",
+  "Mark as not done": "অসম্পন্ন চিহ্নিত করুন",
+  "Add remark": "মন্তব্য যোগ করুন",
+  "Edit remark": "মন্তব্য সম্পাদনা",
+  "Delete task": "কাজ মুছুন",
+  "Remark": "মন্তব্য",
+  "Remark saved": "মন্তব্য সংরক্ষিত হয়েছে",
+  "Failed to save remark": "মন্তব্য সংরক্ষণে ব্যর্থ",
+  "Task deleted": "কাজ মুছে ফেলা হয়েছে",
+  "Failed to delete task": "কাজ মুছতে ব্যর্থ",
+  "Failed to update task": "কাজ আপডেট করতে ব্যর্থ",
+  "Delete this task?": "এই কাজটি মুছবেন?",
+  "This task will be permanently removed.": "এই কাজটি স্থায়ীভাবে মুছে ফেলা হবে।",
+  "Save remark": "মন্তব্য সংরক্ষণ",
+  "Saving…": "সংরক্ষণ হচ্ছে…",
+  "Clear": "পরিষ্কার",
+  "Explain progress, blockers, or why this task is still pending. The person who created it will see this note.":
+    "অগ্রগতি, বাধা বা কাজটি এখনও কেন বাকি তা ব্যাখ্যা করুন। যিনি কাজটি তৈরি করেছেন তিনি এই নোটটি দেখবেন।",
+  "e.g. Blocked on vendor reply — expecting answer Monday.":
+    "যেমন: বিক্রেতার উত্তরের জন্য আটকে আছে — সোমবার উত্তর প্রত্যাশিত।",
+  "due": "বকেয়া",
+  "open": "চলমান",
+
+  // Notebook
+  "Notebook": "নোটবুক",
+  "Lists & notes": "তালিকা ও নোট",
+  "Previous day": "আগের দিন",
+  "Next day": "পরের দিন",
+  "Overdue": "অতিদেয়",
+  "Someday": "যেকোনো সময়",
+  "Nothing scheduled. Add one below.": "কিছু নির্ধারিত নেই। নিচে একটি যোগ করুন।",
+  "Notes": "নোট",
+  "Todos": "কাজসমূহ",
+  "New note": "নতুন নোট",
+  "No notes in this list.": "এই তালিকায় কোনো নোট নেই।",
+  "No todos. Add one below.": "কোনো কাজ নেই। নিচে একটি যোগ করুন।",
+  "No lists yet": "এখনো কোনো তালিকা নেই",
+  "Create one above to start organizing notes and todos.":
+    "নোট ও কাজ সাজাতে উপরে একটি তৈরি করুন।",
+  "List": "তালিকা",
+  "Untitled": "শিরোনামহীন",
+  "New list (e.g. Groceries)": "নতুন তালিকা (যেমন: কেনাকাটা)",
+  "Add a task…": "একটি কাজ যোগ করুন…",
+  "Add a task to this list…": "এই তালিকায় একটি কাজ যোগ করুন…",
+  "Back to lists": "তালিকায় ফিরুন",
+  "Delete list": "তালিকা মুছুন",
+  "Delete this list? Notes and todos inside will be unlinked but kept.":
+    "এই তালিকাটি মুছবেন? ভেতরের নোট ও কাজগুলো সংযোগমুক্ত হবে তবে রক্ষিত থাকবে।",
+  "Pin": "পিন",
+  "Unpin": "পিন সরান",
+  "Preview": "প্রিভিউ",
+  "Note title": "নোটের শিরোনাম",
+  "Delete this note?": "এই নোটটি মুছবেন?",
+  "Failed to load note.": "নোট লোড করতে ব্যর্থ।",
+  "Autosaved": "স্বয়ংক্রিয়ভাবে সংরক্ষিত",
+  "Save now": "এখনই সংরক্ষণ",
+  "Start writing… Use - [ ] for todos, # for headings, **bold**, *italic*.":
+    "লেখা শুরু করুন… কাজের জন্য - [ ], হেডিং-এর জন্য #, **মোটা**, *ইটালিক* ব্যবহার করুন।",
+  "Delete this todo?": "এই কাজটি মুছবেন?",
+  "Low": "নিম্ন",
+  "Med": "মাঝারি",
+  "High": "উচ্চ",
+  "Color": "রঙ",
+
+  // Heads
+  "Today — Notebook — ZeroSync": "আজ — নোটবুক — জিরোসিঙ্ক",
+  "Lists — Notebook — ZeroSync": "তালিকা — নোটবুক — জিরোসিঙ্ক",
+  "List — Notebook — ZeroSync": "তালিকা — নোটবুক — জিরোসিঙ্ক",
+  "Note — Notebook — ZeroSync": "নোট — নোটবুক — জিরোসিঙ্ক",
 };
 
 // Word-level fallback so partial English fragments (e.g. inside concatenated
