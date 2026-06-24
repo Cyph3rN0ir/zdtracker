@@ -7,7 +7,9 @@ const DICT: Record<string, { en: string; bn: string }> = {
   "brand": { en: "ZeroSync", bn: "জিরোসিঙ্ক" },
   "nav.dashboard": { en: "Dashboard", bn: "ড্যাশবোর্ড" },
   "nav.myTasks": { en: "My tasks", bn: "আমার কাজ" },
+  "nav.notebook": { en: "Notebook", bn: "নোটবুক" },
   "nav.personal": { en: "Personal", bn: "ব্যক্তিগত" },
+
   "nav.users": { en: "Users", bn: "ব্যবহারকারী" },
   "nav.businesses": { en: "Businesses", bn: "ব্যবসা" },
   "nav.signOut": { en: "Sign out", bn: "সাইন আউট" },
