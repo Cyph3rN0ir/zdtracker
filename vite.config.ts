@@ -49,6 +49,22 @@ export default defineConfig({
                 cacheName: "zs-html-pages",
                 networkTimeoutSeconds: 4,
                 expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                plugins: [
+                  {
+                    // When offline AND no cached HTML for this URL exists,
+                    // serve the precached /offline.html page so the user
+                    // sees a branded retry screen instead of a browser
+                    // "no internet" error.
+                    handlerDidError: async () => {
+                      const cache = await caches.open("zs-html-pages");
+                      return (
+                        (await cache.match("/offline.html")) ||
+                        (await caches.match("/offline.html")) ||
+                        Response.error()
+                      );
+                    },
+                  },
+                ],
               },
             },
             {
