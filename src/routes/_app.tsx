@@ -104,6 +104,15 @@ function AppLayout() {
     navigate({ to: "/auth" });
   }
 
+  const unreadQ = useQuery({
+    queryKey: ["chat", "unread-total"],
+    queryFn: useServerFn(unreadTotalFn),
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+  });
+  const unreadTotal = unreadQ.data?.total ?? 0;
+
+
   const nav = useMemo(() => (
     <>
       <div className="p-5 border-b border-border">
