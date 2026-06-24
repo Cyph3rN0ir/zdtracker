@@ -202,7 +202,7 @@ function AppLayout() {
         </Button>
       </div>
     </>
-  ), [me, t, lang, setLang, theme, setTheme, activeTheme, closeDrawer]);
+  ), [me, t, lang, setLang, theme, setTheme, activeTheme, closeDrawer, unreadTotal]);
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[240px_1fr] bg-muted/30">
