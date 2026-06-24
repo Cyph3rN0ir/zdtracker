@@ -202,7 +202,7 @@ function ThreadView() {
             }}
             placeholder="Type a message…"
             rows={1}
-            className="min-h-[40px] max-h-32 resize-none"
+            className="min-h-[40px] max-h-32 resize-none text-base sm:text-sm"
           />
           <Button onClick={submit} disabled={!body.trim() || send.isPending} size="icon" aria-label="Send">
             <Send className="h-4 w-4" />

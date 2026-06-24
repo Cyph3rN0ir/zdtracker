@@ -10,7 +10,7 @@ function ChatLayout() {
   // for side-by-side, mobile uses block + conditional content via Outlet.
   const onThread = /^\/chat\/[^/]+/.test(pathname);
   return (
-    <div className="-m-4 sm:-m-6 md:-m-8 h-[calc(100vh-3.25rem)] md:h-[calc(100vh-0px)] md:grid md:grid-cols-[320px_1fr] bg-background">
+    <div className="-m-4 sm:-m-6 md:-m-8 h-[calc(100dvh-3.25rem)] md:h-dvh md:grid md:grid-cols-[320px_1fr] bg-background">
       <aside
         className={`border-r border-border bg-card overflow-hidden ${onThread ? "hidden md:block" : "block"}`}
       >
