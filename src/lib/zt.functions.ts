@@ -382,16 +382,28 @@ export const myTasksFn = createServerFn({ method: "GET" }).handler(async () => {
   const today = new Date().toISOString().slice(0, 10);
   const in14 = new Date();
   in14.setDate(in14.getDate() + 14);
-  const { data, error } = await getSupabaseAdmin()
+  const admin = getSupabaseAdmin();
+  // Upcoming window: today .. today+14
+  const upcoming = await admin
     .from("tasks")
     .select("id, business_id, title, details, due_date, status")
     .eq("assignee_user_id", me.userId!)
     .gte("due_date", today)
     .lte("due_date", in14.toISOString().slice(0, 10))
     .order("due_date", { ascending: true });
-  if (error) throw new Error(error.message);
-  return data ?? [];
+  if (upcoming.error) throw new Error(upcoming.error.message);
+  // Overdue: due before today and still not done
+  const overdue = await admin
+    .from("tasks")
+    .select("id, business_id, title, details, due_date, status")
+    .eq("assignee_user_id", me.userId!)
+    .lt("due_date", today)
+    .neq("status", "done")
+    .order("due_date", { ascending: true });
+  if (overdue.error) throw new Error(overdue.error.message);
+  return [...(overdue.data ?? []), ...(upcoming.data ?? [])];
 });
+
 
 export const createTaskFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
