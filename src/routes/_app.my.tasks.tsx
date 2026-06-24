@@ -90,5 +90,8 @@ function formatDay(d: string, today: string) {
   const b = new Date(d + "T00:00:00");
   const diff = Math.round((b.getTime() - a.getTime()) / 86400000);
   if (diff === 1) return "Tomorrow";
+  if (diff === -1) return "Due • Yesterday";
+  if (diff < 0) return `Due • ${Math.abs(diff)} days ago`;
   return new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" });
 }
+
