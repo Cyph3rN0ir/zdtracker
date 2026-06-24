@@ -1,19 +1,11 @@
-// Single guarded PWA service-worker registration point. Never registers in dev,
-// inside an iframe, in Lovable preview hosts, or when ?sw=off is set.
+// Single guarded PWA service-worker registration point. Uses the shared
+// host guard so SW registration and Query-cache persistence enable/disable
+// together — they MUST stay in sync, or the app caches data with no SW to
+// serve the shell offline (or vice-versa).
+
+import { shouldDisablePwaFeatures } from "@/lib/pwa-host-guard";
 
 type UpdateCallback = () => void;
-
-const PREVIEW_HOST_SUFFIXES = [
-  ".lovableproject.com",
-  ".lovableproject-dev.com",
-  ".beta.lovable.dev",
-];
-
-function isPreviewHost(host: string): boolean {
-  if (host.startsWith("id-preview--") || host.startsWith("preview--")) return true;
-  if (host === "lovableproject.com" || host === "lovableproject-dev.com" || host === "beta.lovable.dev") return true;
-  return PREVIEW_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
-}
 
 async function unregisterAllAppWorkers() {
   if (!("serviceWorker" in navigator)) return;
@@ -22,7 +14,8 @@ async function unregisterAllAppWorkers() {
     await Promise.allSettled(
       regs
         .filter((r) => {
-          const url = r.active?.scriptURL || r.waiting?.scriptURL || r.installing?.scriptURL || "";
+          const url =
+            r.active?.scriptURL || r.waiting?.scriptURL || r.installing?.scriptURL || "";
           return url.endsWith("/sw.js") || url.endsWith("/service-worker.js");
         })
         .map((r) => r.unregister()),
@@ -34,13 +27,7 @@ export async function registerPWA(onUpdate?: UpdateCallback): Promise<(() => Pro
   if (typeof window === "undefined") return null;
   if (!("serviceWorker" in navigator)) return null;
 
-  const url = new URL(window.location.href);
-  const inIframe = window.self !== window.top;
-  const dev = !import.meta.env.PROD;
-  const preview = isPreviewHost(window.location.hostname);
-  const killSwitch = url.searchParams.get("sw") === "off";
-
-  if (dev || inIframe || preview || killSwitch) {
+  if (shouldDisablePwaFeatures()) {
     await unregisterAllAppWorkers();
     return null;
   }
@@ -54,4 +41,3 @@ export async function registerPWA(onUpdate?: UpdateCallback): Promise<(() => Pro
     return null;
   }
 }
-
