@@ -17,9 +17,14 @@ export const getRouter = () => {
         retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
         staleTime: 30_000,
         refetchOnWindowFocus: false,
+        refetchOnReconnect: true,
+      },
+      mutations: {
+        networkMode: "offlineFirst",
       },
     },
   });
+
 
   const router = createRouter({
     routeTree,
