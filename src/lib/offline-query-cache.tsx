@@ -97,29 +97,74 @@ export function OfflineQueryProvider({
   );
 }
 
-/** Subtle bottom strip: shows "Offline" while disconnected, briefly "Back online" on reconnect. */
+/**
+ * Subtle bottom strip: shows "Offline" while disconnected, briefly "Back online" on reconnect.
+ *
+ * Uses TanStack Query's `onlineManager` as the source of truth (same signal that
+ * pauses/resumes queries), plus an active same-origin HEAD probe to overrule
+ * false-negative `navigator.onLine` values seen on Android WebView / installed
+ * PWAs / VPN flaps. Without the probe the banner can stick on "Offline" even
+ * with a working connection until the OS happens to fire an `online` event.
+ */
 export function OfflineBanner() {
-  const [online, setOnline] = useState(
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  const [online, setOnline] = useState<boolean>(() => {
+    if (typeof navigator === "undefined") return true;
+    // Trust the OS only when it says we're online; verify "offline" with a probe.
+    return navigator.onLine !== false ? true : onlineManager.isOnline();
+  });
   const [justReconnected, setJustReconnected] = useState(false);
+  const probing = useRef(false);
+
+  // Active probe — fetches a tiny same-origin resource. Resolves false negatives.
+  const probe = async () => {
+    if (probing.current) return;
+    probing.current = true;
+    try {
+      const res = await fetch(`/favicon.ico?_probe=${Date.now()}`, {
+        method: "HEAD",
+        cache: "no-store",
+      });
+      if (res.ok || res.status < 500) {
+        onlineManager.setOnline(true);
+      }
+    } catch {
+      // Probe failed → trust the offline signal.
+    } finally {
+      probing.current = false;
+    }
+  };
 
   useEffect(() => {
-    const on = () => {
-      setOnline(true);
-      setJustReconnected(true);
-      const t = setTimeout(() => setJustReconnected(false), 2500);
-      return () => clearTimeout(t);
+    // Subscribe to TanStack Query's onlineManager — it already debounces
+    // `online`/`offline` events and is the truth used to pause queries.
+    const unsub = onlineManager.subscribe((isOnline) => {
+      setOnline((prev) => {
+        if (isOnline && !prev) {
+          setJustReconnected(true);
+          setTimeout(() => setJustReconnected(false), 2500);
+        }
+        return isOnline;
+      });
+    });
+
+    // If navigator says offline at mount, double-check with a probe before
+    // showing the amber pill (Android WebView often boots with onLine=false).
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      probe();
+    }
+
+    // Re-verify when the tab becomes visible again — phones often suspend
+    // network events while the app is backgrounded.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") probe();
     };
-    const off = () => {
-      setOnline(false);
-      setJustReconnected(false);
-    };
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", probe);
+
     return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
+      unsub();
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", probe);
     };
   }, []);
 
@@ -141,4 +186,5 @@ export function OfflineBanner() {
     </div>
   );
 }
+
 
