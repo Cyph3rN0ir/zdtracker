@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { TodoRow, type Todo } from "@/components/notebook/TodoRow";
 import { QuickAdd } from "@/components/notebook/QuickAdd";
+import { PageHeader, EmptyState } from "./_app.index";
 
 export const Route = createFileRoute("/_app/notebook/today")({
   component: TodayPage,
@@ -75,52 +76,51 @@ function TodayPage() {
   }, [date, today]);
 
   return (
-    <div className="flex flex-col gap-4 pb-4">
-      {/* Date header */}
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1 rounded-xl border border-border bg-card px-2 py-2">
-        <button
-          aria-label="Previous day"
-          onClick={() => goto(shiftDate(date, -1))}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent active:scale-95"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <div className="flex min-w-0 flex-col items-center px-1">
-          <div className="w-full text-center text-sm font-semibold truncate">{headerLabel}</div>
-          <div className="text-[11px] font-mono text-muted-foreground">{date}</div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {date !== today && (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => goto(today)}
-              className="h-9 px-2 sm:px-3"
+    <div className="space-y-6 pb-4">
+      <PageHeader
+        title={headerLabel}
+        subtitle={`Notebook · ${date}`}
+        right={
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              aria-label="Previous day"
+              onClick={() => goto(shiftDate(date, -1))}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-border bg-card hover:bg-accent active:scale-95"
             >
-              <CalendarDays className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Today</span>
-            </Button>
-          )}
-          <button
-            aria-label="Next day"
-            onClick={() => goto(shiftDate(date, 1))}
-            className="grid h-10 w-10 place-items-center rounded-md hover:bg-accent active:scale-95"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {date !== today && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => goto(today)}
+                className="h-9 px-2 sm:px-3"
+              >
+                <CalendarDays className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Today</span>
+              </Button>
+            )}
+            <button
+              aria-label="Next day"
+              onClick={() => goto(shiftDate(date, 1))}
+              className="grid h-9 w-9 place-items-center rounded-md border border-border bg-card hover:bg-accent active:scale-95"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        }
+      />
 
       {/* Progress */}
       <Card>
-        <CardContent className="py-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
-              <span className="text-foreground font-semibold">{doneCount}</span> / {totalCount} done
+              <span className="text-foreground font-semibold">{doneCount}</span> of {totalCount} done
             </span>
-            <span>{pct}%</span>
+            <span className="font-medium tabular-nums">{pct}%</span>
           </div>
-          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-all duration-500"
               style={{ width: `${pct}%` }}
@@ -132,25 +132,27 @@ function TodayPage() {
       {q.isLoading ? (
         <div className="text-sm text-muted-foreground">Loading…</div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {date === today && overdue.length > 0 && (
-            <Section title={`Overdue (${overdue.length})`} variant="destructive">
+            <Section title="Overdue" count={overdue.length} variant="destructive">
               {overdue.map((t) => (
                 <TodoRow key={t.id} t={t} invalidateKeys={invalidateKeys} />
               ))}
             </Section>
           )}
-          <Section title={headerLabel + (totalCount ? ` (${totalCount})` : "")}>
+          <Section title={headerLabel} count={totalCount}>
             {todays.length === 0 ? (
-              <div className="px-2 py-6 text-center text-xs text-muted-foreground">
-                Nothing scheduled. Add one below.
-              </div>
+              <EmptyState message="Nothing scheduled. Add one below." />
             ) : (
-              todays.map((t) => <TodoRow key={t.id} t={t} invalidateKeys={invalidateKeys} />)
+              <ul className="divide-y divide-border -mx-2">
+                {todays.map((t) => (
+                  <TodoRow key={t.id} t={t} invalidateKeys={invalidateKeys} />
+                ))}
+              </ul>
             )}
           </Section>
           {someday.length > 0 && (
-            <Section title={`Someday (${someday.length})`}>
+            <Section title="Someday" count={someday.length}>
               {someday.map((t) => (
                 <TodoRow key={t.id} t={t} invalidateKeys={invalidateKeys} />
               ))}
@@ -170,19 +172,33 @@ function TodayPage() {
 
 function Section({
   title,
+  count,
   children,
   variant,
 }: {
   title: string;
+  count?: number;
   children: React.ReactNode;
   variant?: "destructive";
 }) {
+  const isList = Array.isArray(children);
   return (
     <Card className={variant === "destructive" ? "border-destructive/40" : ""}>
-      <div className={"px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide " + (variant === "destructive" ? "text-destructive" : "text-muted-foreground")}>
-        {title}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+        <h2 className={"text-base font-semibold " + (variant === "destructive" ? "text-destructive" : "")}>
+          {title}
+        </h2>
+        {typeof count === "number" && count > 0 && (
+          <span className={"text-xs font-medium tabular-nums " + (variant === "destructive" ? "text-destructive/80" : "text-muted-foreground")}>
+            {count}
+          </span>
+        )}
       </div>
-      <ul className="divide-y divide-border px-2 pb-2">{children}</ul>
+      {isList ? (
+        <ul className="divide-y divide-border px-2 pb-2">{children}</ul>
+      ) : (
+        <div className="px-2 pb-2">{children}</div>
+      )}
     </Card>
   );
 }
