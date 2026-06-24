@@ -72,12 +72,12 @@ function NoteEditor() {
 
   return (
     <div className="flex flex-col gap-3 pb-4">
-      <div className="flex items-center gap-1">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1">
         {q.data?.list_id ? (
           <Link
             to="/notebook/lists/$listId"
             params={{ listId: q.data.list_id }}
-            className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent"
             aria-label="Back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -85,7 +85,7 @@ function NoteEditor() {
         ) : (
           <Link
             to="/notebook/lists"
-            className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent"
             aria-label="Back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -97,34 +97,36 @@ function NoteEditor() {
           onChange={(e) => setTitle(e.target.value)}
           onBlur={() => mSave.mutate()}
           placeholder="Note title"
-          className="h-10 text-base font-semibold flex-1 border-0 shadow-none focus-visible:ring-0 px-2"
+          className="h-10 min-w-0 text-base font-semibold border-0 shadow-none focus-visible:ring-0 px-2"
         />
-        <button
-          type="button"
-          onClick={() => setPreview((p) => !p)}
-          aria-label={preview ? "Edit" : "Preview"}
-          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-accent"
-        >
-          {preview ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-        <button
-          type="button"
-          onClick={() => mPin.mutate(!q.data?.pinned)}
-          aria-label={q.data?.pinned ? "Unpin" : "Pin"}
-          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-accent"
-        >
-          {q.data?.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("Delete this note?")) mDelete.mutate();
-          }}
-          aria-label="Delete"
-          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => setPreview((p) => !p)}
+            aria-label={preview ? "Edit" : "Preview"}
+            className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground hover:bg-accent"
+          >
+            {preview ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => mPin.mutate(!q.data?.pinned)}
+            aria-label={q.data?.pinned ? "Unpin" : "Pin"}
+            className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground hover:bg-accent"
+          >
+            {q.data?.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("Delete this note?")) mDelete.mutate();
+            }}
+            aria-label="Delete"
+            className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {preview ? (
