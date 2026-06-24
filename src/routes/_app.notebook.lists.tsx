@@ -51,7 +51,7 @@ function ListsPage() {
             <Plus className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Create</span>
           </Button>
         </div>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">Color</span>
           {COLORS.map((c) => (
             <button

@@ -110,7 +110,7 @@ function MyTasks() {
                     <CardTitle className={"text-base " + (isOverdue ? "text-destructive" : "")}>{formatDay(d, today)}</CardTitle>
                     <div className="text-xs text-muted-foreground font-mono mt-0.5">{d}</div>
                   </div>
-                  <Badge variant={isOverdue ? "destructive" : open === 0 ? "secondary" : "default"}>
+                  <Badge variant={isOverdue ? "destructive" : open === 0 ? "secondary" : "default"} className="shrink-0">
                     {isOverdue ? `${open} due` : open === 0 ? "All done" : `${open} open`}
                   </Badge>
                 </CardHeader>
