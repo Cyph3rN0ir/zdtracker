@@ -73,14 +73,25 @@ function NoteEditor() {
   return (
     <div className="flex flex-col gap-3 pb-4">
       <div className="flex items-center gap-1">
-        <Link
-          to={q.data?.list_id ? "/notebook/lists/$listId" : "/notebook/lists"}
-          params={q.data?.list_id ? { listId: q.data.list_id } : undefined as any}
-          className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent"
-          aria-label="Back"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
+        {q.data?.list_id ? (
+          <Link
+            to="/notebook/lists/$listId"
+            params={{ listId: q.data.list_id }}
+            className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent"
+            aria-label="Back"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
+        ) : (
+          <Link
+            to="/notebook/lists"
+            className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent"
+            aria-label="Back"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
+        )}
+
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}

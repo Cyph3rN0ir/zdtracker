@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, Link, useLocation, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
 import { CalendarCheck2, FolderKanban } from "lucide-react";
 
 export const Route = createFileRoute("/_app/notebook")({
@@ -39,5 +39,3 @@ function NotebookLayout() {
   );
 }
 
-// Default redirect when a user lands on bare /notebook
-export const IndexRedirectRoute = null;
