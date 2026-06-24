@@ -68,41 +68,56 @@ export function OfflineQueryProvider({
 
   return (
     <OfflineStatusProvider>
-      <RestoringStatusBridge>
-        <PersistQueryClientProvider
-          client={queryClient}
-          persistOptions={persistOptions}
-          onSuccess={() => {
-            if (typeof navigator === "undefined" || navigator.onLine) {
-              queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
-            }
-          }}
-        >
-          {children}
-        </PersistQueryClientProvider>
-      </RestoringStatusBridge>
+      <PersistGate queryClient={queryClient} persistOptions={persistOptions}>
+        {children}
+      </PersistGate>
     </OfflineStatusProvider>
   );
 }
 
 /**
- * Marks the status as "restoring" while the persisted Query cache hydrates.
- * `PersistQueryClientProvider` already blocks rendering of its children until
- * restore finishes, but consumers of the offline status (banner, future
- * skeletons) need a flag they can read.
+ * Tracks the "restoring" status while `PersistQueryClientProvider` hydrates
+ * the IndexedDB cache. Must live INSIDE `OfflineStatusProvider` (so it can
+ * use the context) and AROUND `PersistQueryClientProvider` (so it can mark
+ * restoring=true before restore starts and flip it false in `onSuccess`).
  */
-function RestoringStatusBridge({ children }: { children: ReactNode }) {
+function PersistGate({
+  queryClient,
+  persistOptions,
+  children,
+}: {
+  queryClient: QueryClient;
+  persistOptions: NonNullable<ReturnType<typeof buildPersistOptionsType>>;
+  children: ReactNode;
+}) {
   const { setRestoring } = useOfflineStatus();
-  useEffect(() => {
-    setRestoring(true);
-    // Microtask: PersistQueryClientProvider will block its subtree until the
-    // persister resolves; this effect runs once that subtree mounts, so we
-    // immediately clear the flag.
-    const id = window.setTimeout(() => setRestoring(false), 0);
-    return () => window.clearTimeout(id);
-  }, [setRestoring]);
-  return <>{children}</>;
+  // Mark restoring=true synchronously before PersistQueryClientProvider mounts.
+  useMemo(() => setRestoring(true), [setRestoring]);
+
+  return (
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={persistOptions}
+      onSuccess={() => {
+        setRestoring(false);
+        if (typeof navigator === "undefined" || navigator.onLine) {
+          queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
+        }
+      }}
+    >
+      {children}
+    </PersistQueryClientProvider>
+  );
 }
+
+// Type-only helper so PersistGate can borrow the inferred persistOptions shape
+// without exporting a duplicate type. Never called.
+declare function buildPersistOptionsType(): {
+  persister: ReturnType<typeof createQueryPersister>;
+  maxAge: number;
+  buster: string;
+  dehydrateOptions: { shouldDehydrateQuery: (q: { state: { status: string } }) => boolean };
+};
 
 /**
  * Single unified offline status pill (replaces the old `OfflineBanner` +
