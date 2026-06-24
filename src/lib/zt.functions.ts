@@ -459,10 +459,58 @@ export const deleteTaskFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const me = await requireSession();
-    // Only admins can delete tasks.
-    if (me.role !== "admin") throw new Error("Only admins can delete tasks");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-    const { error } = await getSupabaseAdmin().from("tasks").delete().eq("id", data.id);
+    const supa = getSupabaseAdmin();
+    // The task's creator, the assignee, or an admin/owner may delete it.
+    const { data: t, error: readErr } = await supa
+      .from("tasks")
+      .select("created_by, assignee_user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!t) throw new Error("Task not found");
+    const isPrivileged = me.role === "admin" || me.role === "owner";
+    const isCreator = t.created_by === me.userId;
+    const isAssignee = t.assignee_user_id === me.userId;
+    if (!isPrivileged && !isCreator && !isAssignee) {
+      throw new Error("You don't have permission to delete this task");
+    }
+    const { error } = await supa.from("tasks").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Assignee adds/edits a remark explaining status (e.g. why it's not done yet).
+// Pass `remark: ""` to clear it.
+export const setTaskRemarkFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), remark: z.string().max(1000) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const me = await requireSession();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const supa = getSupabaseAdmin();
+    const { data: t, error: readErr } = await supa
+      .from("tasks")
+      .select("assignee_user_id, created_by")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!t) throw new Error("Task not found");
+    // Assignee, creator, or privileged roles may write a remark.
+    const isPrivileged = me.role === "admin" || me.role === "owner";
+    if (!isPrivileged && t.assignee_user_id !== me.userId && t.created_by !== me.userId) {
+      throw new Error("You don't have permission to remark on this task");
+    }
+    const trimmed = data.remark.trim();
+    const { error } = await supa
+      .from("tasks")
+      .update({
+        remark: trimmed === "" ? null : trimmed,
+        remark_at: trimmed === "" ? null : new Date().toISOString(),
+        remark_by: trimmed === "" ? null : me.userId,
+      })
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
