@@ -95,6 +95,19 @@ function AppLayout() {
   // Belt-and-braces: close drawer if pathname ever changes (e.g. browser back).
   useEffect(() => { setOpen(false); }, [pathname]);
 
+  // Phase 2 — proactive offline warmup. Prefetch the core working set into the
+  // persisted IndexedDB cache on mount, and again when the connection returns,
+  // so pages the user hasn't visited yet still have data on a cold offline launch.
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!me?.userId) return;
+    runOfflineWarmup(qc);
+    const unsub = onlineManager.subscribe((online) => {
+      if (online) runOfflineWarmup(qc);
+    });
+    return () => { unsub(); };
+  }, [qc, me?.userId]);
+
   // Close drawer BEFORE navigating so the sheet and route transition don't
   // animate at the same time (the main cause of mobile lag).
   const closeDrawer = useCallback(() => setOpen(false), []);
