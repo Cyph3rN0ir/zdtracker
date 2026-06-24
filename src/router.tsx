@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, keepPreviousData } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
@@ -7,7 +7,13 @@ export const getRouter = () => {
     defaultOptions: {
       queries: {
         gcTime: 1000 * 60 * 60 * 24 * 30,
+        // offlineFirst: when offline, queries serve cached data instead of erroring.
         networkMode: "offlineFirst",
+        // keepPreviousData: when the queryKey changes (e.g. navigating between
+        // /notebook/lists/$listId entries), keep showing the previous result
+        // while the next one loads — no "Network Error" flash on slow links
+        // and instant render from the IndexedDB-persisted cache.
+        placeholderData: keepPreviousData,
         retry: (failureCount, error: any) => {
           // Don't retry permanent errors (auth / not found / validation)
           const msg = String(error?.message ?? "").toLowerCase();
