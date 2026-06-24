@@ -91,8 +91,10 @@ function PersistGate({
   children: ReactNode;
 }) {
   const { setRestoring } = useOfflineStatus();
-  // Mark restoring=true synchronously before PersistQueryClientProvider mounts.
-  useMemo(() => setRestoring(true), [setRestoring]);
+  useEffect(() => {
+    setRestoring(true);
+    return () => setRestoring(false);
+  }, [setRestoring]);
 
   return (
     <PersistQueryClientProvider
