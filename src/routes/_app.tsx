@@ -242,7 +242,7 @@ function AppLayout() {
   );
 }
 
-function NavLink({ to, icon, children, onNavigate }: { to: string; icon: React.ReactNode; children: React.ReactNode; onNavigate?: () => void }) {
+function NavLink({ to, icon, children, onNavigate, badge }: { to: string; icon: React.ReactNode; children: React.ReactNode; onNavigate?: () => void; badge?: number }) {
   return (
     <Link
       to={to}
@@ -252,7 +252,10 @@ function NavLink({ to, icon, children, onNavigate }: { to: string; icon: React.R
       activeProps={{ "data-status": "active" } as any}
     >
       {icon}
-      {children}
+      <span className="flex-1">{children}</span>
+      {badge && badge > 0 ? (
+        <Badge className="h-5 min-w-5 px-1.5 text-[10px]">{badge > 99 ? "99+" : badge}</Badge>
+      ) : null}
     </Link>
   );
 }
