@@ -13,8 +13,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppPersonalRouteImport } from './routes/_app.personal'
+import { Route as AppNotebookRouteImport } from './routes/_app.notebook'
 import { Route as AppChatRouteImport } from './routes/_app.chat'
 import { Route as AppPersonalIndexRouteImport } from './routes/_app.personal.index'
+import { Route as AppNotebookIndexRouteImport } from './routes/_app.notebook.index'
 import { Route as AppChatIndexRouteImport } from './routes/_app.chat.index'
 import { Route as AppPersonalIdRouteImport } from './routes/_app.personal.$id'
 import { Route as AppMyTasksRouteImport } from './routes/_app.my.tasks'
@@ -47,6 +49,11 @@ const AppPersonalRoute = AppPersonalRouteImport.update({
   path: '/personal',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNotebookRoute = AppNotebookRouteImport.update({
+  id: '/notebook',
+  path: '/notebook',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppChatRoute = AppChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -56,6 +63,11 @@ const AppPersonalIndexRoute = AppPersonalIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppPersonalRoute,
+} as any)
+const AppNotebookIndexRoute = AppNotebookIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppNotebookRoute,
 } as any)
 const AppChatIndexRoute = AppChatIndexRouteImport.update({
   id: '/',
@@ -122,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRoute
   '/chat': typeof AppChatRouteWithChildren
+  '/notebook': typeof AppNotebookRouteWithChildren
   '/personal': typeof AppPersonalRouteWithChildren
   '/admin/users': typeof AppAdminUsersRoute
   '/businesses/$id': typeof AppBusinessesIdRouteWithChildren
@@ -130,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/my/tasks': typeof AppMyTasksRoute
   '/personal/$id': typeof AppPersonalIdRoute
   '/chat/': typeof AppChatIndexRoute
+  '/notebook/': typeof AppNotebookIndexRoute
   '/personal/': typeof AppPersonalIndexRoute
   '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
@@ -146,6 +160,7 @@ export interface FileRoutesByTo {
   '/my/tasks': typeof AppMyTasksRoute
   '/personal/$id': typeof AppPersonalIdRoute
   '/chat': typeof AppChatIndexRoute
+  '/notebook': typeof AppNotebookIndexRoute
   '/personal': typeof AppPersonalIndexRoute
   '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
@@ -158,6 +173,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/_app/chat': typeof AppChatRouteWithChildren
+  '/_app/notebook': typeof AppNotebookRouteWithChildren
   '/_app/personal': typeof AppPersonalRouteWithChildren
   '/_app/': typeof AppIndexRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
@@ -167,6 +183,7 @@ export interface FileRoutesById {
   '/_app/my/tasks': typeof AppMyTasksRoute
   '/_app/personal/$id': typeof AppPersonalIdRoute
   '/_app/chat/': typeof AppChatIndexRoute
+  '/_app/notebook/': typeof AppNotebookIndexRoute
   '/_app/personal/': typeof AppPersonalIndexRoute
   '/_app/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/_app/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
@@ -180,6 +197,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/chat'
+    | '/notebook'
     | '/personal'
     | '/admin/users'
     | '/businesses/$id'
@@ -188,6 +206,7 @@ export interface FileRouteTypes {
     | '/my/tasks'
     | '/personal/$id'
     | '/chat/'
+    | '/notebook/'
     | '/personal/'
     | '/businesses/$id/money'
     | '/businesses/$id/people'
@@ -204,6 +223,7 @@ export interface FileRouteTypes {
     | '/my/tasks'
     | '/personal/$id'
     | '/chat'
+    | '/notebook'
     | '/personal'
     | '/businesses/$id/money'
     | '/businesses/$id/people'
@@ -215,6 +235,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/auth'
     | '/_app/chat'
+    | '/_app/notebook'
     | '/_app/personal'
     | '/_app/'
     | '/_app/admin/users'
@@ -224,6 +245,7 @@ export interface FileRouteTypes {
     | '/_app/my/tasks'
     | '/_app/personal/$id'
     | '/_app/chat/'
+    | '/_app/notebook/'
     | '/_app/personal/'
     | '/_app/businesses/$id/money'
     | '/_app/businesses/$id/people'
@@ -267,6 +289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPersonalRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/notebook': {
+      id: '/_app/notebook'
+      path: '/notebook'
+      fullPath: '/notebook'
+      preLoaderRoute: typeof AppNotebookRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/chat': {
       id: '/_app/chat'
       path: '/chat'
@@ -280,6 +309,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/personal/'
       preLoaderRoute: typeof AppPersonalIndexRouteImport
       parentRoute: typeof AppPersonalRoute
+    }
+    '/_app/notebook/': {
+      id: '/_app/notebook/'
+      path: '/'
+      fullPath: '/notebook/'
+      preLoaderRoute: typeof AppNotebookIndexRouteImport
+      parentRoute: typeof AppNotebookRoute
     }
     '/_app/chat/': {
       id: '/_app/chat/'
@@ -383,6 +419,18 @@ const AppChatRouteChildren: AppChatRouteChildren = {
 const AppChatRouteWithChildren =
   AppChatRoute._addFileChildren(AppChatRouteChildren)
 
+interface AppNotebookRouteChildren {
+  AppNotebookIndexRoute: typeof AppNotebookIndexRoute
+}
+
+const AppNotebookRouteChildren: AppNotebookRouteChildren = {
+  AppNotebookIndexRoute: AppNotebookIndexRoute,
+}
+
+const AppNotebookRouteWithChildren = AppNotebookRoute._addFileChildren(
+  AppNotebookRouteChildren,
+)
+
 interface AppPersonalRouteChildren {
   AppPersonalIdRoute: typeof AppPersonalIdRoute
   AppPersonalIndexRoute: typeof AppPersonalIndexRoute
@@ -419,6 +467,7 @@ const AppBusinessesIdRouteWithChildren = AppBusinessesIdRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppChatRoute: typeof AppChatRouteWithChildren
+  AppNotebookRoute: typeof AppNotebookRouteWithChildren
   AppPersonalRoute: typeof AppPersonalRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
@@ -428,6 +477,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppChatRoute: AppChatRouteWithChildren,
+  AppNotebookRoute: AppNotebookRouteWithChildren,
   AppPersonalRoute: AppPersonalRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
