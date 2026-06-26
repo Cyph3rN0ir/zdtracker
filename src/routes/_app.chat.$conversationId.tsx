@@ -11,7 +11,7 @@ import {
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, CornerUpLeft, Send, Users as UsersIcon, X } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, CornerUpLeft, Send, Users as UsersIcon, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
