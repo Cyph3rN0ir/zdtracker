@@ -287,6 +287,9 @@ function MessageBubble({
     createdAt: string;
     replyTo: { id: string; body: string; senderName: string } | null;
     mine: boolean;
+    readers: Array<{ id: string; name: string }>;
+    readByAll: boolean;
+    otherMembersCount: number;
   };
   isGroup: boolean;
   onReply: () => void;
