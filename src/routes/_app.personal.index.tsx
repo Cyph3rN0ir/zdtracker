@@ -183,6 +183,50 @@ function PersonalList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={!!renameTarget}
+        onOpenChange={(o) => { if (!o) setRenameTarget(null); }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename profile</DialogTitle>
+            <DialogDescription>Give this profile a new name.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const next = renameValue.trim();
+              if (!renameTarget || !next || next === renameTarget.name) return;
+              renameM.mutate({ id: renameTarget.id, name: next });
+            }}
+            className="space-y-3"
+          >
+            <Input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              maxLength={120}
+              placeholder="Profile name"
+            />
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button type="button" variant="ghost" onClick={() => setRenameTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  renameM.isPending ||
+                  !renameValue.trim() ||
+                  renameValue.trim() === renameTarget?.name
+                }
+              >
+                Save
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
