@@ -11,8 +11,6 @@ import {
   deleteListFn,
   togglePinNoteFn,
 } from "@/lib/notebook.functions";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TodoRow, type Todo } from "@/components/notebook/TodoRow";
 import { QuickAdd } from "@/components/notebook/QuickAdd";
@@ -49,7 +47,6 @@ function ListPage() {
   });
 
   const invalidateTodos = [["notebook", "list-todos", listId]];
-  const invalidateNotes = [["notebook", "notes", listId]];
 
   const [renaming, setRenaming] = useState(false);
   const mRename = useMutation({
@@ -85,16 +82,17 @@ function ListPage() {
   const doneTodos = allTodos.filter((t) => !!t.done_at);
 
   return (
-    <div className="flex flex-col gap-4 pb-4">
-      <div className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2">
+    <div className="flex flex-col gap-6 pb-4">
+      {/* Slim title bar */}
+      <div className="flex items-center gap-2 border-b border-border/50 pb-3">
         <Link
           to="/notebook/lists"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent"
           aria-label="Back to lists"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-4 w-4" />
         </Link>
-        <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: list?.color || "#888" }} aria-hidden />
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: list?.color || "#888" }} aria-hidden />
         {renaming ? (
           <Input
             autoFocus
@@ -108,13 +106,13 @@ function ListPage() {
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
               if (e.key === "Escape") setRenaming(false);
             }}
-            className="h-10 min-w-0"
+            className="h-8 min-w-0 border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 text-lg font-semibold"
           />
         ) : (
           <button
             type="button"
             onClick={() => setRenaming(true)}
-            className="min-w-0 text-left text-lg font-semibold truncate hover:underline"
+            className="min-w-0 flex-1 text-left text-lg font-semibold tracking-tight truncate hover:underline underline-offset-4 decoration-muted-foreground/40"
           >
             {list?.title || "List"}
           </button>
@@ -125,87 +123,90 @@ function ListPage() {
           onClick={() => {
             if (confirm("Delete this list? Notes and todos inside will be unlinked but kept.")) mDeleteList.mutate();
           }}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
 
       {/* Notes */}
-      <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Notes</h2>
-          <Button size="sm" variant="secondary" onClick={() => mNewNote.mutate()} disabled={mNewNote.isPending}>
-            <StickyNote className="h-4 w-4 mr-1" /> New note
-          </Button>
+      <section>
+        <div className="flex items-baseline justify-between border-b border-border/50 pb-1.5 mb-2">
+          <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Notes
+          </h2>
+          <button
+            onClick={() => mNewNote.mutate()}
+            disabled={mNewNote.isPending}
+            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <StickyNote className="h-3 w-3" /> New
+          </button>
         </div>
         {(notes.data?.length ?? 0) === 0 ? (
-          <Card>
-            <CardContent className="py-6 text-center text-xs text-muted-foreground">
-              No notes in this list.
-            </CardContent>
-          </Card>
+          <div className="py-6 text-center text-xs text-muted-foreground/70">
+            No notes in this list.
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <ul className="divide-y divide-border/40">
             {(notes.data ?? []).map((n: any) => (
-              <div key={n.id} className="rounded-xl border border-border bg-card hover:border-foreground/30 transition-colors">
+              <li key={n.id} className="group flex items-start gap-2 py-2.5">
+                <FileText className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/70" />
                 <Link
                   to="/notebook/notes/$noteId"
                   params={{ noteId: n.id }}
-                  className="block p-3"
+                  className="min-w-0 flex-1"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <div className="text-sm font-medium truncate">{n.title || "Untitled"}</div>
-                  </div>
+                  <div className="text-[14px] font-medium truncate">{n.title || "Untitled"}</div>
                   {n.body_md && (
-                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2 whitespace-pre-wrap">
+                    <div className="text-[11px] text-muted-foreground/80 mt-0.5 line-clamp-1">
                       {n.body_md.slice(0, 200)}
                     </div>
                   )}
                 </Link>
-                <div className="flex items-center justify-end gap-1 px-2 pb-1.5">
-                  <button
-                    type="button"
-                    aria-label={n.pinned ? "Unpin" : "Pin"}
-                    onClick={() => mTogglePin.mutate({ id: n.id, pinned: !n.pinned })}
-                    className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-accent"
-                  >
-                    {n.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-              </div>
+                <button
+                  type="button"
+                  aria-label={n.pinned ? "Unpin" : "Pin"}
+                  onClick={() => mTogglePin.mutate({ id: n.id, pinned: !n.pinned })}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-accent opacity-60 group-hover:opacity-100 transition-opacity"
+                >
+                  {n.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </section>
 
       {/* Todos */}
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Todos</h2>
-        <Card>
-          <ul className="divide-y divide-border px-2 py-1">
-            {openTodos.length === 0 && doneTodos.length === 0 ? (
-              <li className="px-2 py-6 text-center text-xs text-muted-foreground">
-                No todos. Add one below.
+      <section>
+        <div className="flex items-baseline justify-between border-b border-border/50 pb-1.5 mb-1">
+          <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Todos
+          </h2>
+          {openTodos.length > 0 && (
+            <span className="text-[11px] tabular-nums text-muted-foreground/70">{openTodos.length} open</span>
+          )}
+        </div>
+        {openTodos.length === 0 && doneTodos.length === 0 ? (
+          <div className="py-6 text-center text-xs text-muted-foreground/70">
+            No todos. Add one below.
+          </div>
+        ) : (
+          <ul className="divide-y divide-border/40">
+            {openTodos.map((t) => (
+              <TodoRow key={t.id} t={t} invalidateKeys={invalidateTodos} />
+            ))}
+            {doneTodos.length > 0 && (
+              <li className="pt-3 pb-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
+                Done · {doneTodos.length}
               </li>
-            ) : (
-              <>
-                {openTodos.map((t) => (
-                  <TodoRow key={t.id} t={t} invalidateKeys={invalidateTodos} />
-                ))}
-                {doneTodos.length > 0 && (
-                  <li className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Done ({doneTodos.length})
-                  </li>
-                )}
-                {doneTodos.map((t) => (
-                  <TodoRow key={t.id} t={t} invalidateKeys={invalidateTodos} />
-                ))}
-              </>
             )}
+            {doneTodos.map((t) => (
+              <TodoRow key={t.id} t={t} invalidateKeys={invalidateTodos} />
+            ))}
           </ul>
-        </Card>
+        )}
       </section>
 
       <QuickAdd listId={listId} invalidateKeys={invalidateTodos} placeholder="Add a task to this list…" />
