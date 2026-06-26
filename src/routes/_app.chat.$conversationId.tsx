@@ -59,15 +59,49 @@ function ThreadView() {
   });
 
   // Realtime: subscribe to broadcast on this conversation
+  const channelRef = useRef<ReturnType<ReturnType<typeof getSupabaseBrowser>["channel"]> | null>(null);
+  const myIdRef = useRef<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; at: number }>>({});
+
   useEffect(() => {
     const supa = getSupabaseBrowser();
-    const ch = supa.channel(`conv:${conversationId}`);
+    const ch = supa.channel(`conv:${conversationId}`, { config: { broadcast: { self: false } } });
+    channelRef.current = ch;
     ch.on("broadcast", { event: "ping" }, () => {
       qc.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
       qc.invalidateQueries({ queryKey: ["chat", "conversations"] });
-    }).subscribe();
-    return () => { supa.removeChannel(ch); };
+    });
+    ch.on("broadcast", { event: "typing" }, (payload: any) => {
+      const { userId, name, typing } = payload.payload ?? {};
+      if (!userId || userId === myIdRef.current) return;
+      setTypingUsers((prev) => {
+        const next = { ...prev };
+        if (typing) next[userId] = { name: name ?? "Someone", at: Date.now() };
+        else delete next[userId];
+        return next;
+      });
+    });
+    ch.subscribe();
+    supa.auth.getUser().then(({ data }) => { myIdRef.current = data.user?.id ?? null; });
+    return () => { channelRef.current = null; supa.removeChannel(ch); };
   }, [conversationId, qc]);
+
+  // Expire stale typing indicators after 4s of silence
+  useEffect(() => {
+    const t = setInterval(() => {
+      setTypingUsers((prev) => {
+        const now = Date.now();
+        let changed = false;
+        const next: typeof prev = {};
+        for (const [k, v] of Object.entries(prev)) {
+          if (now - v.at < 4000) next[k] = v;
+          else changed = true;
+        }
+        return changed ? next : prev;
+      });
+    }, 1500);
+    return () => clearInterval(t);
+  }, []);
 
   // Mark read when messages load / on new ones
   useEffect(() => {
@@ -103,11 +137,47 @@ function ThreadView() {
   function submit() {
     const text = body.trim();
     if (!text || send.isPending) return;
+    sendTyping(false);
     send.mutate({ body: text, replyToId: replyTo?.id ?? null });
   }
 
   const conv = convQ.data;
   const isGroup = conv?.kind === "group";
+
+  // Typing broadcast helpers
+  const typingStateRef = useRef<{ active: boolean; stopTimer: number | null }>({ active: false, stopTimer: null });
+  function sendTyping(typing: boolean) {
+    const ch = channelRef.current;
+    const myId = myIdRef.current;
+    if (!ch || !myId) return;
+    const me = conv?.members.find((u) => u.id === myId);
+    ch.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { userId: myId, name: me?.name ?? "Someone", typing },
+    });
+  }
+  function handleTypingChange(value: string) {
+    setBody(value);
+    const has = value.trim().length > 0;
+    const s = typingStateRef.current;
+    if (has && !s.active) {
+      s.active = true;
+      sendTyping(true);
+    }
+    if (s.stopTimer) window.clearTimeout(s.stopTimer);
+    s.stopTimer = window.setTimeout(() => {
+      if (s.active) {
+        s.active = false;
+        sendTyping(false);
+      }
+    }, 2500);
+  }
+  useEffect(() => () => {
+    if (typingStateRef.current.active) sendTyping(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
+
 
   // Group messages by day for separators
   const grouped = useMemo(() => {
@@ -226,6 +296,24 @@ function ThreadView() {
         )}
       </div>
 
+      {Object.keys(typingUsers).length > 0 && (
+        <div className="px-4 py-1 text-xs text-muted-foreground flex items-center gap-2 border-t border-border/50 bg-card/50">
+          <span className="inline-flex gap-0.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:-0.3s]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:-0.15s]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 animate-bounce" />
+          </span>
+          <span className="truncate">
+            {(() => {
+              const names = Object.values(typingUsers).map((u) => u.name);
+              if (names.length === 1) return `${names[0]} is typing…`;
+              if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
+              return `${names.length} people are typing…`;
+            })()}
+          </span>
+        </div>
+      )}
+
       <div className="border-t border-border bg-card p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {replyTo && (
           <div className="mb-2 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-2 py-1.5">
@@ -247,7 +335,7 @@ function ThreadView() {
         <div className="flex items-end gap-2">
           <Textarea
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => handleTypingChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
