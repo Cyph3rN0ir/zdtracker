@@ -250,10 +250,10 @@ function Dashboard() {
 
 export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:gap-4">
       <div className="min-w-0">
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight truncate">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+        <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight truncate">{title}</h1>
+        {subtitle && <p className="text-[13px] sm:text-sm text-muted-foreground mt-1 [overflow-wrap:anywhere]">{subtitle}</p>}
       </div>
       {right}
     </div>
@@ -262,8 +262,8 @@ export function PageHeader({ title, subtitle, right }: { title: string; subtitle
 
 export function EmptyState({ message, action }: { message: string; action?: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-      <div>{message}</div>
+    <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-6 py-10 text-center text-sm text-muted-foreground">
+      <div className="[overflow-wrap:anywhere]">{message}</div>
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
