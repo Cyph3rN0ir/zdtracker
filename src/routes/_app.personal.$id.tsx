@@ -9,7 +9,7 @@ import {
   getPersonalProfileFn, listPersonalTxExFn,
   listPersonalAccountsFn, upsertPersonalAccountFn, deletePersonalAccountFn,
   listPersonalCategoriesFn,
-  listPersonalCounterpartiesFn, upsertPersonalCounterpartyFn,
+  listPersonalCounterpartiesFn, upsertPersonalCounterpartyFn, deletePersonalCounterpartyFn,
   listPersonalLoansFn,
   listPersonalBudgetsFn, upsertPersonalBudgetFn, deletePersonalBudgetFn,
 } from "@/lib/zt.functions";
@@ -21,7 +21,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Plus, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { ChevronLeft, Plus, Trash2, Pencil } from "lucide-react";
 import { PersonalOverview } from "@/components/personal/Overview";
 import { PersonalTransactions } from "@/components/personal/Transactions";
 import { PersonalLoans } from "@/components/personal/Loans";
