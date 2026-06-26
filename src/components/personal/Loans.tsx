@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Trash2, HandCoins } from "lucide-react";
+import { Plus, Trash2, HandCoins, Pencil } from "lucide-react";
 import { fmtMoney, todayISO, TxRow } from "@/lib/personal-finance";
 
 type Loan = {
@@ -229,6 +229,7 @@ export function PersonalLoans({
                           invalidate();
                         }}
                       />
+                      <EditLoanDialog loan={l} counterparties={counterparties} profileId={profileId} onSaved={invalidate} />
                       <Button variant="ghost" size="sm" onClick={() => closeM.mutate(l)}>Close</Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
@@ -323,3 +324,95 @@ function RepaymentDialog({
     </Dialog>
   );
 }
+
+function EditLoanDialog({
+  loan, counterparties, profileId, onSaved,
+}: {
+  loan: Loan; counterparties: Cp[]; profileId: string; onSaved: () => void;
+}) {
+  const upsert = useServerFn(upsertPersonalLoanFn);
+  const [open, setOpen] = useState(false);
+  const [direction, setDirection] = useState<"i_owe" | "owed_to_me">(loan.direction);
+  const [counterpartyId, setCounterpartyId] = useState(loan.counterparty_id ?? "");
+  const [principal, setPrincipal] = useState(String(loan.principal));
+  const [startedOn, setStartedOn] = useState(loan.started_on);
+  const [dueOn, setDueOn] = useState(loan.due_on ?? "");
+  const [note, setNote] = useState(loan.note ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    if (!(Number(principal) >= 0)) return;
+    setBusy(true);
+    try {
+      await upsert({
+        data: {
+          id: loan.id, profileId, direction,
+          counterpartyId: counterpartyId || null,
+          principal: Number(principal),
+          interestRate: Number(loan.interest_rate) || 0,
+          startedOn, dueOn: dueOn || null,
+          status: loan.status, note,
+        },
+      });
+      toast.success("Loan updated");
+      onSaved();
+      setOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to update");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Pencil className="h-3.5 w-3.5" /></Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Edit loan</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Direction</Label>
+            <Select value={direction} onValueChange={(v) => setDirection(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="i_owe">I owe</SelectItem>
+                <SelectItem value="owed_to_me">Owed to me</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Person / vendor</Label>
+            <Select value={counterpartyId || NONE} onValueChange={(v) => setCounterpartyId(v === NONE ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>—</SelectItem>
+                {counterparties.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Principal</Label>
+            <Input type="number" step="0.01" min="0" className="text-right font-mono" value={principal} onChange={(e) => setPrincipal(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Started</Label>
+            <Input type="date" value={startedOn} onChange={(e) => setStartedOn(e.target.value)} />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label>Due (optional)</Label>
+            <Input type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label>Note</Label>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button disabled={busy} onClick={save}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+

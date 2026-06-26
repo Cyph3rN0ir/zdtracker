@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
 
 type Cat = { id: string; name: string; kind: "income" | "expense"; color: string; icon: string; archived: boolean };
 
@@ -23,6 +23,10 @@ export function PersonalCategories({ profileId, categories }: { profileId: strin
   const [kind, setKind] = useState<"income" | "expense">("expense");
   const [color, setColor] = useState("#6366f1");
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editKind, setEditKind] = useState<"income" | "expense">("expense");
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ["personal-cats", profileId] });
 
   const add = useMutation({
@@ -32,6 +36,11 @@ export function PersonalCategories({ profileId, categories }: { profileId: strin
   const dm = useMutation({
     mutationFn: (id: string) => del({ data: { id, profileId } }),
     onSuccess: () => { toast.success("Deleted"); invalidate(); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+  });
+  const updMut = useMutation({
+    mutationFn: (c: Cat) => upsert({ data: { profileId, id: c.id, name: editName.trim() || c.name, kind: editKind, color: c.color, icon: c.icon, archived: c.archived } }),
+    onSuccess: () => { setEditingId(null); invalidate(); toast.success("Updated"); },
   });
   const updColor = useMutation({
     mutationFn: (c: Cat) => upsert({ data: { profileId, id: c.id, name: c.name, kind: c.kind, color: c.color, icon: c.icon, archived: c.archived } }),
@@ -74,15 +83,46 @@ export function PersonalCategories({ profileId, categories }: { profileId: strin
             <CardHeader><CardTitle className="text-base">{g.title}</CardTitle></CardHeader>
             <CardContent className="p-0">
               <div className="divide-y">
-                {categories.filter((c) => c.kind === g.kind).map((c) => (
-                  <div key={c.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <input type="color" value={c.color} onChange={(e) => updColor.mutate({ ...c, color: e.target.value })} className="h-5 w-5 rounded cursor-pointer border-0 bg-transparent p-0" />
-                      <span>{c.name}</span>
+                {categories.filter((c) => c.kind === g.kind).map((c) => {
+                  const editing = editingId === c.id;
+                  return (
+                    <div key={c.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <input type="color" value={c.color} onChange={(e) => updColor.mutate({ ...c, color: e.target.value })} className="h-5 w-5 rounded cursor-pointer border-0 bg-transparent p-0 shrink-0" />
+                        {editing ? (
+                          <>
+                            <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-7 flex-1 min-w-0" autoFocus />
+                            <Select value={editKind} onValueChange={(v) => setEditKind(v as any)}>
+                              <SelectTrigger className="h-7 w-24 shrink-0"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="expense">Expense</SelectItem>
+                                <SelectItem value="income">Income</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </>
+                        ) : (
+                          <span className="truncate">{c.name}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {editing ? (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate(c)}><Check className="h-3.5 w-3.5" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-3.5 w-3.5" /></Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
+                              onClick={() => { setEditingId(c.id); setEditName(c.name); setEditKind(c.kind); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                  </div>
-                ))}
+                  );
+                })}
                 {categories.filter((c) => c.kind === g.kind).length === 0 && (
                   <div className="py-8 text-center text-sm text-muted-foreground">None.</div>
                 )}
