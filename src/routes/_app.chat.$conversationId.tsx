@@ -296,6 +296,24 @@ function ThreadView() {
         )}
       </div>
 
+      {Object.keys(typingUsers).length > 0 && (
+        <div className="px-4 py-1 text-xs text-muted-foreground flex items-center gap-2 border-t border-border/50 bg-card/50">
+          <span className="inline-flex gap-0.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:-0.3s]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:-0.15s]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 animate-bounce" />
+          </span>
+          <span className="truncate">
+            {(() => {
+              const names = Object.values(typingUsers).map((u) => u.name);
+              if (names.length === 1) return `${names[0]} is typing…`;
+              if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
+              return `${names.length} people are typing…`;
+            })()}
+          </span>
+        </div>
+      )}
+
       <div className="border-t border-border bg-card p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {replyTo && (
           <div className="mb-2 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-2 py-1.5">
@@ -317,7 +335,7 @@ function ThreadView() {
         <div className="flex items-end gap-2">
           <Textarea
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => handleTypingChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
