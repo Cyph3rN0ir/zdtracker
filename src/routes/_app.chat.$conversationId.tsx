@@ -137,11 +137,47 @@ function ThreadView() {
   function submit() {
     const text = body.trim();
     if (!text || send.isPending) return;
+    sendTyping(false);
     send.mutate({ body: text, replyToId: replyTo?.id ?? null });
   }
 
   const conv = convQ.data;
   const isGroup = conv?.kind === "group";
+
+  // Typing broadcast helpers
+  const typingStateRef = useRef<{ active: boolean; stopTimer: number | null }>({ active: false, stopTimer: null });
+  function sendTyping(typing: boolean) {
+    const ch = channelRef.current;
+    const myId = myIdRef.current;
+    if (!ch || !myId) return;
+    const me = conv?.members.find((u) => u.id === myId);
+    ch.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { userId: myId, name: me?.name ?? "Someone", typing },
+    });
+  }
+  function handleTypingChange(value: string) {
+    setBody(value);
+    const has = value.trim().length > 0;
+    const s = typingStateRef.current;
+    if (has && !s.active) {
+      s.active = true;
+      sendTyping(true);
+    }
+    if (s.stopTimer) window.clearTimeout(s.stopTimer);
+    s.stopTimer = window.setTimeout(() => {
+      if (s.active) {
+        s.active = false;
+        sendTyping(false);
+      }
+    }, 2500);
+  }
+  useEffect(() => () => {
+    if (typingStateRef.current.active) sendTyping(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
+
 
   // Group messages by day for separators
   const grouped = useMemo(() => {
