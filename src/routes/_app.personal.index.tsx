@@ -6,6 +6,7 @@ import {
   createPersonalProfileFn,
   deletePersonalProfileFn,
   listPersonalProfilesFn,
+  renamePersonalProfileFn,
 } from "@/lib/zt.functions";
 import { PageHeader, ErrorBox, EmptyState } from "./_app.index";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
