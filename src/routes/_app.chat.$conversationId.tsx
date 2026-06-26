@@ -538,7 +538,7 @@ function ThreadView() {
             placeholder="Type a message…"
             rows={1}
             maxLength={4000}
-            className="min-h-10 max-h-40 resize-none py-2 leading-6 text-base sm:text-sm flex-1 transition-all"
+            className="min-h-10 max-h-40 resize-none py-2 leading-6 text-base sm:text-sm flex-1 transition-all [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           />
           <Button
             onClick={submit}
