@@ -12,6 +12,14 @@ import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, CornerUpLeft, Send, Users as UsersIcon, X } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/_app/chat/$conversationId")({
   component: ThreadView,
@@ -145,7 +153,48 @@ function ThreadView() {
             )}
           </div>
         </div>
-        {isGroup && <UsersIcon className="h-4 w-4 text-muted-foreground" />}
+        {isGroup && (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="View members"
+                className="shrink-0"
+              >
+                <UsersIcon className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85vw] sm:w-80 p-0 flex flex-col">
+              <SheetHeader className="px-4 py-3 border-b border-border text-left">
+                <SheetTitle className="text-base">Members</SheetTitle>
+                <SheetDescription className="text-xs">
+                  {conv?.members.length ?? 0} in {conv?.title}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex-1 min-h-0 overflow-y-auto py-2">
+                {(conv?.members ?? []).map((u) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50"
+                  >
+                    <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium shrink-0">
+                      {u.name.slice(0, 1).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{u.name}</div>
+                    </div>
+                  </div>
+                ))}
+                {(conv?.members.length ?? 0) === 0 && (
+                  <div className="px-4 py-6 text-sm text-muted-foreground text-center">
+                    No members
+                  </div>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
       </header>
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-3">
