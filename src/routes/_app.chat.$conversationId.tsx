@@ -11,7 +11,7 @@ import {
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, CornerUpLeft, Send, Users as UsersIcon, X } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, CornerUpLeft, Send, Users as UsersIcon, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -287,6 +287,9 @@ function MessageBubble({
     createdAt: string;
     replyTo: { id: string; body: string; senderName: string } | null;
     mine: boolean;
+    readers: Array<{ id: string; name: string }>;
+    readByAll: boolean;
+    otherMembersCount: number;
   };
   isGroup: boolean;
   onReply: () => void;
@@ -331,8 +334,32 @@ function MessageBubble({
               </button>
             )}
             <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</div>
-            <div className={`text-[10px] mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"} text-right`}>
-              {formatTime(m.createdAt)}
+            <div className={`flex items-center justify-end gap-1 text-[10px] mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+              <span>{formatTime(m.createdAt)}</span>
+              {m.mine && m.otherMembersCount > 0 && (
+                <span
+                  className="inline-flex items-center"
+                  title={
+                    m.readByAll
+                      ? isGroup
+                          ? `Seen by ${m.readers.map((r) => r.name).join(", ")}`
+                          : `Seen${m.readers[0] ? ` by ${m.readers[0].name}` : ""}`
+                      : isGroup && m.readers.length > 0
+                          ? `Seen by ${m.readers.length}/${m.otherMembersCount}`
+                          : "Sent"
+                  }
+                  aria-label={m.readByAll ? "Seen" : "Sent"}
+                >
+                  {m.readByAll ? (
+                    <CheckCheck className="h-3.5 w-3.5" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5 opacity-70" />
+                  )}
+                  {isGroup && m.readers.length > 0 && !m.readByAll && (
+                    <span className="ml-0.5">{m.readers.length}</span>
+                  )}
+                </span>
+              )}
             </div>
           </div>
           {!m.mine && (
