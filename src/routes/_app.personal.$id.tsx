@@ -342,11 +342,25 @@ function BudgetsTab({ profileId, budgets, categories, tx, currency }: { profileI
 function CounterpartiesTab({ profileId, counterparties }: { profileId: string; counterparties: any[] }) {
   const qc = useQueryClient();
   const upsert = useServerFn(upsertPersonalCounterpartyFn);
+  const del = useServerFn(deletePersonalCounterpartyFn);
   const [name, setName] = useState("");
   const [kind, setKind] = useState("person");
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["personal-cps", profileId] });
   const add = useMutation({
     mutationFn: () => upsert({ data: { profileId, name, kind: kind as any, note: "" } }),
-    onSuccess: () => { setName(""); toast.success("Added"); qc.invalidateQueries({ queryKey: ["personal-cps", profileId] }); },
+    onSuccess: () => { setName(""); toast.success("Added"); invalidate(); },
+  });
+  const dm = useMutation({
+    mutationFn: (id: string) => del({ data: { id, profileId } }),
+    onSuccess: () => { toast.success("Deleted"); invalidate(); },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editKind, setEditKind] = useState("person");
+  const updMut = useMutation({
+    mutationFn: (c: any) => upsert({ data: { id: c.id, profileId, name: editName.trim() || c.name, kind: editKind as any, note: c.note ?? "" } }),
+    onSuccess: () => { setEditingId(null); invalidate(); toast.success("Updated"); },
   });
   return (
     <div className="space-y-4">
@@ -373,16 +387,174 @@ function CounterpartiesTab({ profileId, counterparties }: { profileId: string; c
         <CardContent className="p-0">
           <div className="divide-y">
             {counterparties.length === 0 && <div className="py-10 text-center text-sm text-muted-foreground">No people added yet.</div>}
-            {counterparties.map((c) => (
-              <div key={c.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                <span className="font-medium">{c.name}</span>
-                <Badge variant="secondary" className="capitalize">{c.kind}</Badge>
-              </div>
-            ))}
+            {counterparties.map((c) => {
+              const editing = editingId === c.id;
+              return (
+                <div key={c.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {editing ? (
+                      <>
+                        <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-7 flex-1 min-w-0" autoFocus />
+                        <Select value={editKind} onValueChange={setEditKind}>
+                          <SelectTrigger className="h-7 w-28 shrink-0"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {["person","vendor","employer","other"].map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium truncate">{c.name}</span>
+                        <Badge variant="secondary" className="capitalize shrink-0">{c.kind}</Badge>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {editing ? (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate(c)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}>×</Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
+                          onClick={() => { setEditingId(c.id); setEditName(c.name); setEditKind(c.kind); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+function EditAccountDialog({ account, profileId, currency }: { account: any; profileId: string; currency: string }) {
+  const qc = useQueryClient();
+  const upsert = useServerFn(upsertPersonalAccountFn);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(account.name);
+  const [type, setType] = useState(account.type);
+  const [opening, setOpening] = useState(String(account.opening_balance ?? 0));
+  const [archived, setArchived] = useState(!!account.archived);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (!name.trim()) return;
+    setBusy(true);
+    try {
+      await upsert({ data: { id: account.id, profileId, name: name.trim(), type, openingBalance: Number(opening || 0), currency, archived } });
+      toast.success("Account updated");
+      qc.invalidateQueries({ queryKey: ["personal-accts", profileId] });
+      qc.invalidateQueries({ queryKey: ["personal-tx", profileId] });
+      setOpen(false);
+    } catch (e: any) { toast.error(e?.message ?? "Failed to update"); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Pencil className="h-3.5 w-3.5" /></Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Edit account</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5 col-span-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Type</Label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["cash","bank","wallet","card","investment","savings","other"].map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Opening balance</Label>
+            <Input type="number" step="0.01" value={opening} onChange={(e) => setOpening(e.target.value)} className="text-right font-mono" />
+          </div>
+          <label className="col-span-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} />
+            Archived
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button disabled={busy} onClick={save}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditBudgetDialog({ budget, categories, profileId }: { budget: BudgetRow; categories: any[]; profileId: string }) {
+  const qc = useQueryClient();
+  const upsert = useServerFn(upsertPersonalBudgetFn);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(budget.name);
+  const [period, setPeriod] = useState<"week" | "month">(budget.period as any);
+  const [amount, setAmount] = useState(String(budget.amount));
+  const [categoryId, setCategoryId] = useState(budget.category_id ?? "");
+  const [active, setActive] = useState(!!budget.active);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (!name.trim() || !(Number(amount) > 0)) return;
+    setBusy(true);
+    try {
+      await upsert({ data: { id: budget.id, profileId, name: name.trim(), period, amount: Number(amount), categoryId: categoryId || null, startDate: (budget as any).start_date ?? todayISO(), active } });
+      toast.success("Budget updated");
+      qc.invalidateQueries({ queryKey: ["personal-budgets", profileId] });
+      setOpen(false);
+    } catch (e: any) { toast.error(e?.message ?? "Failed to update"); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Pencil className="h-3.5 w-3.5" /></Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Edit budget</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5 col-span-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Period</Label>
+            <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="week">Weekly</SelectItem><SelectItem value="month">Monthly</SelectItem></SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Amount</Label>
+            <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="text-right font-mono" />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label>Category (optional)</Label>
+            <Select value={categoryId || NONE} onValueChange={(v) => setCategoryId(v === NONE ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Overall" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Overall</SelectItem>
+                {categories.filter((c) => c.kind === "expense").map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="col-span-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+            Active
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button disabled={busy} onClick={save}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
