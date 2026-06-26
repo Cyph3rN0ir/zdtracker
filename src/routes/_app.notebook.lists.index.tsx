@@ -3,10 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { createListFn, listListsFn } from "@/lib/notebook.functions";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Notebook } from "lucide-react";
+import { Plus, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/_app/notebook/lists/")({
   component: ListsPage,
@@ -31,35 +29,48 @@ function ListsPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Inline composer */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           const v = title.trim();
           if (v) m.mutate(v);
         }}
-        className="rounded-xl border border-border bg-card p-3"
+        className="space-y-2"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 border-b border-border/60 pb-2 focus-within:border-foreground/40 transition-colors">
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ background: color }}
+            aria-hidden
+          />
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="New list (e.g. Groceries)"
-            className="h-11 min-w-0 flex-1 text-base"
+            placeholder="New list…"
+            className="h-9 min-w-0 flex-1 border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 text-[15px]"
           />
-          <Button type="submit" disabled={!title.trim() || m.isPending} className="h-11 shrink-0 px-3 sm:px-4">
-            <Plus className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Create</span>
-          </Button>
+          <button
+            type="submit"
+            disabled={!title.trim() || m.isPending}
+            aria-label="Create list"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">Color</span>
+        <div className="flex items-center gap-1.5 pl-4">
           {COLORS.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setColor(c)}
               aria-label={c}
-              className={"h-6 w-6 rounded-full ring-offset-2 ring-offset-card transition-all " + (color === c ? "ring-2 ring-foreground" : "")}
+              className={
+                "h-3.5 w-3.5 rounded-full transition-transform " +
+                (color === c ? "ring-2 ring-offset-2 ring-offset-background ring-foreground/70 scale-110" : "opacity-60 hover:opacity-100")
+              }
               style={{ background: c }}
             />
           ))}
@@ -67,40 +78,36 @@ function ListsPage() {
       </form>
 
       {q.isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <div className="text-xs text-muted-foreground">Loading…</div>
       ) : (q.data?.length ?? 0) === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center">
-            <Notebook className="h-8 w-8 mx-auto text-muted-foreground" />
-            <div className="mt-2 text-sm font-medium">No lists yet</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Create one above to start organizing notes and todos.
-            </div>
-          </CardContent>
-        </Card>
+        <div className="py-14 text-center text-xs text-muted-foreground/80">
+          No lists yet. Create one above.
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <ul className="divide-y divide-border/50">
           {(q.data ?? []).map((l: any) => (
-            <Link
-              key={l.id}
-              to="/notebook/lists/$listId"
-              params={{ listId: l.id }}
-              className="group rounded-xl border border-border bg-card p-4 hover:border-foreground/30 transition-colors min-h-[88px] flex flex-col gap-1"
-            >
-              <div className="flex items-center gap-2">
+            <li key={l.id}>
+              <Link
+                to="/notebook/lists/$listId"
+                params={{ listId: l.id }}
+                className="group flex items-center gap-3 py-3 hover:bg-accent/40 -mx-2 px-2 rounded-md transition-colors"
+              >
                 <span
-                  className="h-3 w-3 shrink-0 rounded-full"
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{ background: l.color }}
                   aria-hidden
                 />
-                <div className="font-semibold truncate">{l.title}</div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {l.open_count > 0 ? `${l.open_count} open` : "All done"}
-              </div>
-            </Link>
+                <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+                  {l.title}
+                </span>
+                <span className="text-[11px] tabular-nums text-muted-foreground/70">
+                  {l.open_count > 0 ? l.open_count : "—"}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

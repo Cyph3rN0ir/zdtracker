@@ -1,14 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { listTodosFn } from "@/lib/notebook.functions";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { TodoRow, type Todo } from "@/components/notebook/TodoRow";
 import { QuickAdd } from "@/components/notebook/QuickAdd";
-import { PageHeader, EmptyState } from "./_app.index";
 
 export const Route = createFileRoute("/_app/notebook/today")({
   component: TodayPage,
@@ -19,7 +16,6 @@ export const Route = createFileRoute("/_app/notebook/today")({
 });
 
 function localToday(): string {
-  // YYYY-MM-DD in the user's local timezone
   return new Date().toLocaleDateString("en-CA");
 }
 
@@ -76,65 +72,59 @@ function TodayPage() {
   }, [date, today]);
 
   return (
-    <div className="space-y-6 pb-4">
-      <PageHeader
-        title={headerLabel}
-        subtitle={`Notebook · ${date}`}
-        right={
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              aria-label="Previous day"
-              onClick={() => goto(shiftDate(date, -1))}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-border bg-card hover:bg-accent active:scale-95"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            {date !== today && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => goto(today)}
-                className="h-9 px-2 sm:px-3"
-              >
-                <CalendarDays className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Today</span>
-              </Button>
-            )}
-            <button
-              aria-label="Next day"
-              onClick={() => goto(shiftDate(date, 1))}
-              className="grid h-9 w-9 place-items-center rounded-md border border-border bg-card hover:bg-accent active:scale-95"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+    <div className="space-y-5 pb-4">
+      {/* Slim date header */}
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+            {date}
           </div>
-        }
-      />
+          <h2 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight truncate">
+            {headerLabel}
+          </h2>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <IconBtn aria-label="Previous day" onClick={() => goto(shiftDate(date, -1))}>
+            <ChevronLeft className="h-4 w-4" />
+          </IconBtn>
+          {date !== today && (
+            <button
+              onClick={() => goto(today)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/70 px-3 h-8 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span>Today</span>
+            </button>
+          )}
+          <IconBtn aria-label="Next day" onClick={() => goto(shiftDate(date, 1))}>
+            <ChevronRight className="h-4 w-4" />
+          </IconBtn>
+        </div>
+      </div>
 
-      {/* Progress */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              <span className="text-foreground font-semibold">{doneCount}</span> of {totalCount} done
-            </span>
-            <span className="font-medium tabular-nums">{pct}%</span>
-          </div>
-          <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Thin progress */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>
+            <span className="text-foreground font-medium tabular-nums">{doneCount}</span>
+            <span className="text-muted-foreground/60"> / {totalCount}</span> done
+          </span>
+          <span className="font-medium tabular-nums">{pct}%</span>
+        </div>
+        <div className="h-[3px] w-full overflow-hidden rounded-full bg-muted/60">
+          <div
+            className="h-full bg-foreground transition-all duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
 
       {q.isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <div className="text-xs text-muted-foreground">Loading…</div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {date === today && overdue.length > 0 && (
-            <Section title="Overdue" count={overdue.length} variant="destructive">
+            <Section title="Overdue" count={overdue.length} accent="destructive">
               {overdue.map((t) => (
                 <TodoRow key={t.id} t={t} invalidateKeys={invalidateKeys} />
               ))}
@@ -142,13 +132,13 @@ function TodayPage() {
           )}
           <Section title={headerLabel} count={totalCount}>
             {todays.length === 0 ? (
-              <EmptyState message="Nothing scheduled. Add one below." />
+              <div className="px-1 py-6 text-center text-xs text-muted-foreground/80">
+                Nothing scheduled. Add one below.
+              </div>
             ) : (
-              <ul className="divide-y divide-border -mx-2">
-                {todays.map((t) => (
-                  <TodoRow key={t.id} t={t} invalidateKeys={invalidateKeys} />
-                ))}
-              </ul>
+              todays.map((t) => (
+                <TodoRow key={t.id} t={t} invalidateKeys={invalidateKeys} />
+              ))
             )}
           </Section>
           {someday.length > 0 && (
@@ -170,35 +160,51 @@ function TodayPage() {
   );
 }
 
+function IconBtn({ children, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...rest}
+      className="grid h-8 w-8 place-items-center rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-foreground/40 active:scale-95 transition-colors"
+    >
+      {children}
+    </button>
+  );
+}
+
 function Section({
   title,
   count,
   children,
-  variant,
+  accent,
 }: {
   title: string;
   count?: number;
   children: React.ReactNode;
-  variant?: "destructive";
+  accent?: "destructive";
 }) {
-  const isList = Array.isArray(children);
   return (
-    <Card className={variant === "destructive" ? "border-destructive/40" : ""}>
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <h2 className={"text-base font-semibold " + (variant === "destructive" ? "text-destructive" : "")}>
+    <section>
+      <div className="flex items-baseline justify-between border-b border-border/50 pb-1.5 mb-1">
+        <h3
+          className={
+            "text-[11px] font-medium uppercase tracking-[0.14em] " +
+            (accent === "destructive" ? "text-destructive" : "text-muted-foreground")
+          }
+        >
           {title}
-        </h2>
+        </h3>
         {typeof count === "number" && count > 0 && (
-          <span className={"text-xs font-medium tabular-nums " + (variant === "destructive" ? "text-destructive/80" : "text-muted-foreground")}>
+          <span
+            className={
+              "text-[11px] tabular-nums " +
+              (accent === "destructive" ? "text-destructive/80" : "text-muted-foreground/70")
+            }
+          >
             {count}
           </span>
         )}
       </div>
-      {isList ? (
-        <ul className="divide-y divide-border px-2 pb-2">{children}</ul>
-      ) : (
-        <div className="px-2 pb-2">{children}</div>
-      )}
-    </Card>
+      <ul className="divide-y divide-border/40">{children}</ul>
+    </section>
   );
 }
