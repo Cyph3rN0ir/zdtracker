@@ -59,15 +59,49 @@ function ThreadView() {
   });
 
   // Realtime: subscribe to broadcast on this conversation
+  const channelRef = useRef<ReturnType<ReturnType<typeof getSupabaseBrowser>["channel"]> | null>(null);
+  const myIdRef = useRef<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; at: number }>>({});
+
   useEffect(() => {
     const supa = getSupabaseBrowser();
-    const ch = supa.channel(`conv:${conversationId}`);
+    const ch = supa.channel(`conv:${conversationId}`, { config: { broadcast: { self: false } } });
+    channelRef.current = ch;
     ch.on("broadcast", { event: "ping" }, () => {
       qc.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
       qc.invalidateQueries({ queryKey: ["chat", "conversations"] });
-    }).subscribe();
-    return () => { supa.removeChannel(ch); };
+    });
+    ch.on("broadcast", { event: "typing" }, (payload: any) => {
+      const { userId, name, typing } = payload.payload ?? {};
+      if (!userId || userId === myIdRef.current) return;
+      setTypingUsers((prev) => {
+        const next = { ...prev };
+        if (typing) next[userId] = { name: name ?? "Someone", at: Date.now() };
+        else delete next[userId];
+        return next;
+      });
+    });
+    ch.subscribe();
+    supa.auth.getUser().then(({ data }) => { myIdRef.current = data.user?.id ?? null; });
+    return () => { channelRef.current = null; supa.removeChannel(ch); };
   }, [conversationId, qc]);
+
+  // Expire stale typing indicators after 4s of silence
+  useEffect(() => {
+    const t = setInterval(() => {
+      setTypingUsers((prev) => {
+        const now = Date.now();
+        let changed = false;
+        const next: typeof prev = {};
+        for (const [k, v] of Object.entries(prev)) {
+          if (now - v.at < 4000) next[k] = v;
+          else changed = true;
+        }
+        return changed ? next : prev;
+      });
+    }, 1500);
+    return () => clearInterval(t);
+  }, []);
 
   // Mark read when messages load / on new ones
   useEffect(() => {
