@@ -285,7 +285,7 @@ export function PersonalTransactions({
                     )}
                   </div>
                   <div className="flex items-center justify-between gap-2 sm:contents">
-                    <div className={`font-mono text-right sm:col-span-2 ${color}`}>
+                    <div className={`font-mono tabular-nums text-right [overflow-wrap:anywhere] min-w-0 sm:col-span-2 ${color}`}>
                       {editing ? (
                         <Input value={editAmount} onChange={(e) => setEditAmount(e.target.value)} className="h-7 text-right font-mono" />
                       ) : (
