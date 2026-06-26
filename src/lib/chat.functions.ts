@@ -324,6 +324,8 @@ export const markReadFn = createServerFn({ method: "POST" })
       .eq("conversation_id", data.conversationId)
       .eq("user_id", me.userId!);
     if (error) throw new Error(error.message);
+    // Notify others in the conversation so sender's "seen" state updates live
+    await broadcast(`conv:${data.conversationId}`, { readBy: me.userId });
     return { ok: true };
   });
 
