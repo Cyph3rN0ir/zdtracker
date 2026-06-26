@@ -242,13 +242,14 @@ function AccountsTab({ profileId, accounts, currency }: { profileId: string; acc
           <div className="divide-y">
             {accounts.length === 0 && <div className="py-10 text-center text-sm text-muted-foreground">No accounts yet.</div>}
             {accounts.map((a) => (
-              <div key={a.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="capitalize">{a.type}</Badge>
-                  <span className="font-medium">{a.name}</span>
+              <div key={a.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <Badge variant="secondary" className="capitalize shrink-0">{a.type}</Badge>
+                  <span className="font-medium truncate">{a.name}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-muted-foreground">{fmtMoney(a.opening_balance, currency)}</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="font-mono text-muted-foreground text-xs sm:text-sm whitespace-nowrap">{fmtMoney(a.opening_balance, currency)}</span>
+                  <EditAccountDialog account={a} profileId={profileId} currency={currency} />
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(a.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
