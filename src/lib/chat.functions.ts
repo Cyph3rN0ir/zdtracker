@@ -181,14 +181,24 @@ export const listMessagesFn = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const rows = (msgs ?? []).slice().reverse();
 
+    // All members + their last_read_at (for read receipts)
+    const { data: memberRows } = await supa
+      .from("conversation_members")
+      .select("user_id, last_read_at")
+      .eq("conversation_id", data.conversationId);
+    const otherMembers = (memberRows ?? []).filter((m) => m.user_id !== me.userId);
+
     const senderIds = Array.from(
       new Set(rows.map((m) => m.sender_id).filter((x): x is string => !!x)),
     );
-    const { data: users } = senderIds.length
+    const allUserIds = Array.from(
+      new Set([...senderIds, ...otherMembers.map((m) => m.user_id)]),
+    );
+    const { data: users } = allUserIds.length
       ? await supa
           .from("app_users")
           .select("id, username, display_name")
-          .in("id", senderIds)
+          .in("id", allUserIds)
       : { data: [] as Array<{ id: string; username: string; display_name: string | null }> };
     const nameMap = new Map(
       (users ?? []).map((u) => [u.id, (u.display_name && u.display_name.trim()) || u.username]),
@@ -213,17 +223,32 @@ export const listMessagesFn = createServerFn({ method: "GET" })
       ]),
     );
 
-    return rows.map((m) => ({
-      id: m.id,
-      senderId: m.sender_id,
-      senderName: m.sender_id ? nameMap.get(m.sender_id) ?? "User" : "Unknown",
-      body: m.body,
-      createdAt: m.created_at,
-      replyTo: m.reply_to_id
-        ? { id: m.reply_to_id, ...(replyMap.get(m.reply_to_id) ?? { body: "(deleted)", senderName: "Unknown" }) }
-        : null,
-      mine: m.sender_id === me.userId,
-    }));
+    return rows.map((m) => {
+      const mine = m.sender_id === me.userId;
+      // Read receipts: which OTHER members have last_read_at >= this message's createdAt
+      const readers = mine
+        ? otherMembers
+            .filter((mem) => mem.last_read_at && mem.last_read_at >= m.created_at)
+            .map((mem) => ({
+              id: mem.user_id,
+              name: nameMap.get(mem.user_id) ?? "User",
+            }))
+        : [];
+      return {
+        id: m.id,
+        senderId: m.sender_id,
+        senderName: m.sender_id ? nameMap.get(m.sender_id) ?? "User" : "Unknown",
+        body: m.body,
+        createdAt: m.created_at,
+        replyTo: m.reply_to_id
+          ? { id: m.reply_to_id, ...(replyMap.get(m.reply_to_id) ?? { body: "(deleted)", senderName: "Unknown" }) }
+          : null,
+        mine,
+        readers,
+        readByAll: mine && otherMembers.length > 0 && readers.length === otherMembers.length,
+        otherMembersCount: otherMembers.length,
+      };
+    });
   });
 
 // ---------------- Send message ----------------
