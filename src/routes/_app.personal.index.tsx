@@ -38,7 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { ArrowRight, Plus, User, MoreVertical, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, User, MoreVertical, Trash2, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/_app/personal/")({
   component: PersonalList,
