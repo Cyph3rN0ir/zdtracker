@@ -240,7 +240,7 @@ function Tasks() {
                         {task.title}
                       </div>
                       {task.details && (
-                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 whitespace-pre-wrap">{task.details}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap [overflow-wrap:anywhere]">{task.details}</div>
                       )}
                       <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
