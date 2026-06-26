@@ -337,3 +337,139 @@ function Field({ label, className, children }: { label: string; className?: stri
     </div>
   );
 }
+
+function EditTxDialog({
+  tx, profileId, accounts, categories, counterparties, loans, currency, onSaved,
+}: {
+  tx: TxRow; profileId: string;
+  accounts: Account[]; categories: Cat[]; counterparties: Cp[]; loans: Loan[];
+  currency: string; onSaved: () => void;
+}) {
+  const upd = useServerFn(updatePersonalTxFn);
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<TxKind>(tx.kind);
+  const [amount, setAmount] = useState(String(tx.amount));
+  const [note, setNote] = useState(tx.note ?? "");
+  const [occurredOn, setOccurredOn] = useState(tx.occurred_on);
+  const [accountId, setAccountId] = useState(tx.account_id ?? "");
+  const [categoryId, setCategoryId] = useState(tx.category_id ?? "");
+  const [counterpartyId, setCounterpartyId] = useState(tx.counterparty_id ?? "");
+  const [transferAccountId, setTransferAccountId] = useState(tx.transfer_account_id ?? "");
+  const [linkedLoanId, setLinkedLoanId] = useState(tx.linked_loan_id ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const showCategory = kind === "income" || kind === "expense";
+  const showCounterparty = ["expense","income","loan_given","loan_taken","repayment_in","repayment_out"].includes(kind);
+  const showTransfer = kind === "transfer";
+  const showLoan = kind === "repayment_in" || kind === "repayment_out";
+
+  const save = async () => {
+    if (!(Number(amount) >= 0)) return;
+    setBusy(true);
+    try {
+      await upd({
+        data: {
+          id: tx.id, profileId, kind,
+          amount: Number(amount), note, occurredOn,
+          accountId: accountId || null,
+          categoryId: showCategory ? (categoryId || null) : null,
+          counterpartyId: showCounterparty ? (counterpartyId || null) : null,
+          transferAccountId: showTransfer ? (transferAccountId || null) : null,
+          linkedLoanId: showLoan ? (linkedLoanId || null) : null,
+        },
+      });
+      toast.success("Transaction updated");
+      onSaved();
+      setOpen(false);
+    } catch (e: any) { toast.error(e?.message ?? "Failed to update"); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" title="Edit all fields"><Pencil className="h-3.5 w-3.5" /></Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Edit transaction</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Kind">
+            <Select value={kind} onValueChange={(v) => setKind(v as TxKind)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TX_KINDS.map((k) => <SelectItem key={k} value={k}>{TX_KIND_LABEL[k]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Amount">
+            <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="text-right font-mono" />
+          </Field>
+          <Field label="Date">
+            <Input type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} />
+          </Field>
+          <Field label="Account">
+            <Select value={accountId || NONE} onValueChange={(v) => setAccountId(v === NONE ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>—</SelectItem>
+                {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          {showCategory && (
+            <Field label="Category">
+              <Select value={categoryId || NONE} onValueChange={(v) => setCategoryId(v === NONE ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>—</SelectItem>
+                  {categories.filter((c) => c.kind === (kind === "income" ? "income" : "expense")).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+          {showCounterparty && (
+            <Field label="Person / vendor">
+              <Select value={counterpartyId || NONE} onValueChange={(v) => setCounterpartyId(v === NONE ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>—</SelectItem>
+                  {counterparties.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+          {showTransfer && (
+            <Field label="To account">
+              <Select value={transferAccountId || NONE} onValueChange={(v) => setTransferAccountId(v === NONE ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>—</SelectItem>
+                  {accounts.filter((a) => a.id !== accountId).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+          {showLoan && (
+            <Field label="Linked loan">
+              <Select value={linkedLoanId || NONE} onValueChange={(v) => setLinkedLoanId(v === NONE ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>—</SelectItem>
+                  {loans.map((l) => <SelectItem key={l.id} value={l.id}>{l.direction === "i_owe" ? "I owe" : "Owed to me"} · {fmtMoney(l.principal, currency)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+          <Field label="Note" className="col-span-2">
+            <Input value={note} onChange={(e) => setNote(e.target.value)} />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button disabled={busy} onClick={save}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
