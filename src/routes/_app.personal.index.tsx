@@ -6,6 +6,7 @@ import {
   createPersonalProfileFn,
   deletePersonalProfileFn,
   listPersonalProfilesFn,
+  renamePersonalProfileFn,
 } from "@/lib/zt.functions";
 import { PageHeader, ErrorBox, EmptyState } from "./_app.index";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,13 +24,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { ArrowRight, Plus, User, MoreVertical, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, User, MoreVertical, Trash2, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/_app/personal/")({
   component: PersonalList,
@@ -40,10 +49,13 @@ function PersonalList() {
   const list = useServerFn(listPersonalProfilesFn);
   const create = useServerFn(createPersonalProfileFn);
   const del = useServerFn(deletePersonalProfileFn);
+  const rename = useServerFn(renamePersonalProfileFn);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["personal"], queryFn: () => list() });
   const [name, setName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const m = useMutation({
     mutationFn: () => create({ data: { name: name.trim() } }),
     onSuccess: () => { setName(""); qc.invalidateQueries({ queryKey: ["personal"] }); },
@@ -55,6 +67,16 @@ function PersonalList() {
       qc.invalidateQueries({ queryKey: ["personal"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+  });
+  const renameM = useMutation({
+    mutationFn: (input: { id: string; name: string }) => rename({ data: input }),
+    onSuccess: () => {
+      toast.success("Profile renamed");
+      setRenameTarget(null);
+      qc.invalidateQueries({ queryKey: ["personal"] });
+      qc.invalidateQueries({ queryKey: ["personal-profile"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to rename"),
   });
   return (
     <div className="space-y-6">
@@ -112,6 +134,14 @@ function PersonalList() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuItem
+                            onSelect={() => {
+                              setRenameTarget({ id: p.id, name: p.name });
+                              setRenameValue(p.name);
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" /> Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onSelect={() => setDeleteTarget({ id: p.id, name: p.name })}
                           >
@@ -153,6 +183,50 @@ function PersonalList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={!!renameTarget}
+        onOpenChange={(o) => { if (!o) setRenameTarget(null); }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename profile</DialogTitle>
+            <DialogDescription>Give this profile a new name.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const next = renameValue.trim();
+              if (!renameTarget || !next || next === renameTarget.name) return;
+              renameM.mutate({ id: renameTarget.id, name: next });
+            }}
+            className="space-y-3"
+          >
+            <Input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              maxLength={120}
+              placeholder="Profile name"
+            />
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button type="button" variant="ghost" onClick={() => setRenameTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  renameM.isPending ||
+                  !renameValue.trim() ||
+                  renameValue.trim() === renameTarget?.name
+                }
+              >
+                Save
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
