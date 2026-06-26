@@ -229,6 +229,7 @@ export function PersonalLoans({
                           invalidate();
                         }}
                       />
+                      <EditLoanDialog loan={l} counterparties={counterparties} profileId={profileId} onSaved={invalidate} />
                       <Button variant="ghost" size="sm" onClick={() => closeM.mutate(l)}>Close</Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
