@@ -318,7 +318,10 @@ function BudgetsTab({ profileId, budgets, categories, tx, currency }: { profileI
                   <CardTitle className="text-base truncate">{b.name}</CardTitle>
                   <CardDescription className="truncate">{b.period} · {categories.find((c) => c.id === b.category_id)?.name ?? "overall"}</CardDescription>
                 </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <EditBudgetDialog budget={b} categories={categories} profileId={profileId} />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                </div>
               </CardHeader>
               <CardContent className="min-w-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 min-w-0">
