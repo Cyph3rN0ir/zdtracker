@@ -296,8 +296,9 @@ function ThreadView() {
       replyToId: replyTo?.id ?? null,
       tempId: `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     });
-    // refocus
-    requestAnimationFrame(() => textareaRef.current?.focus());
+    // refocus only when textarea was already focused (don't pop keyboard on mobile after send)
+    const wasFocused = document.activeElement === textareaRef.current;
+    if (wasFocused) requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
   const conv = convQ.data;
