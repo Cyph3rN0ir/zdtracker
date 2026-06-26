@@ -128,7 +128,7 @@ function MyTasks() {
                         <div className={"text-[13px] leading-snug " + (t.status === "done" ? "line-through text-muted-foreground" : "text-foreground")}>
                           {t.title}
                         </div>
-                        {t.details && <div className="text-[11px] text-muted-foreground/80 mt-0.5">{t.details}</div>}
+                        {t.details && <div className="text-[11px] text-muted-foreground/80 mt-0.5 whitespace-pre-wrap [overflow-wrap:anywhere]">{t.details}</div>}
                         {t.remark && (
                           <div className="mt-1.5 border-l-2 border-amber-500/60 bg-amber-500/5 pl-2 py-1 text-[11px] text-amber-900 dark:text-amber-200">
                             <div className="font-medium text-[9px] uppercase tracking-[0.14em] opacity-70">Remark</div>
