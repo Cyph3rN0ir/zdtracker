@@ -301,7 +301,13 @@ export function PersonalTransactions({
                         </>
                       ) : (
                         <>
+                          <EditTxDialog
+                            tx={t} profileId={profileId} accounts={accounts}
+                            categories={categories} counterparties={counterparties} loans={loans}
+                            currency={currency} onSaved={invalidate}
+                          />
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
+                            title="Quick edit amount & note"
                             onClick={() => { setEditingId(t.id); setEditAmount(String(t.amount)); setEditNote(t.note ?? ""); }}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
