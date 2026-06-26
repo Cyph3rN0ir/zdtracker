@@ -49,10 +49,13 @@ function PersonalList() {
   const list = useServerFn(listPersonalProfilesFn);
   const create = useServerFn(createPersonalProfileFn);
   const del = useServerFn(deletePersonalProfileFn);
+  const rename = useServerFn(renamePersonalProfileFn);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["personal"], queryFn: () => list() });
   const [name, setName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const m = useMutation({
     mutationFn: () => create({ data: { name: name.trim() } }),
     onSuccess: () => { setName(""); qc.invalidateQueries({ queryKey: ["personal"] }); },
@@ -64,6 +67,16 @@ function PersonalList() {
       qc.invalidateQueries({ queryKey: ["personal"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
+  });
+  const renameM = useMutation({
+    mutationFn: (input: { id: string; name: string }) => rename({ data: input }),
+    onSuccess: () => {
+      toast.success("Profile renamed");
+      setRenameTarget(null);
+      qc.invalidateQueries({ queryKey: ["personal"] });
+      qc.invalidateQueries({ queryKey: ["personal-profile"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to rename"),
   });
   return (
     <div className="space-y-6">
