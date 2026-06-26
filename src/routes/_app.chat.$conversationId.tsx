@@ -222,8 +222,11 @@ function ThreadView() {
       setBody(saved ?? "");
     } catch { setBody(""); }
     setReplyTo(null);
-    // focus textarea
-    requestAnimationFrame(() => textareaRef.current?.focus());
+    // Focus textarea only on non-touch (desktop) devices to avoid auto-opening
+    // the on-screen keyboard on mobile when entering a thread.
+    if (typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      requestAnimationFrame(() => textareaRef.current?.focus());
+    }
   }, [conversationId, draftKey]);
 
   // Persist draft
