@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toggleTodoFn, deleteTodoFn, updateTodoFn } from "@/lib/notebook.functions";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { Trash2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -19,7 +18,7 @@ export type Todo = {
 };
 
 const PRI_LABEL = ["", "Low", "Med", "High"];
-const PRI_CLASS = ["", "bg-muted text-muted-foreground", "bg-amber-500/15 text-amber-700 dark:text-amber-300", "bg-red-500/15 text-red-700 dark:text-red-300"];
+const PRI_DOT = ["", "bg-muted-foreground/40", "bg-amber-500", "bg-red-500"];
 
 export function TodoRow({
   t,
@@ -37,7 +36,6 @@ export function TodoRow({
   const remove = useServerFn(deleteTodoFn);
   const update = useServerFn(updateTodoFn);
   const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(t.title);
 
   const refetch = () => invalidateKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
 
@@ -60,11 +58,11 @@ export function TodoRow({
   const done = !!t.done_at;
 
   return (
-    <li className="group flex items-start gap-3 px-2 py-2.5 min-h-[44px]">
+    <li className="group flex items-start gap-3 px-1 py-2 min-h-[40px]">
       <Checkbox
         checked={done}
         onCheckedChange={(c) => mToggle.mutate(!!c)}
-        className="mt-0.5 h-5 w-5"
+        className="mt-[3px] h-4 w-4 rounded-[4px]"
       />
       <div className="flex-1 min-w-0">
         {editing ? (
@@ -80,45 +78,44 @@ export function TodoRow({
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
               if (e.key === "Escape") setEditing(false);
             }}
-            className="h-8"
+            className="h-8 text-sm"
           />
         ) : (
           <button
             type="button"
             onClick={() => setEditing(true)}
             className={
-              "block w-full text-left text-sm " +
-              (done ? "line-through text-muted-foreground" : "font-medium text-foreground")
+              "block w-full text-left text-[13px] leading-snug " +
+              (done ? "line-through text-muted-foreground" : "text-foreground")
             }
           >
             {t.title}
           </button>
         )}
         {t.details && !editing && (
-          <div className="text-xs text-muted-foreground mt-0.5 break-words">{t.details}</div>
+          <div className="text-[11px] text-muted-foreground/80 mt-0.5 break-words">{t.details}</div>
         )}
-        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          {t.priority > 0 && (
-            <Badge variant="secondary" className={"text-[10px] px-1.5 py-0 " + PRI_CLASS[t.priority]}>
-              {PRI_LABEL[t.priority]}
-            </Badge>
-          )}
-          {showListBadge && listTitle && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0">{listTitle}</Badge>
-          )}
-          {t.due_date && (
-            <span className="text-[10px] font-mono text-muted-foreground">{t.due_date}</span>
-          )}
-        </div>
+        {(t.priority > 0 || (showListBadge && listTitle) || t.due_date) && (
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground/80">
+            {t.priority > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <span className={"h-1.5 w-1.5 rounded-full " + PRI_DOT[t.priority]} />
+                {PRI_LABEL[t.priority]}
+              </span>
+            )}
+            {showListBadge && listTitle && <span className="truncate">· {listTitle}</span>}
+            {t.due_date && <span className="font-mono">· {t.due_date}</span>}
+          </div>
+        )}
       </div>
-      <div className="flex shrink-0 items-center gap-0.5 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
+      <div className="flex shrink-0 items-center gap-0.5 opacity-50 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
         <button
           type="button"
           aria-label="Edit"
           onClick={() => setEditing(true)}
-          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-accent"
+          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent"
         >
-          <Pencil className="h-4 w-4" />
+          <Pencil className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
@@ -126,9 +123,9 @@ export function TodoRow({
           onClick={() => {
             if (confirm("Delete this todo?")) mDelete.mutate();
           }}
-          className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
     </li>
