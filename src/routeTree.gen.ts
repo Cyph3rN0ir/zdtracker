@@ -20,12 +20,12 @@ import { Route as AppNotebookIndexRouteImport } from './routes/_app.notebook.ind
 import { Route as AppChatIndexRouteImport } from './routes/_app.chat.index'
 import { Route as AppPersonalIdRouteImport } from './routes/_app.personal.$id'
 import { Route as AppNotebookTodayRouteImport } from './routes/_app.notebook.today'
-import { Route as AppNotebookListsRouteImport } from './routes/_app.notebook.lists'
 import { Route as AppMyTasksRouteImport } from './routes/_app.my.tasks'
 import { Route as AppChatNewRouteImport } from './routes/_app.chat.new'
 import { Route as AppChatConversationIdRouteImport } from './routes/_app.chat.$conversationId'
 import { Route as AppBusinessesIdRouteImport } from './routes/_app.businesses.$id'
 import { Route as AppAdminUsersRouteImport } from './routes/_app.admin.users'
+import { Route as AppNotebookListsIndexRouteImport } from './routes/_app.notebook.lists.index'
 import { Route as AppBusinessesIdIndexRouteImport } from './routes/_app.businesses.$id.index'
 import { Route as AppNotebookNotesNoteIdRouteImport } from './routes/_app.notebook.notes.$noteId'
 import { Route as AppNotebookListsListIdRouteImport } from './routes/_app.notebook.lists.$listId'
@@ -88,11 +88,6 @@ const AppNotebookTodayRoute = AppNotebookTodayRouteImport.update({
   path: '/today',
   getParentRoute: () => AppNotebookRoute,
 } as any)
-const AppNotebookListsRoute = AppNotebookListsRouteImport.update({
-  id: '/lists',
-  path: '/lists',
-  getParentRoute: () => AppNotebookRoute,
-} as any)
 const AppMyTasksRoute = AppMyTasksRouteImport.update({
   id: '/my/tasks',
   path: '/my/tasks',
@@ -118,6 +113,11 @@ const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNotebookListsIndexRoute = AppNotebookListsIndexRouteImport.update({
+  id: '/lists/',
+  path: '/lists/',
+  getParentRoute: () => AppNotebookRoute,
+} as any)
 const AppBusinessesIdIndexRoute = AppBusinessesIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -129,9 +129,9 @@ const AppNotebookNotesNoteIdRoute = AppNotebookNotesNoteIdRouteImport.update({
   getParentRoute: () => AppNotebookRoute,
 } as any)
 const AppNotebookListsListIdRoute = AppNotebookListsListIdRouteImport.update({
-  id: '/$listId',
-  path: '/$listId',
-  getParentRoute: () => AppNotebookListsRoute,
+  id: '/lists/$listId',
+  path: '/lists/$listId',
+  getParentRoute: () => AppNotebookRoute,
 } as any)
 const AppBusinessesIdTasksRoute = AppBusinessesIdTasksRouteImport.update({
   id: '/tasks',
@@ -165,7 +165,6 @@ export interface FileRoutesByFullPath {
   '/chat/$conversationId': typeof AppChatConversationIdRoute
   '/chat/new': typeof AppChatNewRoute
   '/my/tasks': typeof AppMyTasksRoute
-  '/notebook/lists': typeof AppNotebookListsRouteWithChildren
   '/notebook/today': typeof AppNotebookTodayRoute
   '/personal/$id': typeof AppPersonalIdRoute
   '/chat/': typeof AppChatIndexRoute
@@ -178,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/notebook/lists/$listId': typeof AppNotebookListsListIdRoute
   '/notebook/notes/$noteId': typeof AppNotebookNotesNoteIdRoute
   '/businesses/$id/': typeof AppBusinessesIdIndexRoute
+  '/notebook/lists/': typeof AppNotebookListsIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -186,7 +186,6 @@ export interface FileRoutesByTo {
   '/chat/$conversationId': typeof AppChatConversationIdRoute
   '/chat/new': typeof AppChatNewRoute
   '/my/tasks': typeof AppMyTasksRoute
-  '/notebook/lists': typeof AppNotebookListsRouteWithChildren
   '/notebook/today': typeof AppNotebookTodayRoute
   '/personal/$id': typeof AppPersonalIdRoute
   '/chat': typeof AppChatIndexRoute
@@ -199,6 +198,7 @@ export interface FileRoutesByTo {
   '/notebook/lists/$listId': typeof AppNotebookListsListIdRoute
   '/notebook/notes/$noteId': typeof AppNotebookNotesNoteIdRoute
   '/businesses/$id': typeof AppBusinessesIdIndexRoute
+  '/notebook/lists': typeof AppNotebookListsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -213,7 +213,6 @@ export interface FileRoutesById {
   '/_app/chat/$conversationId': typeof AppChatConversationIdRoute
   '/_app/chat/new': typeof AppChatNewRoute
   '/_app/my/tasks': typeof AppMyTasksRoute
-  '/_app/notebook/lists': typeof AppNotebookListsRouteWithChildren
   '/_app/notebook/today': typeof AppNotebookTodayRoute
   '/_app/personal/$id': typeof AppPersonalIdRoute
   '/_app/chat/': typeof AppChatIndexRoute
@@ -226,6 +225,7 @@ export interface FileRoutesById {
   '/_app/notebook/lists/$listId': typeof AppNotebookListsListIdRoute
   '/_app/notebook/notes/$noteId': typeof AppNotebookNotesNoteIdRoute
   '/_app/businesses/$id/': typeof AppBusinessesIdIndexRoute
+  '/_app/notebook/lists/': typeof AppNotebookListsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -240,7 +240,6 @@ export interface FileRouteTypes {
     | '/chat/$conversationId'
     | '/chat/new'
     | '/my/tasks'
-    | '/notebook/lists'
     | '/notebook/today'
     | '/personal/$id'
     | '/chat/'
@@ -253,6 +252,7 @@ export interface FileRouteTypes {
     | '/notebook/lists/$listId'
     | '/notebook/notes/$noteId'
     | '/businesses/$id/'
+    | '/notebook/lists/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -261,7 +261,6 @@ export interface FileRouteTypes {
     | '/chat/$conversationId'
     | '/chat/new'
     | '/my/tasks'
-    | '/notebook/lists'
     | '/notebook/today'
     | '/personal/$id'
     | '/chat'
@@ -274,6 +273,7 @@ export interface FileRouteTypes {
     | '/notebook/lists/$listId'
     | '/notebook/notes/$noteId'
     | '/businesses/$id'
+    | '/notebook/lists'
   id:
     | '__root__'
     | '/_app'
@@ -287,7 +287,6 @@ export interface FileRouteTypes {
     | '/_app/chat/$conversationId'
     | '/_app/chat/new'
     | '/_app/my/tasks'
-    | '/_app/notebook/lists'
     | '/_app/notebook/today'
     | '/_app/personal/$id'
     | '/_app/chat/'
@@ -300,6 +299,7 @@ export interface FileRouteTypes {
     | '/_app/notebook/lists/$listId'
     | '/_app/notebook/notes/$noteId'
     | '/_app/businesses/$id/'
+    | '/_app/notebook/lists/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -386,13 +386,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNotebookTodayRouteImport
       parentRoute: typeof AppNotebookRoute
     }
-    '/_app/notebook/lists': {
-      id: '/_app/notebook/lists'
-      path: '/lists'
-      fullPath: '/notebook/lists'
-      preLoaderRoute: typeof AppNotebookListsRouteImport
-      parentRoute: typeof AppNotebookRoute
-    }
     '/_app/my/tasks': {
       id: '/_app/my/tasks'
       path: '/my/tasks'
@@ -428,6 +421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/notebook/lists/': {
+      id: '/_app/notebook/lists/'
+      path: '/lists'
+      fullPath: '/notebook/lists/'
+      preLoaderRoute: typeof AppNotebookListsIndexRouteImport
+      parentRoute: typeof AppNotebookRoute
+    }
     '/_app/businesses/$id/': {
       id: '/_app/businesses/$id/'
       path: '/'
@@ -444,10 +444,10 @@ declare module '@tanstack/react-router' {
     }
     '/_app/notebook/lists/$listId': {
       id: '/_app/notebook/lists/$listId'
-      path: '/$listId'
+      path: '/lists/$listId'
       fullPath: '/notebook/lists/$listId'
       preLoaderRoute: typeof AppNotebookListsListIdRouteImport
-      parentRoute: typeof AppNotebookListsRoute
+      parentRoute: typeof AppNotebookRoute
     }
     '/_app/businesses/$id/tasks': {
       id: '/_app/businesses/$id/tasks'
@@ -495,29 +495,20 @@ const AppChatRouteChildren: AppChatRouteChildren = {
 const AppChatRouteWithChildren =
   AppChatRoute._addFileChildren(AppChatRouteChildren)
 
-interface AppNotebookListsRouteChildren {
-  AppNotebookListsListIdRoute: typeof AppNotebookListsListIdRoute
-}
-
-const AppNotebookListsRouteChildren: AppNotebookListsRouteChildren = {
-  AppNotebookListsListIdRoute: AppNotebookListsListIdRoute,
-}
-
-const AppNotebookListsRouteWithChildren =
-  AppNotebookListsRoute._addFileChildren(AppNotebookListsRouteChildren)
-
 interface AppNotebookRouteChildren {
-  AppNotebookListsRoute: typeof AppNotebookListsRouteWithChildren
   AppNotebookTodayRoute: typeof AppNotebookTodayRoute
   AppNotebookIndexRoute: typeof AppNotebookIndexRoute
+  AppNotebookListsListIdRoute: typeof AppNotebookListsListIdRoute
   AppNotebookNotesNoteIdRoute: typeof AppNotebookNotesNoteIdRoute
+  AppNotebookListsIndexRoute: typeof AppNotebookListsIndexRoute
 }
 
 const AppNotebookRouteChildren: AppNotebookRouteChildren = {
-  AppNotebookListsRoute: AppNotebookListsRouteWithChildren,
   AppNotebookTodayRoute: AppNotebookTodayRoute,
   AppNotebookIndexRoute: AppNotebookIndexRoute,
+  AppNotebookListsListIdRoute: AppNotebookListsListIdRoute,
   AppNotebookNotesNoteIdRoute: AppNotebookNotesNoteIdRoute,
+  AppNotebookListsIndexRoute: AppNotebookListsIndexRoute,
 }
 
 const AppNotebookRouteWithChildren = AppNotebookRoute._addFileChildren(

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Notebook } from "lucide-react";
 
-export const Route = createFileRoute("/_app/notebook/lists")({
+export const Route = createFileRoute("/_app/notebook/lists/")({
   component: ListsPage,
   head: () => ({ meta: [{ title: "Lists — Notebook — ZeroSync" }] }),
 });
