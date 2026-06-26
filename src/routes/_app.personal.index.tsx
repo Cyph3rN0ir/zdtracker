@@ -134,6 +134,14 @@ function PersonalList() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuItem
+                            onSelect={() => {
+                              setRenameTarget({ id: p.id, name: p.name });
+                              setRenameValue(p.name);
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" /> Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onSelect={() => setDeleteTarget({ id: p.id, name: p.name })}
                           >
