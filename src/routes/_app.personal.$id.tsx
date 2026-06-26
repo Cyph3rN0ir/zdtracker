@@ -310,21 +310,21 @@ function BudgetsTab({ profileId, budgets, categories, tx, currency }: { profileI
           const s = computeBudgetStatus(b, tx);
           const tone = s.pct >= 100 ? "text-rose-500" : s.pct >= 75 ? "text-amber-500" : "text-emerald-500";
           return (
-            <Card key={b.id}>
-              <CardHeader className="pb-2 flex-row items-start justify-between space-y-0">
-                <div>
-                  <CardTitle className="text-base">{b.name}</CardTitle>
-                  <CardDescription>{b.period} · {categories.find((c) => c.id === b.category_id)?.name ?? "overall"}</CardDescription>
+            <Card key={b.id} className="min-w-0 overflow-hidden">
+              <CardHeader className="pb-2 flex-row items-start justify-between gap-2 space-y-0 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-base truncate">{b.name}</CardTitle>
+                  <CardDescription className="truncate">{b.period} · {categories.find((c) => c.id === b.category_id)?.name ?? "overall"}</CardDescription>
                 </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-baseline justify-between">
-                  <div className={`text-2xl font-mono font-semibold ${tone}`}>{fmtMoney(Math.max(0, s.remaining), currency)}</div>
-                  <div className="text-xs text-muted-foreground font-mono">{fmtMoney(s.spent, currency)} / {fmtMoney(s.limit, currency)}</div>
+              <CardContent className="min-w-0">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 min-w-0">
+                  <span className={`text-lg sm:text-2xl font-mono font-semibold tabular-nums [overflow-wrap:anywhere] min-w-0 ${tone}`}>{fmtMoney(Math.max(0, s.remaining), currency)}</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-mono tabular-nums text-right [overflow-wrap:anywhere] min-w-0">{fmtMoney(s.spent, currency)} / {fmtMoney(s.limit, currency)}</span>
                 </div>
                 <Progress value={s.pct} className="mt-2 h-2" />
-                <div className="mt-1 text-xs text-muted-foreground">{s.daysLeft} days left · projected {fmtMoney(s.projected, currency)}</div>
+                <div className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{s.daysLeft} days left · projected {fmtMoney(s.projected, currency)}</div>
               </CardContent>
             </Card>
           );
