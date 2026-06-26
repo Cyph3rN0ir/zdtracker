@@ -207,9 +207,15 @@ function ThreadView() {
             }}
             placeholder="Type a message…"
             rows={1}
-            className="min-h-[40px] max-h-32 resize-none text-base sm:text-sm"
+            className="min-h-10 h-10 max-h-32 resize-none py-2 leading-6 text-base sm:text-sm flex-1"
           />
-          <Button onClick={submit} disabled={!body.trim() || send.isPending} size="icon" aria-label="Send">
+          <Button
+            onClick={submit}
+            disabled={!body.trim() || send.isPending}
+            size="icon"
+            aria-label="Send"
+            className="h-10 w-10 shrink-0"
+          >
             <Send className="h-4 w-4" />
           </Button>
         </div>
