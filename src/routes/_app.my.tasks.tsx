@@ -93,83 +93,83 @@ function MyTasks() {
     <div className="space-y-6">
       <PageHeader title="My tasks" subtitle="Your assignments for the next 14 days." />
       {q.isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <div className="text-xs text-muted-foreground">Loading…</div>
       ) : q.isError && !q.data && !q.isFetching ? (
         <ErrorBox error={q.error} />
       ) : days.length === 0 ? (
         <EmptyState message="No tasks assigned." />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-7">
           {days.map((d) => {
             const open = groups[d].filter((t) => t.status !== "done").length;
             const isOverdue = d < today;
             return (
-              <Card key={d} className={isOverdue ? "border-destructive/40" : undefined}>
-                <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
-                  <div>
-                    <CardTitle className={"text-base " + (isOverdue ? "text-destructive" : "")}>{formatDay(d, today)}</CardTitle>
-                    <div className="text-xs text-muted-foreground font-mono mt-0.5">{d}</div>
+              <section key={d}>
+                <div className="flex items-baseline justify-between border-b border-border/50 pb-1.5 mb-1">
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <h3 className={"text-[11px] font-medium uppercase tracking-[0.14em] " + (isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                      {formatDay(d, today)}
+                    </h3>
+                    <span className="text-[10px] font-mono text-muted-foreground/60">{d}</span>
                   </div>
-                  <Badge variant={isOverdue ? "destructive" : open === 0 ? "secondary" : "default"} className="shrink-0">
-                    {isOverdue ? `${open} due` : open === 0 ? "All done" : `${open} open`}
-                  </Badge>
-                </CardHeader>
-
-                <CardContent className="pt-0">
-                  <ul className="divide-y divide-border -mx-2">
-                    {groups[d].map((t) => (
-                      <li key={t.id} className="px-2 py-2.5 flex items-start gap-3">
-                        <Checkbox
-                          checked={t.status === "done"}
-                          onCheckedChange={(c) => toggleM.mutate({ id: t.id, done: !!c })}
-                          className="mt-0.5"
-                          aria-label={t.status === "done" ? "Mark as not done" : "Mark as done"}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className={"text-sm " + (t.status === "done" ? "line-through text-muted-foreground" : "font-medium")}>
-                            {t.title}
-                          </div>
-                          {t.details && <div className="text-xs text-muted-foreground mt-0.5">{t.details}</div>}
-                          {t.remark && (
-                            <div className="mt-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-900 dark:text-amber-200">
-                              <div className="font-medium text-[11px] uppercase tracking-wide opacity-70">Remark</div>
-                              <div className="whitespace-pre-wrap">{t.remark}</div>
-                            </div>
-                          )}
+                  <span className={"text-[11px] tabular-nums " + (isOverdue ? "text-destructive/80" : "text-muted-foreground/70")}>
+                    {isOverdue ? `${open} due` : open === 0 ? "all done" : `${open} open`}
+                  </span>
+                </div>
+                <ul className="divide-y divide-border/40">
+                  {groups[d].map((t) => (
+                    <li key={t.id} className="group flex items-start gap-3 px-1 py-2.5 min-h-[40px]">
+                      <Checkbox
+                        checked={t.status === "done"}
+                        onCheckedChange={(c) => toggleM.mutate({ id: t.id, done: !!c })}
+                        className="mt-[3px] h-4 w-4 rounded-[4px]"
+                        aria-label={t.status === "done" ? "Mark as not done" : "Mark as done"}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className={"text-[13px] leading-snug " + (t.status === "done" ? "line-through text-muted-foreground" : "text-foreground")}>
+                          {t.title}
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 -mr-1" aria-label="Task actions">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onSelect={() => toggleM.mutate({ id: t.id, done: t.status !== "done" })}>
-                              {t.status === "done" ? "Mark as not done" : "Mark as done"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setRemarkFor(t)}>
-                              <MessageSquarePlus className="h-4 w-4" />
-                              {t.remark ? "Edit remark" : "Add remark"}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onSelect={() => setConfirmDelete(t)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Delete task
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
+                        {t.details && <div className="text-[11px] text-muted-foreground/80 mt-0.5">{t.details}</div>}
+                        {t.remark && (
+                          <div className="mt-1.5 border-l-2 border-amber-500/60 bg-amber-500/5 pl-2 py-1 text-[11px] text-amber-900 dark:text-amber-200">
+                            <div className="font-medium text-[9px] uppercase tracking-[0.14em] opacity-70">Remark</div>
+                            <div className="whitespace-pre-wrap">{t.remark}</div>
+                          </div>
+                        )}
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 -mr-1 opacity-50 group-hover:opacity-100 transition-opacity" aria-label="Task actions">
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onSelect={() => toggleM.mutate({ id: t.id, done: t.status !== "done" })}>
+                            {t.status === "done" ? "Mark as not done" : "Mark as done"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setRemarkFor(t)}>
+                            <MessageSquarePlus className="h-4 w-4" />
+                            {t.remark ? "Edit remark" : "Add remark"}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={() => setConfirmDelete(t)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete task
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             );
           })}
         </div>
       )}
+
 
       <RemarkDialog
         task={remarkFor}
