@@ -140,8 +140,8 @@ function MyTasks() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 -mr-1 opacity-50 group-hover:opacity-100 transition-opacity" aria-label="Task actions">
-                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          <Button variant="ghost" size="icon" className="h-8 w-8 -mr-1 opacity-60 group-hover:opacity-100 transition-opacity" aria-label="Task actions">
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
