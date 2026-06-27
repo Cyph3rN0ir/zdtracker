@@ -624,7 +624,7 @@ function MessageBubble({
               </button>
             )}
             <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</div>
-            <div className={`flex items-center justify-end gap-1 text-[10px] mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+            <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
               <span>{formatTime(m.createdAt)}</span>
               {m.mine && (
                 m.pending ? (
