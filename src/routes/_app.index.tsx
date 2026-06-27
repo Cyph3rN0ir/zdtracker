@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorBox } from "@/components/ErrorBox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -248,46 +250,3 @@ function Dashboard() {
   );
 }
 
-export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:gap-4">
-      <div className="min-w-0">
-        <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight truncate">{title}</h1>
-        {subtitle && <p className="text-[13px] sm:text-sm text-muted-foreground mt-1 [overflow-wrap:anywhere]">{subtitle}</p>}
-      </div>
-      {right}
-    </div>
-  );
-}
-
-export function EmptyState({ message, action }: { message: string; action?: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-6 py-10 text-center text-sm text-muted-foreground">
-      <div className="[overflow-wrap:anywhere]">{message}</div>
-      {action && <div className="mt-4">{action}</div>}
-    </div>
-  );
-}
-
-export function ErrorBox({ error }: { error: any }) {
-  const msg = error?.message ?? String(error);
-  const pfHint = /personal_(transactions|accounts|categories|counterparties|loans|budgets)|account_id|category_id|counterparty_id|linked_loan_id|transfer_account_id/i.test(msg);
-  const missingTable = /does not exist|schema cache|relation .* does not exist/i.test(msg);
-  return (
-    <Alert variant="destructive">
-      <AlertTitle>Error</AlertTitle>
-      <AlertDescription>
-        <div>{msg}</div>
-        {pfHint ? (
-          <div className="text-xs opacity-70 mt-2">
-            Personal-finance schema is missing. Run <code>SUPABASE_PERSONAL_FINANCE.sql</code> in your Supabase SQL editor (idempotent, safe to re-run).
-          </div>
-        ) : missingTable ? (
-          <div className="text-xs opacity-70 mt-2">
-            Missing table. Run <code>SUPABASE_SETUP.sql</code> (and then <code>SUPABASE_PERSONAL_FINANCE.sql</code> if you use the personal tracker) in your Supabase SQL editor.
-          </div>
-        ) : null}
-      </AlertDescription>
-    </Alert>
-  );
-}

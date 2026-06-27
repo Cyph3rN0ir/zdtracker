@@ -8,7 +8,9 @@ import {
   listPersonalProfilesFn,
   renamePersonalProfileFn,
 } from "@/lib/zt.functions";
-import { PageHeader, ErrorBox, EmptyState } from "./_app.index";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorBox } from "@/components/ErrorBox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
