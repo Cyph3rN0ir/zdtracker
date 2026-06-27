@@ -1,8 +1,16 @@
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from "recharts";
+
+// Recharts is ~100KB gz — load it on demand so other routes don't pay for it.
+const DonutChart = lazy(() => import("./OverviewCharts").then((m) => ({ default: m.DonutChart })));
+const IncomeExpenseBars = lazy(() => import("./OverviewCharts").then((m) => ({ default: m.IncomeExpenseBars })));
+const NetWorthLine = lazy(() => import("./OverviewCharts").then((m) => ({ default: m.NetWorthLine })));
+
+function ChartFallback() {
+  return <div className="h-full w-full animate-pulse rounded-md bg-muted/40" />;
+}
 import {
   computeBudgetStatus,
   fmtMoney,
