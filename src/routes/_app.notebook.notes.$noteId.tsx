@@ -77,7 +77,7 @@ function NoteEditor() {
           <Link
             to="/notebook/lists/$listId"
             params={{ listId: q.data.list_id }}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent hover:text-accent-foreground"
             aria-label="Back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -85,7 +85,7 @@ function NoteEditor() {
         ) : (
           <Link
             to="/notebook/lists"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent hover:text-accent-foreground"
             aria-label="Back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -104,7 +104,7 @@ function NoteEditor() {
             type="button"
             onClick={() => setPreview((p) => !p)}
             aria-label={preview ? "Edit" : "Preview"}
-            className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground hover:bg-accent"
+            className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             {preview ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -112,7 +112,7 @@ function NoteEditor() {
             type="button"
             onClick={() => mPin.mutate(!q.data?.pinned)}
             aria-label={q.data?.pinned ? "Unpin" : "Pin"}
-            className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground hover:bg-accent"
+            className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             {q.data?.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
           </button>

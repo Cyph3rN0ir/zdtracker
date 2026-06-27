@@ -63,7 +63,7 @@ function NewDirectChat() {
                   type="button"
                   onClick={() => start.mutate(p.id)}
                   disabled={start.isPending}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors text-left disabled:opacity-50"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent hover:text-accent-foreground transition-colors text-left disabled:opacity-50"
                 >
                   <div className="h-9 w-9 shrink-0 grid place-items-center rounded-full bg-primary/10 text-primary text-sm font-semibold">
                     {p.name.slice(0, 1).toUpperCase()}
