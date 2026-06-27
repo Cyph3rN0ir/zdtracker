@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toggleTodoFn, deleteTodoFn, updateTodoFn } from "@/lib/notebook.functions";
@@ -20,7 +20,7 @@ export type Todo = {
 const PRI_LABEL = ["", "Low", "Med", "High"];
 const PRI_DOT = ["", "bg-muted-foreground/40", "bg-amber-500", "bg-red-500"];
 
-export function TodoRow({
+export const TodoRow = memo(function TodoRow({
   t,
   invalidateKeys,
   showListBadge,
@@ -130,4 +130,4 @@ export function TodoRow({
       </div>
     </li>
   );
-}
+});

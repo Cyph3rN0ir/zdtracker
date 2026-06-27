@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getConversationFn,
   listMessagesFn,
@@ -350,14 +350,18 @@ function ThreadView() {
     return out;
   }, [msgsQ.data]);
 
-  function scrollToMessage(id: string) {
+  const scrollToMessage = useCallback((id: string) => {
     const el = document.getElementById(`msg-${id}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       el.classList.add("ring-2", "ring-primary");
       setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 1500);
     }
-  }
+  }, []);
+
+  const handleReply = useCallback((m: Msg) => {
+    setReplyTo({ id: m.id, senderName: m.senderName, body: m.body });
+  }, []);
 
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
@@ -454,8 +458,8 @@ function ThreadView() {
                     key={m.id}
                     m={m}
                     isGroup={!!isGroup}
-                    onReply={() => setReplyTo({ id: m.id, senderName: m.senderName, body: m.body })}
-                    onJumpReply={(id) => scrollToMessage(id)}
+                    onReply={handleReply}
+                    onJumpReply={scrollToMessage}
                   />
                 ))}
               </div>
@@ -574,7 +578,7 @@ function MessageSkeletons() {
   );
 }
 
-function MessageBubble({
+const MessageBubble = memo(function MessageBubble({
   m,
   isGroup,
   onReply,
@@ -582,9 +586,10 @@ function MessageBubble({
 }: {
   m: Msg;
   isGroup: boolean;
-  onReply: () => void;
+  onReply: (m: Msg) => void;
   onJumpReply: (id: string) => void;
 }) {
+  const handleReply = () => onReply(m);
   return (
     <div id={`msg-${m.id}`} className={`flex ${m.mine ? "justify-end" : "justify-start"} group`}>
       <div className={`max-w-[80%] sm:max-w-[70%] ${m.mine ? "items-end" : "items-start"} flex flex-col`}>
@@ -595,7 +600,7 @@ function MessageBubble({
           {m.mine && !m.pending && (
             <button
               type="button"
-              onClick={onReply}
+              onClick={handleReply}
               className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-1"
               aria-label="Reply"
             >
@@ -659,7 +664,7 @@ function MessageBubble({
           {!m.mine && (
             <button
               type="button"
-              onClick={onReply}
+              onClick={handleReply}
               className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-1"
               aria-label="Reply"
             >
@@ -670,4 +675,4 @@ function MessageBubble({
       </div>
     </div>
   );
-}
+});
