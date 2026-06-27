@@ -329,6 +329,17 @@ const MAP: Record<string, string> = {
   "members": "সদস্য",
   "member": "সদস্য",
   "No messages yet.": "এখনো কোনো বার্তা নেই।",
+  "Group · No messages yet": "গ্রুপ · এখনো কোনো বার্তা নেই",
+  "Send the first message to start the conversation.": "কথোপকথন শুরু করতে প্রথম বার্তা পাঠান।",
+  "now": "এখন",
+  "Sending": "পাঠানো হচ্ছে",
+  "Sent": "পাঠানো হয়েছে",
+  "Seen": "দেখেছে",
+  "Group members": "গ্রুপ সদস্য",
+  "New messages": "নতুন বার্তা",
+  "Scroll to latest": "সর্বশেষে যান",
+  "typing…": "টাইপ করছে…",
+  "is typing…": "টাইপ করছে…",
 
   // My tasks (extras)
   "Task actions": "কাজের ক্রিয়া",
