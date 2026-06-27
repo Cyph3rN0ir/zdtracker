@@ -340,7 +340,6 @@ const MAP: Record<string, string> = {
   "Scroll to latest": "সর্বশেষে যান",
   "typing…": "টাইপ করছে…",
   "is typing…": "টাইপ করছে…",
-  "Yesterday": "গতকাল",
 
   // My tasks (extras)
   "Task actions": "কাজের ক্রিয়া",
