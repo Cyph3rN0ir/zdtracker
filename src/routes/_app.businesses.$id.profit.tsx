@@ -134,7 +134,7 @@ function Profit() {
                   <li key={t.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-mono">{t.occurred_on}</span>
+                        <span className="font-mono tabular-nums">{t.occurred_on}</span>
                         <span>·</span>
                         <span className="truncate">{t.party?.username ?? "—"}</span>
                       </div>

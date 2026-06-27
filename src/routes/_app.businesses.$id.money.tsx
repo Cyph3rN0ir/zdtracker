@@ -180,7 +180,7 @@ function Section({ title, rows, onDelete }: { title: string; rows: any[]; onDele
                 <li key={tx.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
                   <div className="min-w-0 flex-1 space-y-0.5">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="font-mono">{tx.occurred_on}</span>
+                      <span className="font-mono tabular-nums">{tx.occurred_on}</span>
                       <span>·</span>
                       <span className="truncate">{tx.party?.username ?? "—"}</span>
                     </div>
