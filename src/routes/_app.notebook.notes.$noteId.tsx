@@ -132,7 +132,9 @@ function NoteEditor() {
       {preview ? (
         <Card>
           <CardContent className="py-4">
-            <MarkdownView md={body} />
+            <div className="mx-auto max-w-prose">
+              <MarkdownView md={body} />
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -145,8 +147,8 @@ function NoteEditor() {
         />
       )}
 
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-        <span>{mSave.isPending ? "Saving…" : "Autosaved"}</span>
+      <div className="sticky bottom-0 -mx-1 sm:mx-0 flex items-center justify-between gap-2 border-t border-border/60 bg-background/85 backdrop-blur px-2 py-1.5 text-[11px] text-muted-foreground">
+        <span className="tabular-nums">{mSave.isPending ? "Saving…" : "Autosaved"}</span>
         <Button size="sm" variant="ghost" onClick={() => mSave.mutate()} className="h-7 px-2 text-[11px]">
           Save now
         </Button>
