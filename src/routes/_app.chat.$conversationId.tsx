@@ -458,8 +458,8 @@ function ThreadView() {
                     key={m.id}
                     m={m}
                     isGroup={!!isGroup}
-                    onReply={() => setReplyTo({ id: m.id, senderName: m.senderName, body: m.body })}
-                    onJumpReply={(id) => scrollToMessage(id)}
+                    onReply={handleReply}
+                    onJumpReply={scrollToMessage}
                   />
                 ))}
               </div>
