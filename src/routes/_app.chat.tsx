@@ -128,7 +128,7 @@ function ConversationListPanel() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <div className={`text-sm truncate flex-1 ${unread ? "font-semibold" : "font-medium"}`}>{c.title}</div>
-                        <div className="text-[10px] text-muted-foreground shrink-0 group-hover:text-accent-foreground/70 group-data-[status=active]:text-accent-foreground/70">
+                        <div className="text-[10px] tabular-nums text-muted-foreground shrink-0 group-hover:text-accent-foreground/70 group-data-[status=active]:text-accent-foreground/70">
                           {formatRelative(c.lastMessageAt)}
                         </div>
                       </div>
@@ -137,7 +137,7 @@ function ConversationListPanel() {
                           {c.lastMessage ?? (c.kind === "group" ? "Group · No messages yet" : "No messages yet")}
                         </div>
                         {unread && (
-                          <Badge className="h-5 min-w-5 px-1.5 text-[10px] shrink-0">{c.unread}</Badge>
+                          <Badge className="h-5 min-w-5 px-1.5 text-[10px] tabular-nums shrink-0">{c.unread}</Badge>
                         )}
                       </div>
                     </div>
