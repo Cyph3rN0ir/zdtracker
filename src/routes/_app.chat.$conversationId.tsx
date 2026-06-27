@@ -454,13 +454,14 @@ function ThreadView() {
                   </span>
                 </div>
                 {g.items.map((m) => (
-                  <MessageBubble
-                    key={m.id}
-                    m={m}
-                    isGroup={!!isGroup}
-                    onReply={handleReply}
-                    onJumpReply={scrollToMessage}
-                  />
+                  <div key={m.id} className="cv-auto-msg">
+                    <MessageBubble
+                      m={m}
+                      isGroup={!!isGroup}
+                      onReply={handleReply}
+                      onJumpReply={scrollToMessage}
+                    />
+                  </div>
                 ))}
               </div>
             ))
