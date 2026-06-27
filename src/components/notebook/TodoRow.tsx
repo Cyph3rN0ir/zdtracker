@@ -130,4 +130,4 @@ export const TodoRow = memo(function TodoRow({
       </div>
     </li>
   );
-}
+});
