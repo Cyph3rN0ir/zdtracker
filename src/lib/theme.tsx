@@ -21,7 +21,7 @@ function apply(theme: Theme) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   root.dataset.theme = theme;
-  root.classList.toggle("dark", theme === "dark" || theme === "midnight" || theme === "ember" || theme === "noir");
+  root.classList.toggle("dark", theme === "dark" || theme === "midnight" || theme === "ember" || theme === "noir" || theme === "zerodesk");
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
