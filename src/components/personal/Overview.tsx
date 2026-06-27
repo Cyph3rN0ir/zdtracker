@@ -208,14 +208,9 @@ export function PersonalOverview({
               <div className="text-sm text-muted-foreground py-12 text-center">No expenses yet this month.</div>
             ) : (
               <div className="h-64">
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={donut} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                      {donut.map((d) => <Cell key={d.id} fill={d.color} />)}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<ChartFallback />}>
+                  <DonutChart data={donut} currency={currency} />
+                </Suspense>
               </div>
             )}
             <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs">
