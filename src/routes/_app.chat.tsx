@@ -119,21 +119,21 @@ function ConversationListPanel() {
                   <Link
                     to="/chat/$conversationId"
                     params={{ conversationId: c.id }}
-                    className="flex items-start gap-3 px-4 py-3 min-h-[64px] hover:bg-accent active:bg-accent/80 transition-colors data-[status=active]:bg-accent"
+                    className="group flex items-start gap-3 px-4 py-3 min-h-[64px] hover:bg-accent hover:text-accent-foreground active:bg-accent/80 transition-colors data-[status=active]:bg-accent data-[status=active]:text-accent-foreground"
                     activeProps={{ "data-status": "active" } as any}
                   >
-                    <div className="h-9 w-9 shrink-0 grid place-items-center rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                    <div className="h-9 w-9 shrink-0 grid place-items-center rounded-full bg-primary/10 text-primary text-sm font-semibold group-hover:bg-accent-foreground/10 group-hover:text-accent-foreground group-data-[status=active]:bg-accent-foreground/10 group-data-[status=active]:text-accent-foreground">
                       {c.kind === "group" ? <UsersIcon className="h-4 w-4" /> : c.title.slice(0, 1).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <div className={`text-sm truncate flex-1 ${unread ? "font-semibold" : "font-medium"}`}>{c.title}</div>
-                        <div className="text-[10px] text-muted-foreground shrink-0">
+                        <div className="text-[10px] text-muted-foreground shrink-0 group-hover:text-accent-foreground/70 group-data-[status=active]:text-accent-foreground/70">
                           {formatRelative(c.lastMessageAt)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <div className={`text-xs truncate flex-1 ${unread ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                        <div className={`text-xs truncate flex-1 group-hover:text-accent-foreground/80 group-data-[status=active]:text-accent-foreground/80 ${unread ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                           {c.lastMessage ?? (c.kind === "group" ? "Group · No messages yet" : "No messages yet")}
                         </div>
                         {unread && (
