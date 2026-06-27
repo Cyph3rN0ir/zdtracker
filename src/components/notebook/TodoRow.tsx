@@ -20,7 +20,7 @@ export type Todo = {
 const PRI_LABEL = ["", "Low", "Med", "High"];
 const PRI_DOT = ["", "bg-muted-foreground/40", "bg-amber-500", "bg-red-500"];
 
-export function TodoRow({
+export const TodoRow = memo(function TodoRow({
   t,
   invalidateKeys,
   showListBadge,
