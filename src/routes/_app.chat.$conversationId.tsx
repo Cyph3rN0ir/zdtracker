@@ -350,14 +350,18 @@ function ThreadView() {
     return out;
   }, [msgsQ.data]);
 
-  function scrollToMessage(id: string) {
+  const scrollToMessage = useCallback((id: string) => {
     const el = document.getElementById(`msg-${id}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       el.classList.add("ring-2", "ring-primary");
       setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 1500);
     }
-  }
+  }, []);
+
+  const handleReply = useCallback((m: Msg) => {
+    setReplyTo({ id: m.id, senderName: m.senderName, body: m.body });
+  }, []);
 
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
