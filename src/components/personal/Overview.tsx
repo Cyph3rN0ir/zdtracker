@@ -1,8 +1,16 @@
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from "recharts";
+
+// Recharts is ~100KB gz — load it on demand so other routes don't pay for it.
+const DonutChart = lazy(() => import("./OverviewCharts").then((m) => ({ default: m.DonutChart })));
+const IncomeExpenseBars = lazy(() => import("./OverviewCharts").then((m) => ({ default: m.IncomeExpenseBars })));
+const NetWorthLine = lazy(() => import("./OverviewCharts").then((m) => ({ default: m.NetWorthLine })));
+
+function ChartFallback() {
+  return <div className="h-full w-full animate-pulse rounded-md bg-muted/40" />;
+}
 import {
   computeBudgetStatus,
   fmtMoney,
@@ -200,14 +208,9 @@ export function PersonalOverview({
               <div className="text-sm text-muted-foreground py-12 text-center">No expenses yet this month.</div>
             ) : (
               <div className="h-64">
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={donut} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                      {donut.map((d) => <Cell key={d.id} fill={d.color} />)}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<ChartFallback />}>
+                  <DonutChart data={donut} currency={currency} />
+                </Suspense>
               </div>
             )}
             <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs">
@@ -231,16 +234,9 @@ export function PersonalOverview({
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer>
-                <BarChart data={daily}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="label" fontSize={10} stroke="var(--muted-foreground)" />
-                  <YAxis fontSize={10} stroke="var(--muted-foreground)" />
-                  <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
-                  <Bar dataKey="income" fill="#16a34a" />
-                  <Bar dataKey="expense" fill="#ef4444" />
-                </BarChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<ChartFallback />}>
+                <IncomeExpenseBars data={daily} currency={currency} />
+              </Suspense>
             </div>
           </CardContent>
         </Card>
@@ -254,15 +250,9 @@ export function PersonalOverview({
           </CardHeader>
           <CardContent>
             <div className="h-56">
-              <ResponsiveContainer>
-                <LineChart data={netWorthSeries}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="label" fontSize={10} stroke="var(--muted-foreground)" />
-                  <YAxis fontSize={10} stroke="var(--muted-foreground)" />
-                  <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
-                  <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<ChartFallback />}>
+                <NetWorthLine data={netWorthSeries} currency={currency} />
+              </Suspense>
             </div>
           </CardContent>
         </Card>
