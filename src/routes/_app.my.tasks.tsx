@@ -119,7 +119,7 @@ function MyTasks() {
                 </div>
                 <ul className="divide-y divide-border/40">
                   {groups[d].map((t) => (
-                    <li key={t.id} className="group flex items-start gap-3 px-1 py-2.5 min-h-[40px]">
+                    <li key={t.id} className="cv-auto group flex items-start gap-3 px-1 py-2.5 min-h-[40px]">
                       <Checkbox
                         checked={t.status === "done"}
                         onCheckedChange={(c) => toggleM.mutate({ id: t.id, done: !!c })}

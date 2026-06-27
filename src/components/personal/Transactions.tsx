@@ -267,7 +267,7 @@ export function PersonalTransactions({
               const color = dir === "in" ? "text-emerald-500" : dir === "out" ? "text-rose-500" : "text-muted-foreground";
               const editing = editingId === t.id;
               return (
-                <div key={t.id} className="px-3 py-2.5 sm:px-4 text-sm flex flex-col gap-1.5 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center">
+                <div key={t.id} className="cv-auto px-3 py-2.5 sm:px-4 text-sm flex flex-col gap-1.5 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center">
                   <div className="flex items-center justify-between gap-2 sm:contents">
                     <div className="flex items-center gap-2 min-w-0 sm:col-span-2">
                       <span className="font-mono text-[11px] text-muted-foreground shrink-0">{t.occurred_on}</span>

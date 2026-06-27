@@ -447,3 +447,16 @@
     animation-timing-function: cubic-bezier(0.2, 0, 0.2, 1);
   }
 }
+
+/* Off-screen list rows skip layout/paint until scrolled into view.
+   Reserves a sensible intrinsic size so scrollbars stay stable. */
+@layer utilities {
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 64px;
+  }
+  .cv-auto-msg {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 56px;
+  }
+}
