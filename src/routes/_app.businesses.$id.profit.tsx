@@ -84,7 +84,7 @@ function Profit() {
             >
               <div className="space-y-1.5">
                 <Label>Amount</Label>
-                <Input type="number" step="0.01" min="0" required className="text-right font-mono"
+                <Input type="number" step="0.01" min="0" required className="text-right font-mono tabular-nums"
                   value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
               </div>
               <div className="space-y-1.5 md:col-span-2">
@@ -134,14 +134,14 @@ function Profit() {
                   <li key={t.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-mono">{t.occurred_on}</span>
+                        <span className="font-mono tabular-nums">{t.occurred_on}</span>
                         <span>·</span>
                         <span className="truncate">{t.party?.username ?? "—"}</span>
                       </div>
                       {t.note && <div className="break-words">{t.note}</div>}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <div className="font-mono text-sm">{fmt(t.amount)}</div>
+                      <div className="font-mono tabular-nums text-sm">{fmt(t.amount)}</div>
                       {me.role === "admin" && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(t.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -166,10 +166,10 @@ function Profit() {
                   <TableBody>
                     {distRows.map((t) => (
                       <TableRow key={t.id}>
-                        <TableCell className="font-mono text-xs pl-6">{t.occurred_on}</TableCell>
+                        <TableCell className="font-mono tabular-nums text-xs pl-6">{t.occurred_on}</TableCell>
                         <TableCell>{t.party?.username ?? "—"}</TableCell>
                         <TableCell>{t.note}</TableCell>
-                        <TableCell className="text-right font-mono">{fmt(t.amount)}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">{fmt(t.amount)}</TableCell>
                         {me.role === "admin" && (
                           <TableCell className="text-right pr-6">
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(t.id)}>
@@ -198,7 +198,7 @@ function Stat({ label, value, sub, accent, icon }: { label: string; value: numbe
         <span className="opacity-70">{icon}</span>
       </CardHeader>
       <CardContent>
-        <div className="font-mono text-2xl font-semibold">{fmt(value)}</div>
+        <div className="font-mono tabular-nums text-2xl font-semibold">{fmt(value)}</div>
         {sub && <div className="text-[11px] opacity-60 mt-1">{sub}</div>}
       </CardContent>
     </Card>

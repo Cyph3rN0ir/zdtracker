@@ -39,7 +39,7 @@ function Stat({
         <span className="opacity-70">{icon}</span>
       </CardHeader>
       <CardContent>
-        <div className="font-mono text-2xl font-semibold">{fmt(value)}</div>
+        <div className="font-mono tabular-nums text-2xl font-semibold">{fmt(value)}</div>
         {sub && <div className="text-[11px] opacity-60 mt-1">{sub}</div>}
       </CardContent>
     </Card>

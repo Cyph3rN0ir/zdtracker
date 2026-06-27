@@ -103,7 +103,7 @@ function Money() {
               </div>
               <div className="space-y-1.5">
                 <Label>{t("common.amount")}</Label>
-                <Input type="number" step="0.01" min="0" required className="text-right font-mono"
+                <Input type="number" step="0.01" min="0" required className="text-right font-mono tabular-nums"
                   value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
               </div>
               <div className="space-y-1.5 md:col-span-2">
@@ -167,7 +167,7 @@ function Section({ title, rows, onDelete }: { title: string; rows: any[]; onDele
     <Card>
       <CardHeader className="gap-2 space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-base break-words min-w-0">{title}</CardTitle>
-        <div className="text-sm font-mono whitespace-nowrap text-muted-foreground sm:text-foreground">{t("common.total")}: {fmt(total)}</div>
+        <div className="text-sm font-mono tabular-nums whitespace-nowrap text-muted-foreground sm:text-foreground">{t("common.total")}: {fmt(total)}</div>
       </CardHeader>
       <CardContent className="p-0">
         {rows.length === 0 ? (
@@ -180,14 +180,14 @@ function Section({ title, rows, onDelete }: { title: string; rows: any[]; onDele
                 <li key={tx.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
                   <div className="min-w-0 flex-1 space-y-0.5">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="font-mono">{tx.occurred_on}</span>
+                      <span className="font-mono tabular-nums">{tx.occurred_on}</span>
                       <span>·</span>
                       <span className="truncate">{tx.party?.username ?? "—"}</span>
                     </div>
                     {tx.note && <div className="break-words">{tx.note}</div>}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <div className="font-mono text-sm">{fmt(tx.amount)}</div>
+                    <div className="font-mono tabular-nums text-sm">{fmt(tx.amount)}</div>
                     {onDelete && (
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(tx.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
@@ -212,10 +212,10 @@ function Section({ title, rows, onDelete }: { title: string; rows: any[]; onDele
                 <TableBody>
                   {rows.map((tx) => (
                     <TableRow key={tx.id}>
-                      <TableCell className="font-mono text-xs pl-6">{tx.occurred_on}</TableCell>
+                      <TableCell className="font-mono tabular-nums text-xs pl-6">{tx.occurred_on}</TableCell>
                       <TableCell>{tx.party?.username ?? <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell>{tx.note}</TableCell>
-                      <TableCell className="text-right font-mono">{fmt(tx.amount)}</TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">{fmt(tx.amount)}</TableCell>
                       {onDelete && (
                         <TableCell className="text-right pr-6">
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(tx.id)}>

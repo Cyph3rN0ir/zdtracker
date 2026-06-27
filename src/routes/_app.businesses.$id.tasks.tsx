@@ -172,7 +172,7 @@ function Tasks() {
                     {new Date(d + "T00:00:00").toLocaleDateString(locale, { weekday: "short" })}
                   </div>
                   <div className="font-display text-base font-bold leading-tight">{d.slice(8)}</div>
-                  <div className={"mt-1 text-[10px] font-mono " + (isActive ? "opacity-90" : "text-muted-foreground")}>
+                  <div className={"mt-1 text-[10px] font-mono tabular-nums " + (isActive ? "opacity-90" : "text-muted-foreground")}>
                     {count > 0 ? `${doneCount}/${count}` : "·"}
                   </div>
                 </button>
@@ -285,7 +285,7 @@ function Tasks() {
                   <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                     <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
                   </div>
-                  <div className="w-16 text-right font-mono text-xs text-muted-foreground">
+                  <div className="w-16 text-right font-mono tabular-nums text-xs text-muted-foreground">
                     {done}/{mine.length}
                   </div>
                 </div>
