@@ -77,7 +77,7 @@ function NoteEditor() {
           <Link
             to="/notebook/lists/$listId"
             params={{ listId: q.data.list_id }}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent hover:text-accent-foreground"
             aria-label="Back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -85,7 +85,7 @@ function NoteEditor() {
         ) : (
           <Link
             to="/notebook/lists"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-accent hover:text-accent-foreground"
             aria-label="Back"
           >
             <ChevronLeft className="h-5 w-5" />
