@@ -88,7 +88,7 @@ function ConversationListPanel() {
         </div>
         <Link
           to="/chat/new"
-          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent active:scale-95 transition"
+          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent hover:text-accent-foreground active:scale-95 transition"
         >
           <Plus className="h-3 w-3" /> Private
         </Link>

@@ -55,7 +55,7 @@ function ListsPage() {
             type="submit"
             disabled={!title.trim() || m.isPending}
             aria-label="Create list"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 transition-colors"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-30 transition-colors"
           >
             <Plus className="h-4 w-4" />
           </button>
