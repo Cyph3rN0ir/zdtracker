@@ -3,7 +3,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { myTasksFn, toggleTaskFn, deleteTaskFn, setTaskRemarkFn } from "@/lib/zt.functions";
-import { PageHeader, ErrorBox, EmptyState } from "./_app.index";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorBox } from "@/components/ErrorBox";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { Button } from "@/components/ui/button";

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { addMemberFn, listMembersFn, removeMemberFn } from "@/lib/zt.functions";
 import { listUsersFn } from "@/lib/auth.functions";
-import { ErrorBox } from "./_app.index";
+import { ErrorBox } from "@/components/ErrorBox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
