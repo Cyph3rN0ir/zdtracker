@@ -104,7 +104,7 @@ export function TodoRow({
               </span>
             )}
             {showListBadge && listTitle && <span className="truncate">· {listTitle}</span>}
-            {t.due_date && <span className="font-mono">· {t.due_date}</span>}
+            {t.due_date && <span className="tabular-nums">· {t.due_date}</span>}
           </div>
         )}
       </div>

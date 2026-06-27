@@ -76,7 +76,7 @@ function TodayPage() {
       {/* Slim date header */}
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+          <div className="text-[11px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground/70">
             {date}
           </div>
           <h2 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight truncate">
