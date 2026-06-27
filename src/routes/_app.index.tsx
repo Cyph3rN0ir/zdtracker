@@ -84,7 +84,7 @@ function Dashboard() {
     <div className="space-y-6">
       <PageHeader title="Businesses" subtitle="All businesses you have access to." />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 min-w-0">
         {me.role === "admin" && (
           <Card className="lg:col-span-1">
             <CardHeader>
@@ -117,7 +117,7 @@ function Dashboard() {
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle className="text-base">All businesses</CardTitle>
-              <CardDescription>{q.data?.length ?? 0} total</CardDescription>
+              <CardDescription className="tabular-nums">{q.data?.length ?? 0} total</CardDescription>
             </div>
             <Building2 className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
