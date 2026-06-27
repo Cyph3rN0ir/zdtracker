@@ -234,16 +234,9 @@ export function PersonalOverview({
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer>
-                <BarChart data={daily}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="label" fontSize={10} stroke="var(--muted-foreground)" />
-                  <YAxis fontSize={10} stroke="var(--muted-foreground)" />
-                  <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
-                  <Bar dataKey="income" fill="#16a34a" />
-                  <Bar dataKey="expense" fill="#ef4444" />
-                </BarChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<ChartFallback />}>
+                <IncomeExpenseBars data={daily} currency={currency} />
+              </Suspense>
             </div>
           </CardContent>
         </Card>
