@@ -437,3 +437,13 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* Smoother route swaps — quick cross-fade in browsers that support the
+   View Transitions API. Honors reduced-motion preference. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 160ms;
+    animation-timing-function: cubic-bezier(0.2, 0, 0.2, 1);
+  }
+}
