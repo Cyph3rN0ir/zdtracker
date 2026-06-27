@@ -357,8 +357,8 @@
   --sidebar-foreground: #E8E8E8;
   --sidebar-primary: #B6D733;
   --sidebar-primary-foreground: #0F0F0F;
-  --sidebar-accent: #212121;
-  --sidebar-accent-foreground: #B6D733;
+  --sidebar-accent: #B6D733;
+  --sidebar-accent-foreground: #0F0F0F;
   --sidebar-border: #2E2E2E;
   --sidebar-ring: #B6D733;
 }
