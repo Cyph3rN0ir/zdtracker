@@ -600,7 +600,7 @@ const MessageBubble = memo(function MessageBubble({
           {m.mine && !m.pending && (
             <button
               type="button"
-              onClick={onReply}
+              onClick={handleReply}
               className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-1"
               aria-label="Reply"
             >
@@ -664,7 +664,7 @@ const MessageBubble = memo(function MessageBubble({
           {!m.mine && (
             <button
               type="button"
-              onClick={onReply}
+              onClick={handleReply}
               className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-1"
               aria-label="Reply"
             >
