@@ -1,47 +1,59 @@
-# Polish Pass — Top Routes
+## Problem
 
-Direction: keep the current minimal aesthetic; tighten rhythm, fix mobile rough edges, smooth transitions, add restrained motion. No new features, no design overhaul.
+In the ZeroDesk Classic theme, active/hovered sidebar nav items and active chat conversation rows render with **white text on bright lime** — unreadable.
 
-## Phase 1 — Foundations (shared)
-- Audit `PageHeader`, `EmptyState`, `Card`, `Sheet`, `Tabs`, `Dialog` for spacing & type-scale drift; unify to one rhythm (header h1 size, subtitle muted, 4/8/12/16 spacing scale).
-- Standardize page container: `mx-auto w-full max-w-5xl px-3 sm:px-6` and consistent top padding.
-- Tighten button + input sizing (h-9 default, h-10 on mobile-touch surfaces).
-- Add a tiny `<FadeIn>` wrapper (framer-motion, 120ms) and use on route content roots for a smoother transition than blank → mounted.
+Root cause: the affected components use Tailwind class pairs like
+`bg-accent` + `text-foreground` (not `text-accent-foreground`). On most themes `--accent` is a subtle tint so light `--foreground` text still reads, but on ZeroDesk `--accent` is bright lime, so the light foreground collapses into the background.
 
-## Phase 2 — `/` and `/my/tasks`
-- Verify home cards/quick-actions align with new container width; mobile two-column → single-column at <360px.
-- Tasks: tighten Today/Tomorrow/Later/Due headers (smaller, uppercase, tracked); reduce row vertical padding; bigger tap targets on the action menu; ensure long titles + details wrap (`min-w-0`, `[overflow-wrap:anywhere]`).
-- Skeletons match real row height to remove layout shift.
+Affected spots (verified):
+- `src/routes/_app.tsx` NavLink — `data-[status=active]:bg-accent data-[status=active]:text-foreground` and `hover:bg-accent hover:text-foreground`
+- `src/routes/_app.chat.tsx` conversation row — `hover:bg-accent active:bg-accent/80 data-[status=active]:bg-accent` with inherited light text
+- `src/components/ui/sidebar.tsx` already pairs `bg-sidebar-accent` with `text-sidebar-accent-foreground` correctly — no change needed there
 
-## Phase 3 — `/notebook`
-- Today / Lists / Editor: align headers and spacing with Tasks.
-- QuickAdd: confirm one-line pill on mobile, no horizontal scroll.
-- Editor: comfortable max-width for prose, sticky save state, mobile keyboard-safe bottom padding.
+## Fix
 
-## Phase 4 — `/chat`
-- Sidebar/list rows: consistent 56px height, 1-line title + 1-line preview + time/unread; truncate cleanly.
-- Conversation: composer pinned bottom, dvh-correct on iOS, no auto-zoom; typing/seen indicators sized down.
-- Subtle message-enter motion (opacity+translateY, 120ms) only on new messages, never on history.
+### 1. ZeroDesk theme tokens (`src/styles.css`)
+Make every "bright surface" token pair with dark text and every "dark surface" token pair with light text. Final mapping:
 
-## Phase 5 — `/personal`
-- Tabs row: scrollable on mobile without scrollbar; sticky under header.
-- Transaction/Loan/Account rows: 2-column grid `[minmax(0,1fr)_auto]`, amounts right-aligned with tabular-nums, anywhere-wrap for long notes.
-- Edit/Delete icon buttons unified size (h-8 w-8) and grouped.
+```
+--background        #0F0F0F   --foreground        #E8E8E8
+--card              #1A1A1A   --card-foreground   #E8E8E8
+--popover           #212121   --popover-foreground #E8E8E8
+--primary           #B6D733   --primary-foreground #0F0F0F   (bright → dark)
+--secondary         #212121   --secondary-foreground #E8E8E8
+--muted             #1A1A1A   --muted-foreground  #888888
+--accent            #B6D733   --accent-foreground #0F0F0F   (bright → dark, was #91AB26)
+--destructive       #FF4545   --destructive-foreground #0F0F0F
+--border / --input  #2E2E2E
+--ring              #B6D733
 
-## Phase 6 — `/businesses`
-- Business detail tabs: same tabs treatment as Personal.
-- Tasks tab: same row treatment as `/my/tasks` (already aligned details rendering).
-- Members/list cards: tighter density, consistent avatar size.
+--sidebar           #1A1A1A   --sidebar-foreground #E8E8E8
+--sidebar-primary   #B6D733   --sidebar-primary-foreground #0F0F0F
+--sidebar-accent    #B6D733   --sidebar-accent-foreground #0F0F0F
+--sidebar-border    #2E2E2E   --sidebar-ring #B6D733
+```
 
-## Phase 7 — Performance & smoothness (cross-cutting)
-- `defaultPendingMs`/`defaultPendingMinMs` tuned so skeletons don't flash on fast loads.
-- Add `content-visibility: auto` to long lists (tasks, transactions, messages history) for cheaper scroll.
-- Lazy-mount heavy dialogs (Edit dialogs) so they don't ship with the route.
-- Verify route preload on intent + viewport is still active.
+### 2. Active/hover text color in nav and chat list
+Switch the two component spots from `text-foreground` to `text-accent-foreground` so the active text follows whatever the accent token defines — readable on every theme:
 
-## Phase 8 — Final QA
-- Run a desktop + mobile screenshot pass on each route via Playwright; fix any remaining overflow/alignment regressions.
-- Verify Bangla toggle still translates all touched strings.
+- `src/routes/_app.tsx` NavLink className:
+  `hover:bg-accent hover:text-accent-foreground … data-[status=active]:bg-accent data-[status=active]:text-accent-foreground`
+- `src/routes/_app.chat.tsx` conversation row:
+  add `hover:text-accent-foreground data-[status=active]:text-accent-foreground` and let the inner secondary text use `text-accent-foreground/70` when active so the timestamp/preview stays readable.
 
-### Workflow
-One phase per turn; after each I'll report what changed and wait for "proceed to next phase".
+This is a token-correct change and improves all themes, not just ZeroDesk.
+
+### 3. Quick audit pass
+Grep for `bg-accent` / `bg-primary` / `bg-sidebar-accent` paired with `text-foreground` or `text-muted-foreground` in `src/routes/**` and `src/components/**`, and fix any remaining mismatches the same way (use the matching `*-foreground` token). Expected hits are small (nav + chat row); the rest of the app already uses the correct pairs.
+
+### Out of scope
+
+No component restructure, no other themes touched, no business logic.
+
+## Verification
+
+After build, open the app under ZeroDesk Classic and confirm:
+- Sidebar active item ("Chat" in screenshot) shows **#0F0F0F text on #B6D733**.
+- Sidebar hover state shows the same dark text on lime.
+- Active chat conversation row ("Summer 2026") shows dark text on lime, secondary line slightly muted but still dark.
+- Light themes (Light, Forest, Ocean, Sand) and other dark themes (Dark, Midnight, Ember, Noir) still look correct since `text-accent-foreground` resolves per-theme.
