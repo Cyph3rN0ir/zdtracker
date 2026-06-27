@@ -125,11 +125,11 @@ export function PersonalLoans({
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardHeader className="pb-1.5"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">I owe (open)</CardTitle></CardHeader>
-          <CardContent><div className="text-lg font-mono font-semibold text-rose-500">{fmtMoney(totalOwedByMe, currency)}</div></CardContent>
+          <CardContent><div className="text-lg font-mono tabular-nums font-semibold text-rose-500">{fmtMoney(totalOwedByMe, currency)}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-1.5"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Owed to me (open)</CardTitle></CardHeader>
-          <CardContent><div className="text-lg font-mono font-semibold text-emerald-500">{fmtMoney(totalOwedToMe, currency)}</div></CardContent>
+          <CardContent><div className="text-lg font-mono tabular-nums font-semibold text-emerald-500">{fmtMoney(totalOwedToMe, currency)}</div></CardContent>
         </Card>
       </div>
 
@@ -205,9 +205,9 @@ export function PersonalLoans({
                       ) : null}
                     </div>
                     <div className="grid grid-cols-3 gap-2 sm:contents">
-                      <div className="sm:col-span-2 text-xs text-muted-foreground">Principal<br /><span className="font-mono text-foreground">{fmtMoney(l.principal, currency)}</span></div>
-                      <div className="sm:col-span-2 text-xs text-muted-foreground">Repaid<br /><span className="font-mono text-foreground">{fmtMoney(repaid, currency)}</span></div>
-                      <div className="sm:col-span-2 text-xs text-muted-foreground">Outstanding<br /><span className={`font-mono ${outstanding > 0 ? "text-foreground" : "text-emerald-500"}`}>{fmtMoney(outstanding, currency)}</span></div>
+                      <div className="sm:col-span-2 text-xs text-muted-foreground">Principal<br /><span className="font-mono tabular-nums text-foreground">{fmtMoney(l.principal, currency)}</span></div>
+                      <div className="sm:col-span-2 text-xs text-muted-foreground">Repaid<br /><span className="font-mono tabular-nums text-foreground">{fmtMoney(repaid, currency)}</span></div>
+                      <div className="sm:col-span-2 text-xs text-muted-foreground">Outstanding<br /><span className={`font-mono tabular-nums ${outstanding > 0 ? "text-foreground" : "text-emerald-500"}`}>{fmtMoney(outstanding, currency)}</span></div>
                     </div>
                     <div className="flex justify-end gap-1.5 sm:col-span-3 flex-wrap">
                       <RepaymentDialog loan={l} accounts={accounts} currency={currency}
@@ -252,7 +252,7 @@ export function PersonalLoans({
                     <Badge variant="outline">{l.direction === "i_owe" ? "I owed" : "Was owed"}</Badge>
                     <span>{cpName(l.counterparty_id)}</span>
                   </div>
-                  <span className="font-mono">{fmtMoney(l.principal, currency)}</span>
+                  <span className="font-mono tabular-nums">{fmtMoney(l.principal, currency)}</span>
                 </div>
               ))}
             </div>
