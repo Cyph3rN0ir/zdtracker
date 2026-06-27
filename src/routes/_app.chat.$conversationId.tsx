@@ -471,7 +471,7 @@ function ThreadView() {
           <button
             type="button"
             onClick={() => scrollToBottom("smooth")}
-            className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-card border border-border shadow-md px-3 py-1.5 text-xs font-medium hover:bg-accent active:scale-95 transition"
+            className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-card border border-border shadow-md px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground active:scale-95 transition"
             aria-label="Scroll to latest"
           >
             {newCount > 0 ? (
