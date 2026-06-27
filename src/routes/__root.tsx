@@ -81,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "ZeroSync" },
       { name: "description", content: "ZeroSync is a minimal web app for business tracking, money management, and task assignment." },
       { name: "author", content: "ZeroSync" },

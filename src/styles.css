@@ -429,6 +429,9 @@
   .pwa-sheet[data-state="closed"] { animation-duration: 1ms !important; }
 }
 
+/* Prevent iOS landscape font auto-inflation that breaks compact layouts */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
 /* PWA standalone: avoid iOS rubber-band on body, use safe-area insets */
 @media (display-mode: standalone) {
   html, body { overscroll-behavior-y: none; }
