@@ -51,6 +51,9 @@ export const getRouter = () => {
     defaultPendingMs: 200,
     defaultPendingMinMs: 0,
     defaultPendingComponent: RouteSkeleton,
+    // Cross-fade route swaps in supporting browsers — masks any remaining
+    // late-paint flash on slower devices. Falls back to no-op elsewhere.
+    defaultViewTransition: true,
   });
 
   return router;
