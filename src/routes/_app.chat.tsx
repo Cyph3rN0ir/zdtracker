@@ -58,7 +58,9 @@ function ConversationListPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ["chat", "conversations"],
     queryFn: () => list(),
-    refetchInterval: 30000,
+    // Realtime channels deliver updates; this poll is a 2-min safety net
+    // for missed events (sleep/background tab), not the primary path.
+    refetchInterval: 120000,
     refetchOnWindowFocus: true,
   });
 

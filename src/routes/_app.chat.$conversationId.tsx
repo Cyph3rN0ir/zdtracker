@@ -79,7 +79,8 @@ function ThreadView() {
   const msgsQ = useQuery<Msg[]>({
     queryKey: ["chat", "messages", conversationId],
     queryFn: () => listMsgs({ data: { conversationId } }) as Promise<Msg[]>,
-    refetchInterval: 30000,
+    // Realtime delivers new messages instantly; this poll is a safety net.
+    refetchInterval: 120000,
   });
 
   // ----- Realtime channel -----
