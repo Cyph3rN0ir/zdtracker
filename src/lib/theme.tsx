@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type Theme = "light" | "dark" | "midnight" | "forest" | "ember" | "noir" | "ocean" | "sand";
+export type Theme = "light" | "dark" | "midnight" | "forest" | "ember" | "noir" | "ocean" | "sand" | "zerodesk";
 
 export const THEMES: { id: Theme; label: string; swatch: [string, string, string] }[] = [
   { id: "light",    label: "Light",            swatch: ["#ffffff", "#f4f4f5", "#18181b"] },
   { id: "dark",     label: "Dark",             swatch: ["#1a1c22", "#2a2d36", "#e7e9ee"] },
+  { id: "zerodesk", label: "ZeroDesk Classic", swatch: ["#0F0F0F", "#1A1A1A", "#B6D733"] },
   { id: "midnight", label: "Midnight Indigo",  swatch: ["#141432", "#1e1e5a", "#7c7cff"] },
   { id: "forest",   label: "White × Green",    swatch: ["#ffffff", "#dff3e3", "#1f7a4d"] },
   { id: "ember",    label: "Black × Red",      swatch: ["#141414", "#2a1a1a", "#e23a3a"] },
@@ -20,7 +21,7 @@ function apply(theme: Theme) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   root.dataset.theme = theme;
-  root.classList.toggle("dark", theme === "dark" || theme === "midnight" || theme === "ember" || theme === "noir");
+  root.classList.toggle("dark", theme === "dark" || theme === "midnight" || theme === "ember" || theme === "noir" || theme === "zerodesk");
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
