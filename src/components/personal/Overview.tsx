@@ -250,15 +250,9 @@ export function PersonalOverview({
           </CardHeader>
           <CardContent>
             <div className="h-56">
-              <ResponsiveContainer>
-                <LineChart data={netWorthSeries}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="label" fontSize={10} stroke="var(--muted-foreground)" />
-                  <YAxis fontSize={10} stroke="var(--muted-foreground)" />
-                  <Tooltip formatter={(v: number) => fmtMoney(v, currency)} />
-                  <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<ChartFallback />}>
+                <NetWorthLine data={netWorthSeries} currency={currency} />
+              </Suspense>
             </div>
           </CardContent>
         </Card>
