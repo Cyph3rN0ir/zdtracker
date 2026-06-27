@@ -332,6 +332,37 @@
   --sidebar-ring: oklch(0.45 0.06 50);
 }
 
+/* ZeroDesk Classic — graphite surfaces with lime accent */
+[data-theme="zerodesk"] {
+  --background: #0F0F0F;
+  --foreground: #E8E8E8;
+  --card: #1A1A1A;
+  --card-foreground: #E8E8E8;
+  --popover: #212121;
+  --popover-foreground: #E8E8E8;
+  --primary: #B6D733;
+  --primary-foreground: #0F0F0F;
+  --secondary: #212121;
+  --secondary-foreground: #E8E8E8;
+  --muted: #1A1A1A;
+  --muted-foreground: #888888;
+  --accent: #91AB26;
+  --accent-foreground: #0F0F0F;
+  --destructive: #FF4545;
+  --destructive-foreground: #0F0F0F;
+  --border: #2E2E2E;
+  --input: #2E2E2E;
+  --ring: #B6D733;
+  --sidebar: #1A1A1A;
+  --sidebar-foreground: #E8E8E8;
+  --sidebar-primary: #B6D733;
+  --sidebar-primary-foreground: #0F0F0F;
+  --sidebar-accent: #212121;
+  --sidebar-accent-foreground: #B6D733;
+  --sidebar-border: #2E2E2E;
+  --sidebar-ring: #B6D733;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
