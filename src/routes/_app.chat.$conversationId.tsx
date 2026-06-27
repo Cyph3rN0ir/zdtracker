@@ -578,7 +578,7 @@ function MessageSkeletons() {
   );
 }
 
-function MessageBubble({
+const MessageBubble = memo(function MessageBubble({
   m,
   isGroup,
   onReply,
@@ -586,9 +586,10 @@ function MessageBubble({
 }: {
   m: Msg;
   isGroup: boolean;
-  onReply: () => void;
+  onReply: (m: Msg) => void;
   onJumpReply: (id: string) => void;
 }) {
+  const handleReply = () => onReply(m);
   return (
     <div id={`msg-${m.id}`} className={`flex ${m.mine ? "justify-end" : "justify-start"} group`}>
       <div className={`max-w-[80%] sm:max-w-[70%] ${m.mine ? "items-end" : "items-start"} flex flex-col`}>
