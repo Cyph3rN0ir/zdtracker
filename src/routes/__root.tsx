@@ -89,6 +89,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "ZeroSync is a minimal web app for business tracking, money management, and task assignment." },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "ZeroSync" },
+      { property: "og:url", content: "https://zerosync.pages.dev/" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "ZeroSync" },
       { name: "twitter:description", content: "ZeroSync is a minimal web app for business tracking, money management, and task assignment." },
