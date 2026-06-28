@@ -12,6 +12,9 @@ import { urlBase64ToUint8Array, VAPID_PUBLIC_KEY } from "@/lib/push-config";
 
 type State = "unsupported" | "blocked" | "off" | "on" | "loading";
 
+const PUSH_SW_URL = "/push-sw.js";
+const PUSH_SW_SCOPE = "/push/";
+
 function isStandalone() {
   if (typeof window === "undefined") return false;
   return (
@@ -24,6 +27,12 @@ function isStandalone() {
 function isIOS() {
   if (typeof navigator === "undefined") return false;
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+async function getPushRegistration() {
+  const existing = await navigator.serviceWorker.getRegistration(PUSH_SW_SCOPE);
+  if (existing) return existing;
+  return navigator.serviceWorker.register(PUSH_SW_URL, { scope: PUSH_SW_SCOPE });
 }
 
 export function EnablePushButton() {
@@ -51,10 +60,11 @@ export function EnablePushButton() {
       return;
     }
     try {
-      // Wait for an existing registration, but bail out if it never arrives
-      // (e.g. SW failed to register on this host).
+      // Use a dedicated push worker. The offline app-shell worker is generated
+      // at /sw.js and must not own notification subscriptions, otherwise its
+      // generated script may not contain a push handler after deploys.
       const reg = await Promise.race<ServiceWorkerRegistration | null>([
-        navigator.serviceWorker.ready,
+        getPushRegistration(),
         new Promise<null>((r) => setTimeout(() => r(null), 4000)),
       ]);
       if (!reg) { setState("unsupported"); return; }
@@ -85,7 +95,7 @@ export function EnablePushButton() {
           return;
         }
       }
-      const reg = await navigator.serviceWorker.ready;
+      const reg = await getPushRegistration();
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
         sub = await reg.pushManager.subscribe({
@@ -115,7 +125,7 @@ export function EnablePushButton() {
   async function disable() {
     setState("loading");
     try {
-      const reg = await navigator.serviceWorker.ready;
+      const reg = await getPushRegistration();
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
         const ep = sub.endpoint;
@@ -134,10 +144,20 @@ export function EnablePushButton() {
 
   async function sendTest() {
     try {
-      await test();
-      toast.success("Test notification sent");
-    } catch {
-      toast.error("Failed to send test");
+      const result: any = await test();
+      if (result?.sent > 0) {
+        toast.success("Test notification delivered");
+      } else if (result?.reason === "no-subscriptions") {
+        toast.warning("This device is not subscribed yet. Disable and enable notifications once, then try again.");
+        await refresh();
+      } else if (result?.reason === "not-configured") {
+        toast.error("Push keys are not configured on the server");
+      } else {
+        toast.error("No notification was delivered. Re-enable notifications and try again.");
+        await refresh();
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send test");
     }
   }
 

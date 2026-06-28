@@ -32,7 +32,11 @@ export function AdminPushCard() {
         toast.warning("0 devices subscribed. Ask recipients to open Settings → Enable notifications first.");
         return;
       }
-      toast.success(`Sent to ${r.recipients} ${r.recipients === 1 ? "device" : "devices"}`);
+      if (!r.sent) {
+        toast.error(r.reason === "not-configured" ? "Push keys are not configured" : "No notification was delivered. Re-enable notifications on the target device and try again.");
+        return;
+      }
+      toast.success(`Delivered to ${r.sent} ${r.sent === 1 ? "device" : "devices"}`);
       setTitle(""); setBody("");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to send"),

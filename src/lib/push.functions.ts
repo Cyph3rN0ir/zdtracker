@@ -49,11 +49,11 @@ export const removePushSubscriptionFn = createServerFn({ method: "POST" })
 export const sendTestPushFn = createServerFn({ method: "POST" }).handler(async () => {
   const me = await requireSession();
   const { sendPushToUsers } = await import("@/lib/push.server");
-  await sendPushToUsers([me.userId!], {
+  const report = await sendPushToUsers([me.userId!], {
     title: "ZeroSync",
     body: "Push notifications are working 🎉",
     url: "/chat",
     tag: "test",
   });
-  return { ok: true };
+  return { ok: report.sent > 0, ...report };
 });
