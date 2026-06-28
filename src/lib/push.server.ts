@@ -47,9 +47,18 @@ async function sendWebPush(
     },
   });
 
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    // Runtime fetch owns these transport headers. Keeping Content-Length from
+    // Node's request builder can make edge fetch reject the request before it
+    // reaches FCM/WNS/APNs.
+    if (key.toLowerCase() === "content-length") continue;
+    headers.set(key, String(value));
+  }
+
   const response = await fetch(req.endpoint, {
     method: req.method,
-    headers: req.headers,
+    headers,
     body: req.body ? new Uint8Array(req.body) : undefined,
   });
 
