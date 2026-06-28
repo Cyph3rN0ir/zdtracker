@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useMemo, useRef } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { useQueryClient } from "@tanstack/react-query";
+import { EnablePushButton } from "@/components/push/EnablePushButton";
 
 function formatRelative(iso: string | null): string {
   if (!iso) return "";
@@ -83,17 +84,20 @@ function ConversationListPanel() {
 
   return (
     <div className="flex flex-1 min-h-0 flex-col h-full w-full">
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-semibold text-sm">Conversations</h2>
+          <h2 className="font-semibold text-sm truncate">Conversations</h2>
         </div>
         <Link
           to="/chat/new"
-          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent hover:text-accent-foreground active:scale-95 transition"
+          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent hover:text-accent-foreground active:scale-95 transition shrink-0"
         >
           <Plus className="h-3 w-3" /> Private
         </Link>
+      </div>
+      <div className="px-4 py-2 border-b border-border bg-muted/30">
+        <EnablePushButton />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {isLoading ? (
