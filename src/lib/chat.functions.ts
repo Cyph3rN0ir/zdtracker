@@ -330,10 +330,9 @@ export const sendMessageFn = createServerFn({ method: "POST" })
         const senderName = sender?.display_name || sender?.username || "Someone";
         const preview = data.body.length > 140 ? data.body.slice(0, 140) + "…" : data.body;
 
-        // Don't await — let the worker continue while delivery happens.
-        // Recipients also get a service-worker `push` message that triggers
-        // an unread-count refresh in any open client.
-        void sendPushToUsers(recipients, {
+        // Must await on Workers — fire-and-forget fetches get aborted once
+        // the response returns, which silently drops the push delivery.
+        await sendPushToUsers(recipients, {
           title: senderName,
           body: preview,
           url: `/chat/${data.conversationId}`,
