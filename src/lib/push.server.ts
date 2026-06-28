@@ -1,8 +1,9 @@
 import webpush from "web-push";
 import { getSupabaseAdmin } from "@/lib/supabase.server";
+import { VAPID_PUBLIC_KEY as FALLBACK_PUBLIC_KEY } from "@/lib/push-config";
 
 function readConfig() {
-  const publicKey =
+  const envPublic =
     process.env.ZEROSYNC_VAPID_PUBLIC_KEY ??
     process.env.VAPID_PUBLIC_KEY ??
     process.env.WEB_PUSH_PUBLIC_KEY ??
@@ -17,8 +18,8 @@ function readConfig() {
     process.env.VAPID_SUBJECT ??
     process.env.WEB_PUSH_SUBJECT ??
     "https://zerosync.pages.dev/";
+  const publicKey = envPublic ?? FALLBACK_PUBLIC_KEY;
   const missing = [
-    !publicKey ? "ZEROSYNC_VAPID_PUBLIC_KEY" : null,
     !privateKey ? "ZEROSYNC_VAPID_PRIVATE_KEY" : null,
   ].filter(Boolean) as string[];
   return { configured: missing.length === 0, publicKey, privateKey, subject, missing };

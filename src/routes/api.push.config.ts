@@ -22,17 +22,17 @@ export const Route = createFileRoute("/api/push/config")({
           "https://zerosync.pages.dev/";
 
         // The public key is safe to ship — fall back to the bundled constant
-        // so clients can still subscribe even if env propagation lags.
+        // so clients can still subscribe even if only the private signing key
+        // is configured as a runtime secret.
         const publicKey = envPublic ?? FALLBACK_PUBLIC_KEY;
         const missing = [
-          !envPublic ? "ZEROSYNC_VAPID_PUBLIC_KEY" : null,
           !envPrivate ? "ZEROSYNC_VAPID_PRIVATE_KEY" : null,
         ].filter(Boolean) as string[];
 
         return Response.json(
           {
             // Only "configured" when the server can actually sign + send.
-            configured: Boolean(envPublic && envPrivate),
+            configured: Boolean(publicKey && envPrivate),
             publicKey,
             subject,
             missing,
