@@ -39,12 +39,25 @@ export function EnablePushButton() {
       setState("unsupported");
       return;
     }
+    // PWA features (including SW registration) are disabled on Lovable
+    // preview hosts and inside iframes — getSubscription would hang on
+    // serviceWorker.ready forever. Surface a clear message instead.
+    try {
+      const { shouldDisablePwaFeatures } = await import("@/lib/pwa-host-guard");
+      if (shouldDisablePwaFeatures()) { setState("unsupported"); return; }
+    } catch {}
     if (Notification.permission === "denied") {
       setState("blocked");
       return;
     }
     try {
-      const reg = await navigator.serviceWorker.ready;
+      // Wait for an existing registration, but bail out if it never arrives
+      // (e.g. SW failed to register on this host).
+      const reg = await Promise.race<ServiceWorkerRegistration | null>([
+        navigator.serviceWorker.ready,
+        new Promise<null>((r) => setTimeout(() => r(null), 4000)),
+      ]);
+      if (!reg) { setState("unsupported"); return; }
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
         setEndpoint(sub.endpoint);
@@ -56,6 +69,7 @@ export function EnablePushButton() {
       setState("off");
     }
   }
+
 
   useEffect(() => {
     refresh();
