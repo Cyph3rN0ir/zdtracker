@@ -21,7 +21,6 @@ function hasCachedMe() {
 }
 
 export const Route = createFileRoute("/auth")({
-  ssr: false,
   beforeLoad: async () => {
     if (typeof navigator !== "undefined" && !navigator.onLine && hasCachedMe()) {
       throw redirect({ to: "/" });

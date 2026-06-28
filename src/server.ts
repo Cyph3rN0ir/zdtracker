@@ -9,6 +9,18 @@ type ServerEntry = {
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
+function hydrateProcessEnv(env: unknown) {
+  if (!env || typeof env !== "object") return;
+  if (typeof process === "undefined" || !process.env) return;
+
+  for (const [key, value] of Object.entries(env as Record<string, unknown>)) {
+    if (process.env[key] != null) continue;
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      process.env[key] = String(value);
+    }
+  }
+}
+
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
     serverEntryPromise = import("@tanstack/react-start/server-entry").then(
@@ -40,6 +52,7 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      hydrateProcessEnv(env);
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

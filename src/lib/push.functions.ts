@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSession } from "@/lib/chat.server";
+import { VAPID_PUBLIC_KEY as FALLBACK_PUBLIC_KEY } from "@/lib/push-config";
 
 const subscriptionSchema = z.object({
   endpoint: z.string().url(),
@@ -48,7 +49,7 @@ export const removePushSubscriptionFn = createServerFn({ method: "POST" })
 
 export const getPushPublicConfigFn = createServerFn({ method: "GET" }).handler(async () => {
   await requireSession();
-  const publicKey =
+  const envPublic =
     process.env.ZEROSYNC_VAPID_PUBLIC_KEY ??
     process.env.VAPID_PUBLIC_KEY ??
     process.env.WEB_PUSH_PUBLIC_KEY ??
@@ -63,8 +64,8 @@ export const getPushPublicConfigFn = createServerFn({ method: "GET" }).handler(a
     process.env.VAPID_SUBJECT ??
     process.env.WEB_PUSH_SUBJECT ??
     "https://zerosync.pages.dev/";
+  const publicKey = envPublic ?? FALLBACK_PUBLIC_KEY;
   const missing = [
-    !publicKey ? "ZEROSYNC_VAPID_PUBLIC_KEY" : null,
     !privateKey ? "ZEROSYNC_VAPID_PRIVATE_KEY" : null,
   ].filter(Boolean) as string[];
   return { configured: missing.length === 0, publicKey, subject, missing };
