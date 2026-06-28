@@ -135,7 +135,11 @@ export async function sendPushToUsers(
         sent += 1;
       } catch (err: any) {
         const code = err?.statusCode;
-        if (code === 404 || code === 410) stale.push(s.id);
+        // 404/410 are expired endpoints. FCM/WNS also return 401/403 when a
+        // subscription was created with an older VAPID key, which is equally
+        // unrecoverable server-side; the client must subscribe again with the
+        // current public key.
+        if (code === 400 || code === 401 || code === 403 || code === 404 || code === 410) stale.push(s.id);
         else {
           failed += 1;
           console.warn("[push] send failed", code, err?.body);
