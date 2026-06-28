@@ -92,7 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "ZeroSync" },
       { name: "twitter:description", content: "ZeroSync is a minimal web app for business tracking, money management, and task assignment." },
-      { name: "theme-color", content: "#0b0b12" },
+      { name: "theme-color", content: "#0F0F0F" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "ZeroSync" },
