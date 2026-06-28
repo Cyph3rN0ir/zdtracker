@@ -43,17 +43,52 @@ self.addEventListener("push", (event) => {
       payload = { title: "ZeroSync", body: event.data ? event.data.text() : "" };
     } catch {}
   }
-  const title = payload.title || "ZeroSync";
-  const options = {
-    body: payload.body || "",
-    icon: payload.icon || "/icon-192.png",
-    badge: payload.badge || "/icon-192.png",
-    tag: payload.tag || undefined,
-    renotify: !!payload.tag,
-    data: { url: payload.url || "/", ...(payload.data || {}) },
-    requireInteraction: false,
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
+
+  event.waitUntil(
+    (async () => {
+      // App badge — best-effort; ignored where unsupported.
+      try {
+        if (typeof payload.badgeCount === "number" && "setAppBadge" in self.navigator) {
+          if (payload.badgeCount > 0) await self.navigator.setAppBadge(payload.badgeCount);
+          else await self.navigator.clearAppBadge?.();
+        }
+      } catch {}
+
+      // Suppress when the target chat thread is already open AND visible.
+      const targetUrl = payload.url || "/";
+      const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const focusedOnTarget = all.some((c) => {
+        try {
+          const u = new URL(c.url);
+          return (
+            u.origin === self.location.origin &&
+            u.pathname === new URL(targetUrl, self.location.origin).pathname &&
+            c.visibilityState === "visible" &&
+            c.focused
+          );
+        } catch {
+          return false;
+        }
+      });
+
+      // Tell open clients to refresh unread/badge state regardless.
+      for (const c of all) {
+        try { c.postMessage({ type: "push", payload }); } catch {}
+      }
+
+      if (focusedOnTarget) return;
+
+      await self.registration.showNotification(payload.title || "ZeroSync", {
+        body: payload.body || "",
+        icon: payload.icon || "/icon-192.png",
+        badge: payload.badge || "/icon-192.png",
+        tag: payload.tag || undefined,
+        renotify: !!payload.tag,
+        data: { url: targetUrl, ...(payload.data || {}) },
+        requireInteraction: false,
+      });
+    })(),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
