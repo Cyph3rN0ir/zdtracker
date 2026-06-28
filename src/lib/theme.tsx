@@ -52,6 +52,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   const c = useContext(Ctx);
-  if (!c) return { theme: "light" as Theme, setTheme: () => {} };
+  if (!c) return { theme: DEFAULT_THEME as Theme, setTheme: () => {} };
   return c;
 }
