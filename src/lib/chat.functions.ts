@@ -311,53 +311,40 @@ export const sendMessageFn = createServerFn({ method: "POST" })
       recipients.map((uid) => broadcast(`user:${uid}`, { conversationId: data.conversationId })),
     );
 
-    // Fire-and-forget push notifications to offline/background recipients.
+    // Fire-and-forget push notifications. Keep this cheap so message send
+    // stays snappy: skip the badge-count N+1 and bail early when no
+    // recipient has any push subscriptions.
     try {
-      const { sendPushToUsers } = await import("@/lib/push.server");
-      const { data: sender } = await supa
-        .from("app_users")
-        .select("display_name, username")
-        .eq("id", me.userId!)
-        .maybeSingle();
-      const senderName = sender?.display_name || sender?.username || "Someone";
-      const preview = data.body.length > 140 ? data.body.slice(0, 140) + "…" : data.body;
+      const { data: anySubs } = await supa
+        .from("push_subscriptions")
+        .select("user_id")
+        .in("user_id", recipients)
+        .limit(1);
+      if (anySubs && anySubs.length) {
+        const { sendPushToUsers } = await import("@/lib/push.server");
+        const { data: sender } = await supa
+          .from("app_users")
+          .select("display_name, username")
+          .eq("id", me.userId!)
+          .maybeSingle();
+        const senderName = sender?.display_name || sender?.username || "Someone";
+        const preview = data.body.length > 140 ? data.body.slice(0, 140) + "…" : data.body;
 
-      // Per-recipient unread badge — sum of unread messages across all their threads.
-      const perUser: Record<string, { badgeCount: number }> = {};
-      await Promise.all(
-        recipients.map(async (uid) => {
-          const { data: mems } = await supa
-            .from("conversation_members")
-            .select("conversation_id, last_read_at")
-            .eq("user_id", uid);
-          let total = 0;
-          for (const m of mems ?? []) {
-            const { count } = await supa
-              .from("messages")
-              .select("id", { count: "exact", head: true })
-              .eq("conversation_id", m.conversation_id)
-              .gt("created_at", m.last_read_at)
-              .neq("sender_id", uid);
-            total += count ?? 0;
-          }
-          perUser[uid] = { badgeCount: total };
-        }),
-      );
-
-      await sendPushToUsers(
-        recipients,
-        {
+        // Don't await — let the worker continue while delivery happens.
+        // Recipients also get a service-worker `push` message that triggers
+        // an unread-count refresh in any open client.
+        void sendPushToUsers(recipients, {
           title: senderName,
           body: preview,
           url: `/chat/${data.conversationId}`,
           tag: `conv:${data.conversationId}`,
           data: { conversationId: data.conversationId, messageId: inserted.id },
-        },
-        perUser,
-      );
+        });
+      }
     } catch (e) {
       console.warn("[chat] push dispatch failed", (e as Error).message);
     }
+
 
     return { id: inserted.id };
   });
