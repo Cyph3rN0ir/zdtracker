@@ -1,15 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { VAPID_PUBLIC_KEY as FALLBACK_PUBLIC_KEY } from "@/lib/push-config";
 
 export const Route = createFileRoute("/api/push/config")({
   server: {
     handlers: {
       GET: async () => {
-        const publicKey =
+        const envPublic =
           process.env.ZEROSYNC_VAPID_PUBLIC_KEY ??
           process.env.VAPID_PUBLIC_KEY ??
           process.env.WEB_PUSH_PUBLIC_KEY ??
           null;
-        const privateKey =
+        const envPrivate =
           process.env.ZEROSYNC_VAPID_PRIVATE_KEY ??
           process.env.VAPID_PRIVATE_KEY ??
           process.env.WEB_PUSH_PRIVATE_KEY ??
@@ -19,23 +20,24 @@ export const Route = createFileRoute("/api/push/config")({
           process.env.VAPID_SUBJECT ??
           process.env.WEB_PUSH_SUBJECT ??
           "https://zerosync.pages.dev/";
+
+        // The public key is safe to ship — fall back to the bundled constant
+        // so clients can still subscribe even if env propagation lags.
+        const publicKey = envPublic ?? FALLBACK_PUBLIC_KEY;
         const missing = [
-          !publicKey ? "ZEROSYNC_VAPID_PUBLIC_KEY" : null,
-          !privateKey ? "ZEROSYNC_VAPID_PRIVATE_KEY" : null,
+          !envPublic ? "ZEROSYNC_VAPID_PUBLIC_KEY" : null,
+          !envPrivate ? "ZEROSYNC_VAPID_PRIVATE_KEY" : null,
         ].filter(Boolean) as string[];
 
         return Response.json(
           {
-            configured: missing.length === 0,
+            // Only "configured" when the server can actually sign + send.
+            configured: Boolean(envPublic && envPrivate),
             publicKey,
             subject,
             missing,
           },
-          {
-            headers: {
-              "cache-control": "no-store, max-age=0",
-            },
-          },
+          { headers: { "cache-control": "no-store, max-age=0" } },
         );
       },
     },
