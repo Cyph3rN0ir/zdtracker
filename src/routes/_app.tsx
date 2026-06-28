@@ -158,6 +158,29 @@ function AppLayout() {
   });
   const unreadTotal = unreadQ.data?.total ?? 0;
 
+  // Service-worker push → refresh unread badge in this tab.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === "push") {
+        qc.invalidateQueries({ queryKey: ["chat", "unread-total"] });
+        qc.invalidateQueries({ queryKey: ["chat", "conversations"] });
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+  }, [qc]);
+
+  // Mirror unread count into the OS app-icon badge (where supported).
+  useEffect(() => {
+    try {
+      const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+      if (unreadTotal > 0) nav.setAppBadge?.(unreadTotal);
+      else nav.clearAppBadge?.();
+    } catch {}
+  }, [unreadTotal]);
+
+
 
   const nav = useMemo(() => (
     <>
