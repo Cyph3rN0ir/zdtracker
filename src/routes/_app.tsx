@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, ListChecks, MessageSquare, User, Users, LogOut, Menu, Languages, Palette, Check, NotebookPen } from "lucide-react";
+import { LayoutDashboard, ListChecks, MessageSquare, User, Users, LogOut, Menu, Languages, Palette, Check, NotebookPen, Settings } from "lucide-react";
 import { useQuery, useQueryClient, onlineManager } from "@tanstack/react-query";
 import { unreadTotalFn } from "@/lib/chat.functions";
 import { useI18n } from "@/lib/i18n";
@@ -158,6 +158,29 @@ function AppLayout() {
   });
   const unreadTotal = unreadQ.data?.total ?? 0;
 
+  // Service-worker push → refresh unread badge in this tab.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === "push") {
+        qc.invalidateQueries({ queryKey: ["chat", "unread-total"] });
+        qc.invalidateQueries({ queryKey: ["chat", "conversations"] });
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+  }, [qc]);
+
+  // Mirror unread count into the OS app-icon badge (where supported).
+  useEffect(() => {
+    try {
+      const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+      if (unreadTotal > 0) nav.setAppBadge?.(unreadTotal);
+      else nav.clearAppBadge?.();
+    } catch {}
+  }, [unreadTotal]);
+
+
 
   const nav = useMemo(() => (
     <>
@@ -187,6 +210,7 @@ function AppLayout() {
 
         <NavLink to="/chat" onNavigate={closeDrawer} icon={<MessageSquare className="h-4 w-4" />} badge={unreadTotal}>Chat</NavLink>
         <NavLink to="/personal" onNavigate={closeDrawer} icon={<User className="h-4 w-4" />}>{t("nav.personal")}</NavLink>
+        <NavLink to="/settings" onNavigate={closeDrawer} icon={<Settings className="h-4 w-4" />}>Settings</NavLink>
         {me.role === "admin" && (
           <NavLink to="/admin/users" onNavigate={closeDrawer} icon={<Users className="h-4 w-4" />}>{t("nav.users")}</NavLink>
         )}

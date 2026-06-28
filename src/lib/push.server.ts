@@ -20,10 +20,15 @@ export type PushPayload = {
   url?: string;
   tag?: string;
   icon?: string;
+  badgeCount?: number;
   data?: Record<string, unknown>;
 };
 
-export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
+export async function sendPushToUsers(
+  userIds: string[],
+  payload: PushPayload,
+  perUser?: Record<string, Partial<PushPayload>>,
+) {
   if (!userIds.length) return;
   try {
     configure();
@@ -34,7 +39,7 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
   const supa = getSupabaseAdmin();
   const { data: subs, error } = await supa
     .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
+    .select("id, endpoint, p256dh, auth, user_id")
     .in("user_id", userIds);
   if (error) {
     console.warn("[push] fetch subs failed", error.message);
@@ -42,15 +47,15 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
   }
   if (!subs?.length) return;
 
-  const body = JSON.stringify(payload);
   const stale: string[] = [];
 
   await Promise.all(
     subs.map(async (s) => {
+      const merged = { ...payload, ...(perUser?.[s.user_id] ?? {}) };
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          body,
+          JSON.stringify(merged),
           { TTL: 60 * 60 * 24 },
         );
       } catch (err: any) {

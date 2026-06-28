@@ -321,13 +321,40 @@ export const sendMessageFn = createServerFn({ method: "POST" })
         .maybeSingle();
       const senderName = sender?.display_name || sender?.username || "Someone";
       const preview = data.body.length > 140 ? data.body.slice(0, 140) + "…" : data.body;
-      await sendPushToUsers(recipients, {
-        title: senderName,
-        body: preview,
-        url: `/chat/${data.conversationId}`,
-        tag: `conv:${data.conversationId}`,
-        data: { conversationId: data.conversationId, messageId: inserted.id },
-      });
+
+      // Per-recipient unread badge — sum of unread messages across all their threads.
+      const perUser: Record<string, { badgeCount: number }> = {};
+      await Promise.all(
+        recipients.map(async (uid) => {
+          const { data: mems } = await supa
+            .from("conversation_members")
+            .select("conversation_id, last_read_at")
+            .eq("user_id", uid);
+          let total = 0;
+          for (const m of mems ?? []) {
+            const { count } = await supa
+              .from("messages")
+              .select("id", { count: "exact", head: true })
+              .eq("conversation_id", m.conversation_id)
+              .gt("created_at", m.last_read_at)
+              .neq("sender_id", uid);
+            total += count ?? 0;
+          }
+          perUser[uid] = { badgeCount: total };
+        }),
+      );
+
+      await sendPushToUsers(
+        recipients,
+        {
+          title: senderName,
+          body: preview,
+          url: `/chat/${data.conversationId}`,
+          tag: `conv:${data.conversationId}`,
+          data: { conversationId: data.conversationId, messageId: inserted.id },
+        },
+        perUser,
+      );
     } catch (e) {
       console.warn("[chat] push dispatch failed", (e as Error).message);
     }
