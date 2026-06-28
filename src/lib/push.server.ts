@@ -1,17 +1,68 @@
-// Server-only push delivery helpers. Imports web-push (Node-compatible
-// under Cloudflare nodejs_compat). Never import from client modules.
+// Server-only push delivery helpers. Never import from client modules.
 import webpush from "web-push";
 import { getSupabaseAdmin } from "@/lib/supabase.server";
 
 let configured = false;
+function readConfig() {
+  const publicKey = process.env.ZEROSYNC_VAPID_PUBLIC_KEY ?? process.env.VAPID_PUBLIC_KEY;
+  const privateKey = process.env.ZEROSYNC_VAPID_PRIVATE_KEY ?? process.env.VAPID_PRIVATE_KEY;
+  const subject = process.env.ZEROSYNC_VAPID_SUBJECT ?? process.env.VAPID_SUBJECT ?? "https://zerosync.pages.dev/";
+  return { publicKey, privateKey, subject };
+}
+
+export function getPushPublicConfig() {
+  const cfg = readConfig();
+  return {
+    configured: Boolean(cfg.publicKey && cfg.privateKey),
+    publicKey: cfg.publicKey ?? null,
+    subject: cfg.subject,
+  };
+}
+
 function configure() {
   if (configured) return;
-  const pub = process.env.ZEROSYNC_VAPID_PUBLIC_KEY ?? process.env.VAPID_PUBLIC_KEY;
-  const priv = process.env.ZEROSYNC_VAPID_PRIVATE_KEY ?? process.env.VAPID_PRIVATE_KEY;
-  const subj = process.env.ZEROSYNC_VAPID_SUBJECT ?? process.env.VAPID_SUBJECT ?? "mailto:notify@zerosync.pages.dev";
-  if (!pub || !priv) throw new Error("VAPID keys not configured");
-  webpush.setVapidDetails(subj, pub, priv);
+  const cfg = readConfig();
+  if (!cfg.publicKey || !cfg.privateKey) throw new Error("VAPID keys not configured");
+  webpush.setVapidDetails(cfg.subject, cfg.publicKey, cfg.privateKey);
   configured = true;
+}
+
+async function sendWebPush(
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+  payload: string,
+) {
+  const cfg = readConfig();
+  if (!cfg.publicKey || !cfg.privateKey) throw new Error("VAPID keys not configured");
+
+  // web-push's sendNotification uses Node's https.request internally. The
+  // app runs in an edge runtime, so generate the encrypted Web Push request
+  // with web-push, then deliver it with the runtime-native fetch API.
+  const req = webpush.generateRequestDetails(subscription, payload, {
+    TTL: 60 * 60 * 24,
+    urgency: "high",
+    vapidDetails: {
+      subject: cfg.subject,
+      publicKey: cfg.publicKey,
+      privateKey: cfg.privateKey,
+    },
+  });
+
+  const response = await fetch(req.endpoint, {
+    method: req.method,
+    headers: req.headers,
+    body: req.body ? new Uint8Array(req.body) : undefined,
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    const err = new Error(`Push endpoint returned ${response.status}`) as Error & {
+      statusCode?: number;
+      body?: string;
+    };
+    err.statusCode = response.status;
+    err.body = body;
+    throw err;
+  }
 }
 
 export type PushPayload = {
@@ -68,10 +119,9 @@ export async function sendPushToUsers(
     subs.map(async (s) => {
       const merged = { ...payload, ...(perUser?.[s.user_id] ?? {}) };
       try {
-        await webpush.sendNotification(
+        await sendWebPush(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           JSON.stringify(merged),
-          { TTL: 60 * 60 * 24 },
         );
         sent += 1;
       } catch (err: any) {
