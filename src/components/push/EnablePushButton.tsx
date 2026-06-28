@@ -158,7 +158,10 @@ export function EnablePushButton() {
       );
     }
     return (
-      <div className="text-xs text-muted-foreground">Notifications aren't supported on this browser.</div>
+      <div className="text-xs text-muted-foreground rounded-md border border-border bg-muted/40 px-3 py-2">
+        Push notifications aren't available here. Open the app at{" "}
+        <strong>zerosync.pages.dev</strong> (or install it to your home screen), then try again — the Lovable preview disables service workers.
+      </div>
     );
   }
 
