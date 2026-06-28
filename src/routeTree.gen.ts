@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppPersonalRouteImport } from './routes/_app.personal'
 import { Route as AppNotebookRouteImport } from './routes/_app.notebook'
 import { Route as AppChatRouteImport } from './routes/_app.chat'
@@ -46,6 +47,11 @@ const AppRoute = AppRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPersonalRoute = AppPersonalRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof AppChatRouteWithChildren
   '/notebook': typeof AppNotebookRouteWithChildren
   '/personal': typeof AppPersonalRouteWithChildren
+  '/settings': typeof AppSettingsRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/businesses/$id': typeof AppBusinessesIdRouteWithChildren
   '/chat/$conversationId': typeof AppChatConversationIdRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/chat/$conversationId': typeof AppChatConversationIdRoute
@@ -207,6 +215,7 @@ export interface FileRoutesById {
   '/_app/chat': typeof AppChatRouteWithChildren
   '/_app/notebook': typeof AppNotebookRouteWithChildren
   '/_app/personal': typeof AppPersonalRouteWithChildren
+  '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/businesses/$id': typeof AppBusinessesIdRouteWithChildren
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/notebook'
     | '/personal'
+    | '/settings'
     | '/admin/users'
     | '/businesses/$id'
     | '/chat/$conversationId'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/settings'
     | '/'
     | '/admin/users'
     | '/chat/$conversationId'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/_app/chat'
     | '/_app/notebook'
     | '/_app/personal'
+    | '/_app/settings'
     | '/_app/'
     | '/_app/admin/users'
     | '/_app/businesses/$id'
@@ -328,6 +340,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/personal': {
@@ -553,6 +572,7 @@ interface AppRouteChildren {
   AppChatRoute: typeof AppChatRouteWithChildren
   AppNotebookRoute: typeof AppNotebookRouteWithChildren
   AppPersonalRoute: typeof AppPersonalRouteWithChildren
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppBusinessesIdRoute: typeof AppBusinessesIdRouteWithChildren
@@ -563,6 +583,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppChatRoute: AppChatRouteWithChildren,
   AppNotebookRoute: AppNotebookRouteWithChildren,
   AppPersonalRoute: AppPersonalRouteWithChildren,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppBusinessesIdRoute: AppBusinessesIdRouteWithChildren,

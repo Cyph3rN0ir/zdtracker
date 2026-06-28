@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/settings")({
 function SettingsPage() {
   return (
     <PageContainer>
-      <PageHeader title="Settings" description="Manage notifications and device preferences." />
+      <PageHeader title="Settings" subtitle="Manage notifications and device preferences." />
 
       <Card>
         <CardHeader>
