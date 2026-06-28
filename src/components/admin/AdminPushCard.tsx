@@ -28,7 +28,11 @@ export function AdminPushCard() {
   const m = useMutation({
     mutationFn: () => send({ data: { title, body, url, target, userId: target === "user" ? userId : null } }),
     onSuccess: (r: any) => {
-      toast.success(`Sent to ${r.recipients} ${r.recipients === 1 ? "user" : "users"}`);
+      if (!r.recipients) {
+        toast.warning("0 devices subscribed. Ask recipients to open Settings → Enable notifications first.");
+        return;
+      }
+      toast.success(`Sent to ${r.recipients} ${r.recipients === 1 ? "device" : "devices"}`);
       setTitle(""); setBody("");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to send"),
