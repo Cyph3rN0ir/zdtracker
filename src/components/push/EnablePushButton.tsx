@@ -12,6 +12,12 @@ import {
 import { urlBase64ToUint8Array, VAPID_PUBLIC_KEY } from "@/lib/push-config";
 
 type State = "unsupported" | "blocked" | "server-off" | "off" | "on" | "loading";
+type PushPublicConfig = {
+  configured: boolean;
+  publicKey: string | null;
+  subject?: string;
+  missing?: string[];
+};
 
 const PUSH_SW_URL = "/push-sw.js";
 const PUSH_SW_SCOPE = "/push/";
@@ -86,10 +92,36 @@ export function EnablePushButton() {
   const remove = useServerFn(removePushSubscriptionFn);
   const test = useServerFn(sendTestPushFn);
 
+  async function fetchConfigFromApi(): Promise<PushPublicConfig | null> {
+    try {
+      const res = await fetch("/api/push/config", {
+        headers: { accept: "application/json" },
+        cache: "no-store",
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as PushPublicConfig;
+    } catch {
+      return null;
+    }
+  }
+
   async function loadPublicKey() {
-    const cfg = await getConfig();
+    let cfg = await fetchConfigFromApi();
+    if (!cfg) {
+      try {
+        cfg = await getConfig();
+      } catch (e) {
+        console.warn("[push] config lookup failed", e);
+      }
+    }
+    if (!cfg) {
+      setStatusText("Notification server config is unreachable on this deployment. Publish the latest build and open ZeroSync from the production domain.");
+      setState("server-off");
+      return null;
+    }
     if (!cfg?.configured || !cfg.publicKey) {
-      setStatusText("Notification keys are not ready on the server yet.");
+      const missing = cfg.missing?.length ? ` Missing: ${cfg.missing.join(", ")}.` : "";
+      setStatusText(`Notification keys are not ready on this deployment.${missing}`);
       setState("server-off");
       return null;
     }
@@ -246,7 +278,7 @@ export function EnablePushButton() {
         toast.warning("This device is not subscribed yet. Disable and enable notifications once, then try again.");
         await refresh();
       } else if (result?.reason === "not-configured") {
-        toast.error("Push keys are not configured on the server");
+        toast.error("Push keys are missing on this deployment");
       } else {
         toast.error(`No notification was delivered${result?.reason ? ` (${result.reason})` : ""}.`);
         await refresh();

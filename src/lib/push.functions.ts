@@ -48,11 +48,26 @@ export const removePushSubscriptionFn = createServerFn({ method: "POST" })
 
 export const getPushPublicConfigFn = createServerFn({ method: "GET" }).handler(async () => {
   await requireSession();
-  const publicKey = process.env.ZEROSYNC_VAPID_PUBLIC_KEY ?? process.env.VAPID_PUBLIC_KEY ?? null;
-  const privateKey = process.env.ZEROSYNC_VAPID_PRIVATE_KEY ?? process.env.VAPID_PRIVATE_KEY ?? null;
+  const publicKey =
+    process.env.ZEROSYNC_VAPID_PUBLIC_KEY ??
+    process.env.VAPID_PUBLIC_KEY ??
+    process.env.WEB_PUSH_PUBLIC_KEY ??
+    null;
+  const privateKey =
+    process.env.ZEROSYNC_VAPID_PRIVATE_KEY ??
+    process.env.VAPID_PRIVATE_KEY ??
+    process.env.WEB_PUSH_PRIVATE_KEY ??
+    null;
   const subject =
-    process.env.ZEROSYNC_VAPID_SUBJECT ?? process.env.VAPID_SUBJECT ?? "https://zerosync.pages.dev/";
-  return { configured: Boolean(publicKey && privateKey), publicKey, subject };
+    process.env.ZEROSYNC_VAPID_SUBJECT ??
+    process.env.VAPID_SUBJECT ??
+    process.env.WEB_PUSH_SUBJECT ??
+    "https://zerosync.pages.dev/";
+  const missing = [
+    !publicKey ? "ZEROSYNC_VAPID_PUBLIC_KEY" : null,
+    !privateKey ? "ZEROSYNC_VAPID_PRIVATE_KEY" : null,
+  ].filter(Boolean) as string[];
+  return { configured: missing.length === 0, publicKey, subject, missing };
 });
 
 export const sendTestPushFn = createServerFn({ method: "POST" }).handler(async () => {
