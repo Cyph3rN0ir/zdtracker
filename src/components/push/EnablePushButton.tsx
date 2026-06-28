@@ -29,6 +29,20 @@ function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
+function bytesEqual(a: Uint8Array, b: Uint8Array) {
+  if (a.byteLength !== b.byteLength) return false;
+  for (let i = 0; i < a.byteLength; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+function subscriptionUsesCurrentKey(sub: PushSubscription) {
+  const key = sub.options.applicationServerKey;
+  if (!key) return false;
+  return bytesEqual(new Uint8Array(key), urlBase64ToUint8Array(VAPID_PUBLIC_KEY));
+}
+
 async function getPushRegistration() {
   const existing = await navigator.serviceWorker.getRegistration(PUSH_SW_SCOPE);
   if (existing) return existing;
@@ -118,6 +132,12 @@ export function EnablePushButton() {
       }
       const reg = await getPushRegistration();
       let sub = await reg.pushManager.getSubscription();
+      if (sub && !subscriptionUsesCurrentKey(sub)) {
+        const oldEndpoint = sub.endpoint;
+        await sub.unsubscribe().catch(() => false);
+        await remove({ data: { endpoint: oldEndpoint } }).catch(() => null);
+        sub = null;
+      }
       if (!sub) {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
