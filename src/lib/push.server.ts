@@ -6,9 +6,9 @@ import { getSupabaseAdmin } from "@/lib/supabase.server";
 let configured = false;
 function configure() {
   if (configured) return;
-  const pub = process.env.VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
-  const subj = process.env.VAPID_SUBJECT || "mailto:notify@zerosync.app";
+  const pub = process.env.ZEROSYNC_VAPID_PUBLIC_KEY ?? process.env.VAPID_PUBLIC_KEY;
+  const priv = process.env.ZEROSYNC_VAPID_PRIVATE_KEY ?? process.env.VAPID_PRIVATE_KEY;
+  const subj = process.env.ZEROSYNC_VAPID_SUBJECT ?? process.env.VAPID_SUBJECT ?? "mailto:notify@zerosync.pages.dev";
   if (!pub || !priv) throw new Error("VAPID keys not configured");
   webpush.setVapidDetails(subj, pub, priv);
   configured = true;
