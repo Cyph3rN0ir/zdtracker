@@ -4,13 +4,14 @@ import { Bell, BellOff, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
+  getPushPublicConfigFn,
   removePushSubscriptionFn,
   savePushSubscriptionFn,
   sendTestPushFn,
 } from "@/lib/push.functions";
 import { urlBase64ToUint8Array, VAPID_PUBLIC_KEY } from "@/lib/push-config";
 
-type State = "unsupported" | "blocked" | "off" | "on" | "loading";
+type State = "unsupported" | "blocked" | "server-off" | "off" | "on" | "loading";
 
 const PUSH_SW_URL = "/push-sw.js";
 const PUSH_SW_SCOPE = "/push/";
@@ -37,16 +38,32 @@ function bytesEqual(a: Uint8Array, b: Uint8Array) {
   return true;
 }
 
-function subscriptionUsesCurrentKey(sub: PushSubscription) {
+function subscriptionUsesCurrentKey(sub: PushSubscription, publicKey: string) {
   const key = sub.options.applicationServerKey;
   if (!key) return false;
-  return bytesEqual(new Uint8Array(key), urlBase64ToUint8Array(VAPID_PUBLIC_KEY));
+  return bytesEqual(new Uint8Array(key), urlBase64ToUint8Array(publicKey));
+}
+
+async function waitForActiveRegistration(reg: ServiceWorkerRegistration) {
+  if (reg.active) return reg;
+  const worker = reg.installing ?? reg.waiting;
+  if (!worker) return reg;
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "activated") resolve();
+      });
+    }),
+    new Promise<void>((resolve) => setTimeout(resolve, 4000)),
+  ]);
+  return reg;
 }
 
 async function getPushRegistration() {
   const existing = await navigator.serviceWorker.getRegistration(PUSH_SW_SCOPE);
-  if (existing) return existing;
-  return navigator.serviceWorker.register(PUSH_SW_URL, { scope: PUSH_SW_SCOPE });
+  if (existing) return waitForActiveRegistration(existing);
+  const reg = await navigator.serviceWorker.register(PUSH_SW_URL, { scope: PUSH_SW_SCOPE });
+  return waitForActiveRegistration(reg);
 }
 
 async function getLegacyAppShellSubscriptions() {
@@ -63,9 +80,21 @@ async function getLegacyAppShellSubscriptions() {
 export function EnablePushButton() {
   const [state, setState] = useState<State>("loading");
   const [endpoint, setEndpoint] = useState<string | null>(null);
+  const [statusText, setStatusText] = useState<string | null>(null);
+  const getConfig = useServerFn(getPushPublicConfigFn);
   const save = useServerFn(savePushSubscriptionFn);
   const remove = useServerFn(removePushSubscriptionFn);
   const test = useServerFn(sendTestPushFn);
+
+  async function loadPublicKey() {
+    const cfg = await getConfig();
+    if (!cfg?.configured || !cfg.publicKey) {
+      setStatusText("Notification keys are not ready on the server yet.");
+      setState("server-off");
+      return null;
+    }
+    return cfg.publicKey || VAPID_PUBLIC_KEY;
+  }
 
   async function refresh() {
     if (typeof window === "undefined") return;
@@ -95,6 +124,14 @@ export function EnablePushButton() {
       if (!reg) { setState("unsupported"); return; }
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
+        const publicKey = await loadPublicKey();
+        if (!publicKey) return;
+        if (!subscriptionUsesCurrentKey(sub, publicKey)) {
+          setEndpoint(null);
+          setStatusText("This device has an old notification registration. Enable once to repair it.");
+          setState("off");
+          return;
+        }
         setEndpoint(sub.endpoint);
         setState("on");
       } else {
@@ -110,55 +147,70 @@ export function EnablePushButton() {
     refresh();
   }, []);
 
+  async function ensureSubscription() {
+    const publicKey = await loadPublicKey();
+    if (!publicKey) throw new Error("Push keys are not configured on the server");
+
+    if (Notification.permission === "default") {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") {
+        setState(perm === "denied" ? "blocked" : "off");
+        throw new Error("Notification permission was not granted");
+      }
+    }
+    if (Notification.permission === "denied") {
+      setState("blocked");
+      throw new Error("Notifications are blocked in browser settings");
+    }
+
+    // Older builds attached push subscriptions to the generated offline
+    // worker at /sw.js. That worker may accept pushes but not display them
+    // after deploys, so migrate those endpoints away before saving the
+    // stable /push-sw.js subscription.
+    const legacySubs = await getLegacyAppShellSubscriptions();
+    for (const legacy of legacySubs) {
+      const ep = legacy.endpoint;
+      await legacy.unsubscribe().catch(() => false);
+      await remove({ data: { endpoint: ep } }).catch(() => null);
+    }
+
+    const reg = await getPushRegistration();
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && !subscriptionUsesCurrentKey(sub, publicKey)) {
+      const oldEndpoint = sub.endpoint;
+      await sub.unsubscribe().catch(() => false);
+      await remove({ data: { endpoint: oldEndpoint } }).catch(() => null);
+      sub = null;
+    }
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+      });
+    }
+    const json = sub.toJSON();
+    await save({
+      data: {
+        endpoint: sub.endpoint,
+        p256dh: json.keys?.p256dh ?? "",
+        auth: json.keys?.auth ?? "",
+        userAgent: navigator.userAgent.slice(0, 500),
+      },
+    });
+    setEndpoint(sub.endpoint);
+    setStatusText(null);
+    setState("on");
+    return { sub, repaired: legacySubs.length > 0 };
+  }
+
   async function enable() {
     setState("loading");
     try {
-      if (Notification.permission === "default") {
-        const perm = await Notification.requestPermission();
-        if (perm !== "granted") {
-          setState(perm === "denied" ? "blocked" : "off");
-          return;
-        }
-      }
-      // Older builds attached push subscriptions to the generated offline
-      // worker at /sw.js. That worker may accept pushes but not display them
-      // after deploys, so migrate those endpoints away before saving the
-      // stable /push-sw.js subscription.
-      const legacySubs = await getLegacyAppShellSubscriptions();
-      for (const legacy of legacySubs) {
-        const ep = legacy.endpoint;
-        await legacy.unsubscribe().catch(() => false);
-        await remove({ data: { endpoint: ep } }).catch(() => null);
-      }
-      const reg = await getPushRegistration();
-      let sub = await reg.pushManager.getSubscription();
-      if (sub && !subscriptionUsesCurrentKey(sub)) {
-        const oldEndpoint = sub.endpoint;
-        await sub.unsubscribe().catch(() => false);
-        await remove({ data: { endpoint: oldEndpoint } }).catch(() => null);
-        sub = null;
-      }
-      if (!sub) {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
-        });
-      }
-      const json = sub.toJSON();
-      await save({
-        data: {
-          endpoint: sub.endpoint,
-          p256dh: json.keys?.p256dh ?? "",
-          auth: json.keys?.auth ?? "",
-          userAgent: navigator.userAgent.slice(0, 500),
-        },
-      });
-      setEndpoint(sub.endpoint);
-      setState("on");
-      toast.success(legacySubs.length ? "Notifications repaired and enabled" : "Notifications enabled");
+      const result = await ensureSubscription();
+      toast.success(result.repaired ? "Notifications repaired and enabled" : "Notifications enabled");
     } catch (e) {
       console.error("[push] enable failed", e);
-      toast.error("Could not enable notifications");
+      toast.error((e as Error)?.message || "Could not enable notifications");
       await refresh();
     }
   }
@@ -184,7 +236,9 @@ export function EnablePushButton() {
   }
 
   async function sendTest() {
+    setState("loading");
     try {
+      await ensureSubscription();
       const result: any = await test();
       if (result?.sent > 0) {
         toast.success("Test notification delivered");
@@ -194,11 +248,12 @@ export function EnablePushButton() {
       } else if (result?.reason === "not-configured") {
         toast.error("Push keys are not configured on the server");
       } else {
-        toast.error("No notification was delivered. Re-enable notifications and try again.");
+        toast.error(`No notification was delivered${result?.reason ? ` (${result.reason})` : ""}.`);
         await refresh();
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to send test");
+      await refresh();
     }
   }
 
@@ -234,13 +289,21 @@ export function EnablePushButton() {
     );
   }
 
+  if (state === "server-off") {
+    return (
+      <div className="text-xs text-muted-foreground rounded-md border border-border bg-muted/40 px-3 py-2">
+        {statusText ?? "Notification delivery is not configured yet."}
+      </div>
+    );
+  }
+
   if (state === "on") {
     return (
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="outline" onClick={disable} className="gap-2">
+      <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+        <Button size="sm" variant="outline" onClick={disable} className="w-full gap-2 sm:w-auto">
           <BellOff className="h-4 w-4" /> Disable notifications
         </Button>
-        <Button size="sm" variant="ghost" onClick={sendTest} className="gap-2">
+        <Button size="sm" variant="ghost" onClick={sendTest} className="w-full gap-2 sm:w-auto">
           <BellRing className="h-4 w-4" /> Send test
         </Button>
       </div>
@@ -248,8 +311,11 @@ export function EnablePushButton() {
   }
 
   return (
-    <Button size="sm" onClick={enable} className="gap-2">
-      <Bell className="h-4 w-4" /> Enable notifications
-    </Button>
+    <div className="space-y-2">
+      {statusText && <p className="text-xs text-muted-foreground">{statusText}</p>}
+      <Button size="sm" onClick={enable} className="w-full gap-2 sm:w-auto">
+        <Bell className="h-4 w-4" /> Enable notifications
+      </Button>
+    </div>
   );
 }

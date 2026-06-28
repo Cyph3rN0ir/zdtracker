@@ -33,7 +33,7 @@ export function AdminPushCard() {
         return;
       }
       if (!r.sent) {
-        toast.error(r.reason === "not-configured" ? "Push keys are not configured" : "No notification was delivered. Re-enable notifications on the target device and try again.");
+        toast.error(r.reason === "not-configured" ? "Push keys are not configured" : `No notification was delivered${r.reason ? ` (${r.reason})` : ""}. Re-enable notifications on the target device and try again.`);
         return;
       }
       toast.success(`Delivered to ${r.sent} ${r.sent === 1 ? "device" : "devices"}`);
@@ -56,7 +56,7 @@ export function AdminPushCard() {
         <CardDescription>Broadcast to everyone or pick a single user. Only devices with notifications enabled will receive it.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Target</Label>
             <Select value={target} onValueChange={(v) => setTarget(v as Target)}>
@@ -90,8 +90,8 @@ export function AdminPushCard() {
             <Label>Open URL (optional)</Label>
             <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="/" />
           </div>
-          <div className="sm:col-span-2 flex justify-end">
-            <Button type="submit" disabled={m.isPending} className="gap-2">
+          <div className="flex justify-end sm:col-span-2">
+            <Button type="submit" disabled={m.isPending} className="w-full gap-2 sm:w-auto">
               <Send className="h-4 w-4" /> {m.isPending ? "Sending…" : "Send notification"}
             </Button>
           </div>

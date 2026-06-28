@@ -46,6 +46,12 @@ export const removePushSubscriptionFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const getPushPublicConfigFn = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSession();
+  const { getPushPublicConfig } = await import("@/lib/push.server");
+  return getPushPublicConfig();
+});
+
 export const sendTestPushFn = createServerFn({ method: "POST" }).handler(async () => {
   const me = await requireSession();
   const { sendPushToUsers } = await import("@/lib/push.server");
