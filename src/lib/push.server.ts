@@ -1,30 +1,37 @@
-// Server-only push delivery helpers. Never import from client modules.
 import webpush from "web-push";
 import { getSupabaseAdmin } from "@/lib/supabase.server";
 
-let configured = false;
 function readConfig() {
-  const publicKey = process.env.ZEROSYNC_VAPID_PUBLIC_KEY ?? process.env.VAPID_PUBLIC_KEY;
-  const privateKey = process.env.ZEROSYNC_VAPID_PRIVATE_KEY ?? process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.ZEROSYNC_VAPID_SUBJECT ?? process.env.VAPID_SUBJECT ?? "https://zerosync.pages.dev/";
-  return { publicKey, privateKey, subject };
+  const publicKey =
+    process.env.ZEROSYNC_VAPID_PUBLIC_KEY ??
+    process.env.VAPID_PUBLIC_KEY ??
+    process.env.WEB_PUSH_PUBLIC_KEY ??
+    null;
+  const privateKey =
+    process.env.ZEROSYNC_VAPID_PRIVATE_KEY ??
+    process.env.VAPID_PRIVATE_KEY ??
+    process.env.WEB_PUSH_PRIVATE_KEY ??
+    null;
+  const subject =
+    process.env.ZEROSYNC_VAPID_SUBJECT ??
+    process.env.VAPID_SUBJECT ??
+    process.env.WEB_PUSH_SUBJECT ??
+    "https://zerosync.pages.dev/";
+  const missing = [
+    !publicKey ? "ZEROSYNC_VAPID_PUBLIC_KEY" : null,
+    !privateKey ? "ZEROSYNC_VAPID_PRIVATE_KEY" : null,
+  ].filter(Boolean) as string[];
+  return { configured: missing.length === 0, publicKey, privateKey, subject, missing };
 }
 
 export function getPushPublicConfig() {
   const cfg = readConfig();
   return {
-    configured: Boolean(cfg.publicKey && cfg.privateKey),
-    publicKey: cfg.publicKey ?? null,
+    configured: cfg.configured,
+    publicKey: cfg.publicKey,
     subject: cfg.subject,
+    missing: cfg.missing,
   };
-}
-
-function configure() {
-  if (configured) return;
-  const cfg = readConfig();
-  if (!cfg.publicKey || !cfg.privateKey) throw new Error("VAPID keys not configured");
-  webpush.setVapidDetails(cfg.subject, cfg.publicKey, cfg.privateKey);
-  configured = true;
 }
 
 async function sendWebPush(
@@ -32,7 +39,9 @@ async function sendWebPush(
   payload: string,
 ) {
   const cfg = readConfig();
-  if (!cfg.publicKey || !cfg.privateKey) throw new Error("VAPID keys not configured");
+  if (!cfg.configured || !cfg.publicKey || !cfg.privateKey) {
+    throw new Error(`VAPID keys not configured: ${cfg.missing.join(", ")}`);
+  }
 
   // web-push's sendNotification uses Node's https.request internally. The
   // app runs in an edge runtime, so generate the encrypted Web Push request
@@ -101,10 +110,9 @@ export async function sendPushToUsers(
   if (!userIds.length) {
     return { configured: true, subscriptions: 0, sent: 0, failed: 0, stale: 0, reason: "no-users" };
   }
-  try {
-    configure();
-  } catch (e) {
-    console.warn("[push] not configured:", (e as Error).message);
+  const cfg = readConfig();
+  if (!cfg.configured) {
+    console.warn("[push] not configured:", cfg.missing.join(", "));
     return { configured: false, subscriptions: 0, sent: 0, failed: 0, stale: 0, reason: "not-configured" };
   }
   const supa = getSupabaseAdmin();

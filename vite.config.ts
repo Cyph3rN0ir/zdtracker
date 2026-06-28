@@ -70,6 +70,7 @@ export default defineConfig({
             {
               urlPattern: ({ url }) =>
                 url.origin === self.location.origin &&
+                url.pathname !== "/push-sw.js" &&
                 (url.pathname.startsWith("/assets/") ||
                   /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname)),
               handler: "CacheFirst",

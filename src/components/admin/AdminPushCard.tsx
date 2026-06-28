@@ -33,7 +33,7 @@ export function AdminPushCard() {
         return;
       }
       if (!r.sent) {
-        toast.error(r.reason === "not-configured" ? "Push keys are not configured" : `No notification was delivered${r.reason ? ` (${r.reason})` : ""}. Re-enable notifications on the target device and try again.`);
+        toast.error(r.reason === "not-configured" ? "Push keys are missing on this deployment" : `No notification was delivered${r.reason ? ` (${r.reason})` : ""}. Re-enable notifications on the target device and try again.`);
         return;
       }
       toast.success(`Delivered to ${r.sent} ${r.sent === 1 ? "device" : "devices"}`);
