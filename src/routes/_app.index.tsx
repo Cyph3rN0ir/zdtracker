@@ -40,7 +40,13 @@ import { ArrowRight, Plus, Building2, MoreVertical, Pencil, Trash2 } from "lucid
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
-  head: () => ({ meta: [{ title: "Dashboard — ZeroSync" }] }),
+  head: () => ({
+    meta: [
+      { title: "Dashboard — ZeroSync" },
+      { property: "og:url", content: "https://zerosync.pages.dev/" },
+    ],
+    links: [{ rel: "canonical", href: "https://zerosync.pages.dev/" }],
+  }),
 });
 
 function Dashboard() {
