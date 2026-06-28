@@ -303,11 +303,34 @@ export const sendMessageFn = createServerFn({ method: "POST" })
       .from("conversation_members")
       .select("user_id")
       .eq("conversation_id", data.conversationId);
+    const recipients = (members ?? [])
+      .filter((m) => m.user_id !== me.userId)
+      .map((m) => m.user_id);
+
     await Promise.all(
-      (members ?? [])
-        .filter((m) => m.user_id !== me.userId)
-        .map((m) => broadcast(`user:${m.user_id}`, { conversationId: data.conversationId })),
+      recipients.map((uid) => broadcast(`user:${uid}`, { conversationId: data.conversationId })),
     );
+
+    // Fire-and-forget push notifications to offline/background recipients.
+    try {
+      const { sendPushToUsers } = await import("@/lib/push.server");
+      const { data: sender } = await supa
+        .from("app_users")
+        .select("display_name, username")
+        .eq("id", me.userId!)
+        .maybeSingle();
+      const senderName = sender?.display_name || sender?.username || "Someone";
+      const preview = data.body.length > 140 ? data.body.slice(0, 140) + "…" : data.body;
+      await sendPushToUsers(recipients, {
+        title: senderName,
+        body: preview,
+        url: `/chat/${data.conversationId}`,
+        tag: `conv:${data.conversationId}`,
+        data: { conversationId: data.conversationId, messageId: inserted.id },
+      });
+    } catch (e) {
+      console.warn("[chat] push dispatch failed", (e as Error).message);
+    }
 
     return { id: inserted.id };
   });
