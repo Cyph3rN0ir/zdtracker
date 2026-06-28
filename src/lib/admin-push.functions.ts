@@ -34,11 +34,11 @@ export const adminSendPushFn = createServerFn({ method: "POST" })
 
     if (!userIds.length) return { ok: true, recipients: 0 };
 
-    await sendPushToUsers(userIds, {
+    const report = await sendPushToUsers(userIds, {
       title: data.title,
       body: data.body,
       url: data.url || "/",
       tag: `admin-${Date.now()}`,
     });
-    return { ok: true, recipients: userIds.length };
+    return { ok: report.sent > 0, recipients: userIds.length, ...report };
   });

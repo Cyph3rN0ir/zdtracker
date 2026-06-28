@@ -24,17 +24,28 @@ export type PushPayload = {
   data?: Record<string, unknown>;
 };
 
+export type PushDeliveryReport = {
+  configured: boolean;
+  subscriptions: number;
+  sent: number;
+  failed: number;
+  stale: number;
+  reason?: string;
+};
+
 export async function sendPushToUsers(
   userIds: string[],
   payload: PushPayload,
   perUser?: Record<string, Partial<PushPayload>>,
-) {
-  if (!userIds.length) return;
+): Promise<PushDeliveryReport> {
+  if (!userIds.length) {
+    return { configured: true, subscriptions: 0, sent: 0, failed: 0, stale: 0, reason: "no-users" };
+  }
   try {
     configure();
   } catch (e) {
     console.warn("[push] not configured:", (e as Error).message);
-    return;
+    return { configured: false, subscriptions: 0, sent: 0, failed: 0, stale: 0, reason: "not-configured" };
   }
   const supa = getSupabaseAdmin();
   const { data: subs, error } = await supa
@@ -43,11 +54,15 @@ export async function sendPushToUsers(
     .in("user_id", userIds);
   if (error) {
     console.warn("[push] fetch subs failed", error.message);
-    return;
+    return { configured: true, subscriptions: 0, sent: 0, failed: 0, stale: 0, reason: "subscription-query-failed" };
   }
-  if (!subs?.length) return;
+  if (!subs?.length) {
+    return { configured: true, subscriptions: 0, sent: 0, failed: 0, stale: 0, reason: "no-subscriptions" };
+  }
 
   const stale: string[] = [];
+  let sent = 0;
+  let failed = 0;
 
   await Promise.all(
     subs.map(async (s) => {
@@ -58,10 +73,14 @@ export async function sendPushToUsers(
           JSON.stringify(merged),
           { TTL: 60 * 60 * 24 },
         );
+        sent += 1;
       } catch (err: any) {
         const code = err?.statusCode;
         if (code === 404 || code === 410) stale.push(s.id);
-        else console.warn("[push] send failed", code, err?.body);
+        else {
+          failed += 1;
+          console.warn("[push] send failed", code, err?.body);
+        }
       }
     }),
   );
@@ -69,4 +88,13 @@ export async function sendPushToUsers(
   if (stale.length) {
     await supa.from("push_subscriptions").delete().in("id", stale);
   }
+
+  return {
+    configured: true,
+    subscriptions: subs.length,
+    sent,
+    failed,
+    stale: stale.length,
+    reason: sent > 0 ? undefined : stale.length ? "stale-subscriptions" : "send-failed",
+  };
 }
