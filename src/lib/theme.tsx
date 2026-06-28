@@ -24,8 +24,10 @@ function apply(theme: Theme) {
   root.classList.toggle("dark", theme === "dark" || theme === "midnight" || theme === "ember" || theme === "noir" || theme === "zerodesk");
 }
 
+const DEFAULT_THEME: Theme = "zerodesk";
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
 
   useEffect(() => {
     try {
@@ -34,9 +36,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setThemeState(saved);
         apply(saved);
       } else {
-        apply("light");
+        apply(DEFAULT_THEME);
       }
-    } catch { apply("light"); }
+    } catch { apply(DEFAULT_THEME); }
   }, []);
 
   function setTheme(t: Theme) {
@@ -50,6 +52,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   const c = useContext(Ctx);
-  if (!c) return { theme: "light" as Theme, setTheme: () => {} };
+  if (!c) return { theme: DEFAULT_THEME as Theme, setTheme: () => {} };
   return c;
 }

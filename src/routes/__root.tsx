@@ -92,7 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "ZeroSync" },
       { name: "twitter:description", content: "ZeroSync is a minimal web app for business tracking, money management, and task assignment." },
-      { name: "theme-color", content: "#0b0b12" },
+      { name: "theme-color", content: "#0F0F0F" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "ZeroSync" },
@@ -120,10 +120,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const themeBoot = `(function(){try{var k='zt.theme';var t=localStorage.getItem(k)||'zerodesk';var dark=['dark','midnight','ember','noir','zerodesk'].indexOf(t)!==-1;var r=document.documentElement;r.dataset.theme=t;if(dark)r.classList.add('dark');}catch(e){document.documentElement.dataset.theme='zerodesk';document.documentElement.classList.add('dark');}})();`;
   return (
-    <html lang="en">
+    <html lang="en" data-theme="zerodesk" className="dark">
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
       </head>
       <body>
         {children}
