@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, ListChecks, MessageSquare, User, Users, LogOut, Menu, Languages, Palette, Check, NotebookPen } from "lucide-react";
+import { LayoutDashboard, ListChecks, MessageSquare, User, Users, LogOut, Menu, Languages, Palette, Check, NotebookPen, Settings } from "lucide-react";
 import { useQuery, useQueryClient, onlineManager } from "@tanstack/react-query";
 import { unreadTotalFn } from "@/lib/chat.functions";
 import { useI18n } from "@/lib/i18n";
