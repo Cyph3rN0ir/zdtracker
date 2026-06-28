@@ -19,6 +19,7 @@ import { Route as AppChatRouteImport } from './routes/_app.chat'
 import { Route as AppPersonalIndexRouteImport } from './routes/_app.personal.index'
 import { Route as AppNotebookIndexRouteImport } from './routes/_app.notebook.index'
 import { Route as AppChatIndexRouteImport } from './routes/_app.chat.index'
+import { Route as ApiPushConfigRouteImport } from './routes/api.push.config'
 import { Route as AppPersonalIdRouteImport } from './routes/_app.personal.$id'
 import { Route as AppNotebookTodayRouteImport } from './routes/_app.notebook.today'
 import { Route as AppMyTasksRouteImport } from './routes/_app.my.tasks'
@@ -83,6 +84,11 @@ const AppChatIndexRoute = AppChatIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppChatRoute,
+} as any)
+const ApiPushConfigRoute = ApiPushConfigRouteImport.update({
+  id: '/api/push/config',
+  path: '/api/push/config',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppPersonalIdRoute = AppPersonalIdRouteImport.update({
   id: '/$id',
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/my/tasks': typeof AppMyTasksRoute
   '/notebook/today': typeof AppNotebookTodayRoute
   '/personal/$id': typeof AppPersonalIdRoute
+  '/api/push/config': typeof ApiPushConfigRoute
   '/chat/': typeof AppChatIndexRoute
   '/notebook/': typeof AppNotebookIndexRoute
   '/personal/': typeof AppPersonalIndexRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/my/tasks': typeof AppMyTasksRoute
   '/notebook/today': typeof AppNotebookTodayRoute
   '/personal/$id': typeof AppPersonalIdRoute
+  '/api/push/config': typeof ApiPushConfigRoute
   '/chat': typeof AppChatIndexRoute
   '/notebook': typeof AppNotebookIndexRoute
   '/personal': typeof AppPersonalIndexRoute
@@ -224,6 +232,7 @@ export interface FileRoutesById {
   '/_app/my/tasks': typeof AppMyTasksRoute
   '/_app/notebook/today': typeof AppNotebookTodayRoute
   '/_app/personal/$id': typeof AppPersonalIdRoute
+  '/api/push/config': typeof ApiPushConfigRoute
   '/_app/chat/': typeof AppChatIndexRoute
   '/_app/notebook/': typeof AppNotebookIndexRoute
   '/_app/personal/': typeof AppPersonalIndexRoute
@@ -252,6 +261,7 @@ export interface FileRouteTypes {
     | '/my/tasks'
     | '/notebook/today'
     | '/personal/$id'
+    | '/api/push/config'
     | '/chat/'
     | '/notebook/'
     | '/personal/'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | '/my/tasks'
     | '/notebook/today'
     | '/personal/$id'
+    | '/api/push/config'
     | '/chat'
     | '/notebook'
     | '/personal'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/_app/my/tasks'
     | '/_app/notebook/today'
     | '/_app/personal/$id'
+    | '/api/push/config'
     | '/_app/chat/'
     | '/_app/notebook/'
     | '/_app/personal/'
@@ -317,6 +329,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPushConfigRoute: typeof ApiPushConfigRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -390,6 +403,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/chat/'
       preLoaderRoute: typeof AppChatIndexRouteImport
       parentRoute: typeof AppChatRoute
+    }
+    '/api/push/config': {
+      id: '/api/push/config'
+      path: '/api/push/config'
+      fullPath: '/api/push/config'
+      preLoaderRoute: typeof ApiPushConfigRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/personal/$id': {
       id: '/_app/personal/$id'
@@ -595,17 +615,8 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPushConfigRoute: ApiPushConfigRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
