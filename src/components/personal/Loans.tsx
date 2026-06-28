@@ -552,11 +552,11 @@ function BalancesByPerson({
 
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setOpenId(null)}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4 sm:p-6 gap-3 sm:gap-4">
           {active && (
             <>
-              <DialogHeader>
-                <DialogTitle>{active.name}</DialogTitle>
+              <DialogHeader className="text-left">
+                <DialogTitle className="pr-8 break-words">{active.name}</DialogTitle>
                 <DialogDescription>
                   {active.net === 0
                     ? "All settled."
@@ -566,24 +566,44 @@ function BalancesByPerson({
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">They lent you</div>
-                  <div className="font-mono tabular-nums font-semibold">{fmtMoney(active.lentToMe, currency)}</div>
+              {/* Big net summary */}
+              <div className={`rounded-lg border p-3 sm:p-4 flex items-center justify-between gap-3 ${
+                active.net > 0 ? "bg-emerald-500/5 border-emerald-500/30" :
+                active.net < 0 ? "bg-rose-500/5 border-rose-500/30" :
+                "bg-muted/40"
+              }`}>
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Net balance</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {active.net === 0 ? "Settled" : active.net > 0 ? "In your favor" : "You owe"}
+                  </div>
                 </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">You repaid them</div>
-                  <div className="font-mono tabular-nums font-semibold">{fmtMoney(active.repaidByMe, currency)}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">You lent them</div>
-                  <div className="font-mono tabular-nums font-semibold">{fmtMoney(active.lentByMe, currency)}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">They repaid you</div>
-                  <div className="font-mono tabular-nums font-semibold">{fmtMoney(active.repaidToMe, currency)}</div>
+                <div className={`font-mono tabular-nums text-xl sm:text-2xl font-bold shrink-0 ${
+                  active.net > 0 ? "text-emerald-500" : active.net < 0 ? "text-rose-500" : "text-muted-foreground"
+                }`}>
+                  {fmtMoney(Math.abs(active.net), currency)}
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 text-sm">
+                <div className="rounded-md border p-2.5 sm:p-3 min-w-0">
+                  <div className="text-[11px] text-muted-foreground">They lent you</div>
+                  <div className="font-mono tabular-nums font-semibold text-sm truncate">{fmtMoney(active.lentToMe, currency)}</div>
+                </div>
+                <div className="rounded-md border p-2.5 sm:p-3 min-w-0">
+                  <div className="text-[11px] text-muted-foreground">You repaid them</div>
+                  <div className="font-mono tabular-nums font-semibold text-sm truncate">{fmtMoney(active.repaidByMe, currency)}</div>
+                </div>
+                <div className="rounded-md border p-2.5 sm:p-3 min-w-0">
+                  <div className="text-[11px] text-muted-foreground">You lent them</div>
+                  <div className="font-mono tabular-nums font-semibold text-sm truncate">{fmtMoney(active.lentByMe, currency)}</div>
+                </div>
+                <div className="rounded-md border p-2.5 sm:p-3 min-w-0">
+                  <div className="text-[11px] text-muted-foreground">They repaid you</div>
+                  <div className="font-mono tabular-nums font-semibold text-sm truncate">{fmtMoney(active.repaidToMe, currency)}</div>
+                </div>
+              </div>
+
 
               <div className="space-y-2">
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">History</div>
