@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Trash2, UserPlus, Pencil } from "lucide-react";
 import { useI18n, roleLabel } from "@/lib/i18n";
+import { AdminPushCard } from "@/components/admin/AdminPushCard";
 
 export const Route = createFileRoute("/_app/admin/users")({
   beforeLoad: ({ context }) => {
@@ -83,6 +84,10 @@ function UsersPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t("users.title")} subtitle={t("users.subtitle")} />
+
+      <AdminPushCard />
+
+
 
       <Card>
         <CardHeader>
