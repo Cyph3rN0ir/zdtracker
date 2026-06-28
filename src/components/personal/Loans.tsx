@@ -491,11 +491,30 @@ function BalancesByPerson({
 
   const active = openId ? rows.find((r) => r.id === openId) ?? null : null;
 
+  const summary = useMemo(() => {
+    let theyOweCount = 0, youOweCount = 0;
+    for (const r of rows) {
+      if (r.net > 0) theyOweCount++;
+      else if (r.net < 0) youOweCount++;
+    }
+    return { theyOweCount, youOweCount, total: rows.length };
+  }, [rows]);
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> Balances by person</CardTitle>
-        <CardDescription>Net amount owed to or from each individual, summed across all loans and repayments.</CardDescription>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4 shrink-0" /> Balances by person</CardTitle>
+            <CardDescription className="mt-0.5">Net amount summed across all loans &amp; repayments.</CardDescription>
+          </div>
+          {summary.total > 0 && (
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+              {summary.theyOweCount > 0 && <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400">{summary.theyOweCount} owe you</Badge>}
+              {summary.youOweCount > 0 && <Badge variant="outline" className="border-rose-500/40 text-rose-600 dark:text-rose-400">{summary.youOweCount} you owe</Badge>}
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y">
@@ -513,29 +532,31 @@ function BalancesByPerson({
                 key={r.id}
                 type="button"
                 onClick={() => setOpenId(r.id)}
-                className="w-full flex items-center gap-3 px-3 sm:px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                className="w-full flex items-center gap-3 px-3 sm:px-4 py-3 text-left hover:bg-muted/50 active:bg-muted/70 transition-colors min-h-[56px] focus-visible:outline-none focus-visible:bg-muted/60"
               >
-                <span className={`inline-block h-2 w-2 rounded-full shrink-0 ${dotColor}`} />
+                <span className={`inline-block h-2.5 w-2.5 rounded-full shrink-0 ${dotColor}`} aria-hidden />
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">{r.name}</div>
-                  <div className="text-xs text-muted-foreground">{label}</div>
+                  <div className="font-medium truncate text-sm sm:text-[15px]">{r.name}</div>
+                  <div className="text-[11px] sm:text-xs text-muted-foreground">{label}</div>
                 </div>
-                <div className={`font-mono tabular-nums text-sm font-semibold ${amtColor}`}>
+                <div className={`font-mono tabular-nums text-sm sm:text-[15px] font-semibold shrink-0 text-right ${amtColor}`}>
                   {fmtMoney(Math.abs(r.net), currency)}
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
               </button>
             );
           })}
         </div>
       </CardContent>
 
+
+
       <Dialog open={!!active} onOpenChange={(o) => !o && setOpenId(null)}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4 sm:p-6 gap-3 sm:gap-4">
           {active && (
             <>
-              <DialogHeader>
-                <DialogTitle>{active.name}</DialogTitle>
+              <DialogHeader className="text-left">
+                <DialogTitle className="pr-8 break-words">{active.name}</DialogTitle>
                 <DialogDescription>
                   {active.net === 0
                     ? "All settled."
@@ -545,24 +566,44 @@ function BalancesByPerson({
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">They lent you</div>
-                  <div className="font-mono tabular-nums font-semibold">{fmtMoney(active.lentToMe, currency)}</div>
+              {/* Big net summary */}
+              <div className={`rounded-lg border p-3 sm:p-4 flex items-center justify-between gap-3 ${
+                active.net > 0 ? "bg-emerald-500/5 border-emerald-500/30" :
+                active.net < 0 ? "bg-rose-500/5 border-rose-500/30" :
+                "bg-muted/40"
+              }`}>
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Net balance</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {active.net === 0 ? "Settled" : active.net > 0 ? "In your favor" : "You owe"}
+                  </div>
                 </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">You repaid them</div>
-                  <div className="font-mono tabular-nums font-semibold">{fmtMoney(active.repaidByMe, currency)}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">You lent them</div>
-                  <div className="font-mono tabular-nums font-semibold">{fmtMoney(active.lentByMe, currency)}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">They repaid you</div>
-                  <div className="font-mono tabular-nums font-semibold">{fmtMoney(active.repaidToMe, currency)}</div>
+                <div className={`font-mono tabular-nums text-xl sm:text-2xl font-bold shrink-0 ${
+                  active.net > 0 ? "text-emerald-500" : active.net < 0 ? "text-rose-500" : "text-muted-foreground"
+                }`}>
+                  {fmtMoney(Math.abs(active.net), currency)}
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 text-sm">
+                <div className="rounded-md border p-2.5 sm:p-3 min-w-0">
+                  <div className="text-[11px] text-muted-foreground">They lent you</div>
+                  <div className="font-mono tabular-nums font-semibold text-sm truncate">{fmtMoney(active.lentToMe, currency)}</div>
+                </div>
+                <div className="rounded-md border p-2.5 sm:p-3 min-w-0">
+                  <div className="text-[11px] text-muted-foreground">You repaid them</div>
+                  <div className="font-mono tabular-nums font-semibold text-sm truncate">{fmtMoney(active.repaidByMe, currency)}</div>
+                </div>
+                <div className="rounded-md border p-2.5 sm:p-3 min-w-0">
+                  <div className="text-[11px] text-muted-foreground">You lent them</div>
+                  <div className="font-mono tabular-nums font-semibold text-sm truncate">{fmtMoney(active.lentByMe, currency)}</div>
+                </div>
+                <div className="rounded-md border p-2.5 sm:p-3 min-w-0">
+                  <div className="text-[11px] text-muted-foreground">They repaid you</div>
+                  <div className="font-mono tabular-nums font-semibold text-sm truncate">{fmtMoney(active.repaidToMe, currency)}</div>
+                </div>
+              </div>
+
 
               <div className="space-y-2">
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">History</div>
