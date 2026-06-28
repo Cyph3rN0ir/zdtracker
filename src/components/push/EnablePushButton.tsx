@@ -35,6 +35,17 @@ async function getPushRegistration() {
   return navigator.serviceWorker.register(PUSH_SW_URL, { scope: PUSH_SW_SCOPE });
 }
 
+async function getLegacyAppShellSubscriptions() {
+  const regs = await navigator.serviceWorker.getRegistrations();
+  const legacy: PushSubscription[] = [];
+  for (const reg of regs) {
+    if (reg.scope.endsWith(PUSH_SW_SCOPE)) continue;
+    const sub = await reg.pushManager.getSubscription().catch(() => null);
+    if (sub) legacy.push(sub);
+  }
+  return legacy;
+}
+
 export function EnablePushButton() {
   const [state, setState] = useState<State>("loading");
   const [endpoint, setEndpoint] = useState<string | null>(null);
@@ -95,6 +106,16 @@ export function EnablePushButton() {
           return;
         }
       }
+      // Older builds attached push subscriptions to the generated offline
+      // worker at /sw.js. That worker may accept pushes but not display them
+      // after deploys, so migrate those endpoints away before saving the
+      // stable /push-sw.js subscription.
+      const legacySubs = await getLegacyAppShellSubscriptions();
+      for (const legacy of legacySubs) {
+        const ep = legacy.endpoint;
+        await legacy.unsubscribe().catch(() => false);
+        await remove({ data: { endpoint: ep } }).catch(() => null);
+      }
       const reg = await getPushRegistration();
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
@@ -114,7 +135,7 @@ export function EnablePushButton() {
       });
       setEndpoint(sub.endpoint);
       setState("on");
-      toast.success("Notifications enabled");
+      toast.success(legacySubs.length ? "Notifications repaired and enabled" : "Notifications enabled");
     } catch (e) {
       console.error("[push] enable failed", e);
       toast.error("Could not enable notifications");
