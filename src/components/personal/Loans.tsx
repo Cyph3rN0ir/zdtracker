@@ -133,6 +133,8 @@ export function PersonalLoans({
         </Card>
       </div>
 
+      <BalancesByPerson loans={loans} counterparties={counterparties} tx={tx} currency={currency} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Add loan</CardTitle>
