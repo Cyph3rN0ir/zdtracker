@@ -335,9 +335,6 @@ export function EnablePushButton() {
         <Button size="sm" variant="outline" onClick={disable} className="w-full gap-2 sm:w-auto">
           <BellOff className="h-4 w-4" /> Disable notifications
         </Button>
-        <Button size="sm" variant="ghost" onClick={sendTest} className="w-full gap-2 sm:w-auto">
-          <BellRing className="h-4 w-4" /> Send test
-        </Button>
       </div>
     );
   }
