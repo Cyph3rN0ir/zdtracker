@@ -512,8 +512,11 @@
   .pwa-scroll {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    /* NOTE: do not set `touch-action: pan-y` here — it kills horizontal
+       touch panning for nested rails (tab strips, chip rows) and pinch-zoom
+       for the whole app on mobile. */
   }
+
   .cv-auto { content-visibility: auto; contain-intrinsic-size: 1px 80px; }
 }
 
