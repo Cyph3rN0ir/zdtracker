@@ -40,7 +40,11 @@ export function SectionCard({
               </CardDescription>
             ) : null}
           </div>
-          {right ? <div className="shrink-0">{right}</div> : null}
+          {right ? (
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 max-w-[62%] sm:max-w-none">
+              {right}
+            </div>
+          ) : null}
         </CardHeader>
       )}
       <CardContent
