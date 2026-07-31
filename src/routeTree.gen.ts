@@ -35,6 +35,7 @@ import { Route as AppBusinessesIdTasksRouteImport } from './routes/_app.business
 import { Route as AppBusinessesIdProfitRouteImport } from './routes/_app.businesses.$id.profit'
 import { Route as AppBusinessesIdPeopleRouteImport } from './routes/_app.businesses.$id.people'
 import { Route as AppBusinessesIdMoneyRouteImport } from './routes/_app.businesses.$id.money'
+import { Route as AppBusinessesIdEquityRouteImport } from './routes/_app.businesses.$id.equity'
 import { Route as AppBusinessesIdAccountsRouteImport } from './routes/_app.businesses.$id.accounts'
 
 const AuthRoute = AuthRouteImport.update({
@@ -166,6 +167,11 @@ const AppBusinessesIdMoneyRoute = AppBusinessesIdMoneyRouteImport.update({
   path: '/money',
   getParentRoute: () => AppBusinessesIdRoute,
 } as any)
+const AppBusinessesIdEquityRoute = AppBusinessesIdEquityRouteImport.update({
+  id: '/equity',
+  path: '/equity',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
 const AppBusinessesIdAccountsRoute = AppBusinessesIdAccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/notebook/': typeof AppNotebookIndexRoute
   '/personal/': typeof AppPersonalIndexRoute
   '/businesses/$id/accounts': typeof AppBusinessesIdAccountsRoute
+  '/businesses/$id/equity': typeof AppBusinessesIdEquityRoute
   '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
   '/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
@@ -215,6 +222,7 @@ export interface FileRoutesByTo {
   '/notebook': typeof AppNotebookIndexRoute
   '/personal': typeof AppPersonalIndexRoute
   '/businesses/$id/accounts': typeof AppBusinessesIdAccountsRoute
+  '/businesses/$id/equity': typeof AppBusinessesIdEquityRoute
   '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
   '/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
@@ -245,6 +253,7 @@ export interface FileRoutesById {
   '/_app/notebook/': typeof AppNotebookIndexRoute
   '/_app/personal/': typeof AppPersonalIndexRoute
   '/_app/businesses/$id/accounts': typeof AppBusinessesIdAccountsRoute
+  '/_app/businesses/$id/equity': typeof AppBusinessesIdEquityRoute
   '/_app/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/_app/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
   '/_app/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
@@ -275,6 +284,7 @@ export interface FileRouteTypes {
     | '/notebook/'
     | '/personal/'
     | '/businesses/$id/accounts'
+    | '/businesses/$id/equity'
     | '/businesses/$id/money'
     | '/businesses/$id/people'
     | '/businesses/$id/profit'
@@ -299,6 +309,7 @@ export interface FileRouteTypes {
     | '/notebook'
     | '/personal'
     | '/businesses/$id/accounts'
+    | '/businesses/$id/equity'
     | '/businesses/$id/money'
     | '/businesses/$id/people'
     | '/businesses/$id/profit'
@@ -328,6 +339,7 @@ export interface FileRouteTypes {
     | '/_app/notebook/'
     | '/_app/personal/'
     | '/_app/businesses/$id/accounts'
+    | '/_app/businesses/$id/equity'
     | '/_app/businesses/$id/money'
     | '/_app/businesses/$id/people'
     | '/_app/businesses/$id/profit'
@@ -528,6 +540,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBusinessesIdMoneyRouteImport
       parentRoute: typeof AppBusinessesIdRoute
     }
+    '/_app/businesses/$id/equity': {
+      id: '/_app/businesses/$id/equity'
+      path: '/equity'
+      fullPath: '/businesses/$id/equity'
+      preLoaderRoute: typeof AppBusinessesIdEquityRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
     '/_app/businesses/$id/accounts': {
       id: '/_app/businesses/$id/accounts'
       path: '/accounts'
@@ -589,6 +608,7 @@ const AppPersonalRouteWithChildren = AppPersonalRoute._addFileChildren(
 
 interface AppBusinessesIdRouteChildren {
   AppBusinessesIdAccountsRoute: typeof AppBusinessesIdAccountsRoute
+  AppBusinessesIdEquityRoute: typeof AppBusinessesIdEquityRoute
   AppBusinessesIdMoneyRoute: typeof AppBusinessesIdMoneyRoute
   AppBusinessesIdPeopleRoute: typeof AppBusinessesIdPeopleRoute
   AppBusinessesIdProfitRoute: typeof AppBusinessesIdProfitRoute
@@ -598,6 +618,7 @@ interface AppBusinessesIdRouteChildren {
 
 const AppBusinessesIdRouteChildren: AppBusinessesIdRouteChildren = {
   AppBusinessesIdAccountsRoute: AppBusinessesIdAccountsRoute,
+  AppBusinessesIdEquityRoute: AppBusinessesIdEquityRoute,
   AppBusinessesIdMoneyRoute: AppBusinessesIdMoneyRoute,
   AppBusinessesIdPeopleRoute: AppBusinessesIdPeopleRoute,
   AppBusinessesIdProfitRoute: AppBusinessesIdProfitRoute,
