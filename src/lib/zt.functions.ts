@@ -1267,7 +1267,12 @@ export const upsertBusinessAccountFn = createServerFn({ method: "POST" })
       ? supa.from("business_accounts").update(payload).eq("id", data.id).eq("business_id", data.businessId)
       : supa.from("business_accounts").insert({ ...payload, created_by: me.userId });
     const { error } = await q;
-    if (error) throw new Error(error.message);
+    if (error) {
+      const { isMissingSchema } = await import("@/lib/supabase.server");
+      if (isMissingSchema(error))
+        throw new Error("Accounts setup is pending: run SUPABASE_BUSINESS_ACCOUNTS.sql in Supabase first.");
+      throw new Error(error.message);
+    }
     return { ok: true };
   });
 
@@ -1312,6 +1317,11 @@ export const transferBusinessFundsFn = createServerFn({ method: "POST" })
       account_id: data.fromAccountId,
       transfer_account_id: data.toAccountId,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      const { isMissingSchema } = await import("@/lib/supabase.server");
+      if (isMissingSchema(error))
+        throw new Error("Accounts setup is pending: run SUPABASE_BUSINESS_ACCOUNTS.sql in Supabase first.");
+      throw new Error(error.message);
+    }
     return { ok: true };
   });
