@@ -104,13 +104,22 @@ export const listMembersFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     await requireSession();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
-    const { data: mems, error } = await supa
+    const base = "id, user_id, role_in_business, created_at";
+    let res = await supa
       .from("business_members")
-      .select("id, user_id, role_in_business, equity_percent, created_at")
+      .select(`${base}, equity_percent`)
       .eq("business_id", data.businessId)
       .order("created_at", { ascending: true });
+    if (res.error && isMissingSchema(res.error)) {
+      res = await supa
+        .from("business_members")
+        .select(base)
+        .eq("business_id", data.businessId)
+        .order("created_at", { ascending: true });
+    }
+    const { data: mems, error } = res;
     if (error) throw new Error(error.message);
     const ids = Array.from(new Set((mems ?? []).map((m) => m.user_id)));
     let usersById: Record<string, { username: string; display_name: string; role: string }> = {};
