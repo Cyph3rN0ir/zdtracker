@@ -32,6 +32,7 @@ function Money() {
   const listMembers = useServerFn(listMembersFn);
   const listAccounts = useServerFn(listBusinessAccountsFn);
   const qc = useQueryClient();
+  const canManage = me?.role === "admin" || me?.role === "owner";
   const q = useQuery({ queryKey: ["btx", id], queryFn: () => list({ data: { businessId: id } }) });
   const members = useQuery({ queryKey: ["members", id], queryFn: () => listMembers({ data: { businessId: id } }) });
   const accounts = useQuery({ queryKey: ["baccountsList", id], queryFn: () => listAccounts({ data: { businessId: id } }) });
@@ -90,7 +91,7 @@ function Money() {
 
   return (
     <div className="space-y-6">
-      {me.role === "admin" && (
+      {canManage && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">{t("money.record")}</CardTitle>
@@ -172,7 +173,7 @@ function Money() {
 
       <div className="grid grid-cols-1 gap-4">
         {KINDS.map((k) => (
-          <Section key={k} title={t(`money.section.${k}`)} rows={byKind[k]} onDelete={me.role === "admin" ? (tid) => dm.mutate(tid) : undefined} />
+          <Section key={k} title={t(`money.section.${k}`)} rows={byKind[k]} onDelete={canManage ? (tid) => dm.mutate(tid) : undefined} />
         ))}
       </div>
     </div>

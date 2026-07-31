@@ -90,7 +90,7 @@ function Accounts() {
   const { id } = Route.useParams();
   const { me } = Route.useRouteContext() as any;
   const { t } = useI18n();
-  const isAdmin = me?.role === "admin";
+  const canManage = me?.role === "admin" || me?.role === "owner";
 
   const balances = useServerFn(businessAccountBalancesFn);
   const upsert = useServerFn(upsertBusinessAccountFn);
@@ -159,7 +159,7 @@ function Accounts() {
         title={t("bacct.total", "Total assets")}
         description={t("bacct.totalDesc", "Across all accounts of this business")}
         right={
-          isAdmin ? (
+          canManage ? (
             <div className="flex w-full flex-wrap gap-2 sm:w-auto [&>button]:flex-1 sm:[&>button]:flex-none">
               <Button
                 size="sm"
@@ -210,7 +210,7 @@ function Accounts() {
           message={t("bacct.empty", "No accounts yet")}
           hint={t("bacct.emptyHint", "Add cash, bank or wallet accounts to track where the money sits.")}
           action={
-            isAdmin ? (
+            canManage ? (
               <Button size="sm" onClick={() => { setForm(emptyForm); setOpen(true); }}>
                 <Plus className="h-3.5 w-3.5" /> {t("bacct.add", "Add account")}
               </Button>
@@ -238,7 +238,7 @@ function Accounts() {
                     )}
                   </div>
                 </div>
-                {isAdmin && (
+                {canManage && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
