@@ -40,6 +40,7 @@ export const Route = createFileRoute("/_app/businesses/$id")({
 const TABS = [
   { key: "overview", label: "Overview", to: "/businesses/$id" },
   { key: "people", label: "People", to: "/businesses/$id/people" },
+  { key: "equity", label: "Equity", to: "/businesses/$id/equity" },
   { key: "money", label: "Money", to: "/businesses/$id/money" },
   { key: "accounts", label: "Accounts", to: "/businesses/$id/accounts" },
   { key: "profit", label: "Profit", to: "/businesses/$id/profit" },
