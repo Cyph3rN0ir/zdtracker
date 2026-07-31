@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  upsertPersonalLoanFn, deletePersonalLoanFn, addPersonalTxExFn,
+  upsertPersonalLoanFn, deletePersonalLoanFn, addPersonalTxExFn, settlePersonalLoansFn,
 } from "@/lib/zt.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
