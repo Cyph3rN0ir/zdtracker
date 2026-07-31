@@ -47,7 +47,8 @@ function Money() {
       add({
         data: {
           businessId: id, kind: form.kind, amount: Number(form.amount),
-          partyUserId: form.partyUserId || null, note: form.note, occurredOn: form.occurredOn,
+          partyUserId: form.partyUserId || null, accountId: form.accountId || null,
+          note: form.note, occurredOn: form.occurredOn,
         },
       }),
     onSuccess: () => {
@@ -55,6 +56,8 @@ function Money() {
       setForm({ ...form, amount: "", note: "" });
       setFormErr(null);
       qc.invalidateQueries({ queryKey: ["btx", id] });
+      qc.invalidateQueries({ queryKey: ["baccounts", id] });
+
     },
     onError: (e: any) => {
       const msg = e?.message ?? t("money.toast.failed");
