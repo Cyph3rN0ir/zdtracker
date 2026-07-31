@@ -123,15 +123,16 @@ export function PersonalLoans({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardHeader className="pb-1.5"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">I owe (open)</CardTitle></CardHeader>
-          <CardContent><div className="text-lg font-mono tabular-nums font-semibold text-rose-500">{fmtMoney(totalOwedByMe, currency)}</div></CardContent>
+        <Card className="min-w-0 overflow-hidden">
+          <CardHeader className="pb-1.5 px-3 sm:px-6"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium truncate">I owe (open)</CardTitle></CardHeader>
+          <CardContent className="px-3 sm:px-6"><div className="min-w-0 text-base sm:text-lg font-mono tabular-nums font-semibold text-rose-500 break-words leading-tight">{fmtMoney(totalOwedByMe, currency)}</div></CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-1.5"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Owed to me (open)</CardTitle></CardHeader>
-          <CardContent><div className="text-lg font-mono tabular-nums font-semibold text-emerald-500">{fmtMoney(totalOwedToMe, currency)}</div></CardContent>
+        <Card className="min-w-0 overflow-hidden">
+          <CardHeader className="pb-1.5 px-3 sm:px-6"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium truncate">Owed to me (open)</CardTitle></CardHeader>
+          <CardContent className="px-3 sm:px-6"><div className="min-w-0 text-base sm:text-lg font-mono tabular-nums font-semibold text-emerald-500 break-words leading-tight">{fmtMoney(totalOwedToMe, currency)}</div></CardContent>
         </Card>
       </div>
+
 
       <BalancesByPerson loans={loans} counterparties={counterparties} tx={tx} currency={currency} />
 
