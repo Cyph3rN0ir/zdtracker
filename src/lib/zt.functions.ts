@@ -203,15 +203,21 @@ export const listTransactionsFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     await requireSession();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
-    const { data: tx, error } = await supa
-      .from("business_transactions")
-      .select("id, kind, amount, party_user_id, note, occurred_on, created_at, account_id, transfer_account_id")
-
-      .eq("business_id", data.businessId)
-      .order("occurred_on", { ascending: false })
-      .order("created_at", { ascending: false });
+    const base = "id, kind, amount, party_user_id, note, occurred_on, created_at";
+    const run = (cols: string) =>
+      supa
+        .from("business_transactions")
+        .select(cols)
+        .eq("business_id", data.businessId)
+        .order("occurred_on", { ascending: false })
+        .order("created_at", { ascending: false });
+    let res: { data: any[] | null; error: any } = await run(
+      `${base}, account_id, transfer_account_id`,
+    );
+    if (res.error && isMissingSchema(res.error)) res = await run(base);
+    const { data: tx, error } = res;
     if (error) throw new Error(error.message);
     const ids = Array.from(new Set((tx ?? []).map((t) => t.party_user_id).filter(Boolean) as string[]));
     let usersById: Record<string, { username: string; display_name: string }> = {};
@@ -219,7 +225,12 @@ export const listTransactionsFn = createServerFn({ method: "GET" })
       const { data: us } = await supa.from("app_users").select("id, username, display_name").in("id", ids);
       usersById = Object.fromEntries((us ?? []).map((u) => [u.id, u]));
     }
-    return (tx ?? []).map((t) => ({ ...t, party: t.party_user_id ? usersById[t.party_user_id] ?? null : null }));
+    return (tx ?? []).map((t) => ({
+      account_id: null,
+      transfer_account_id: null,
+      ...t,
+      party: t.party_user_id ? usersById[t.party_user_id] ?? null : null,
+    }));
   });
 
 export const addTransactionFn = createServerFn({ method: "POST" })
