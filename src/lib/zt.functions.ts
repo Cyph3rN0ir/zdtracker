@@ -157,6 +157,42 @@ export const removeMemberFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------- Equity ----------
+export const setMemberEquityFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        businessId: z.string().uuid(),
+        entries: z
+          .array(
+            z.object({
+              id: z.string().uuid(),
+              equityPercent: z.number().min(0).max(100),
+            }),
+          )
+          .min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const supa = getSupabaseAdmin();
+    const total = data.entries.reduce((a, e) => a + e.equityPercent, 0);
+    if (total > 100.001) throw new Error("Total equity cannot exceed 100%");
+    for (const e of data.entries) {
+      const { error } = await supa
+        .from("business_members")
+        .update({ equity_percent: Math.round(e.equityPercent * 1000) / 1000 })
+        .eq("id", e.id)
+        .eq("business_id", data.businessId);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+
+
 // ---------- Business transactions ----------
 export const listTransactionsFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
