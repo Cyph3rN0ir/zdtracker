@@ -134,7 +134,7 @@ export function PersonalLoans({
       </div>
 
 
-      <BalancesByPerson loans={loans} counterparties={counterparties} tx={tx} currency={currency} />
+      <BalancesByPerson profileId={profileId} loans={loans} counterparties={counterparties} tx={tx} accounts={accounts} currency={currency} onChanged={invalidate} />
 
       <Card>
         <CardHeader>
