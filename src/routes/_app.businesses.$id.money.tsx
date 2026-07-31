@@ -30,14 +30,17 @@ function Money() {
   const add = useServerFn(addTransactionFn);
   const del = useServerFn(deleteTransactionFn);
   const listMembers = useServerFn(listMembersFn);
+  const listAccounts = useServerFn(listBusinessAccountsFn);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["btx", id], queryFn: () => list({ data: { businessId: id } }) });
   const members = useQuery({ queryKey: ["members", id], queryFn: () => listMembers({ data: { businessId: id } }) });
+  const accounts = useQuery({ queryKey: ["baccountsList", id], queryFn: () => listAccounts({ data: { businessId: id } }) });
 
   const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState<{ kind: Kind; amount: string; partyUserId: string; note: string; occurredOn: string }>({
-    kind: "investment", amount: "", partyUserId: "", note: "", occurredOn: today,
+  const [form, setForm] = useState<{ kind: Kind; amount: string; partyUserId: string; accountId: string; note: string; occurredOn: string }>({
+    kind: "investment", amount: "", partyUserId: "", accountId: "", note: "", occurredOn: today,
   });
+
   const [formErr, setFormErr] = useState<string | null>(null);
   const m = useMutation({
     mutationFn: () =>
