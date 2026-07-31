@@ -1066,3 +1066,164 @@ export const updatePersonalTxFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// =====================================================================
+// Business accounts — asset buckets (cash / bank / wallet …)
+// =====================================================================
+
+async function assertBusinessAccess(businessId: string) {
+  const me = await requireSession();
+  const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+  const supa = getSupabaseAdmin();
+  if (me.role !== "admin") {
+    const { data: mem } = await supa
+      .from("business_members")
+      .select("id")
+      .eq("business_id", businessId)
+      .eq("user_id", me.userId!)
+      .maybeSingle();
+    if (!mem) throw new Error("Not found");
+  }
+  return { me, supa };
+}
+
+export const listBusinessAccountsFn = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { supa } = await assertBusinessAccess(data.businessId);
+    const { data: rows, error } = await supa
+      .from("business_accounts")
+      .select("id, name, type, opening_balance, currency, archived, created_at")
+      .eq("business_id", data.businessId)
+      .order("archived")
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+// Per-account balance = opening + inflows − outflows (+/− transfers).
+export const businessAccountBalancesFn = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { supa } = await assertBusinessAccess(data.businessId);
+    const [{ data: accts, error: ae }, { data: tx, error: te }] = await Promise.all([
+      supa
+        .from("business_accounts")
+        .select("id, name, type, opening_balance, currency, archived, created_at")
+        .eq("business_id", data.businessId)
+        .order("archived")
+        .order("created_at", { ascending: true }),
+      supa
+        .from("business_transactions")
+        .select("kind, amount, account_id, transfer_account_id")
+        .eq("business_id", data.businessId),
+    ]);
+    if (ae) throw new Error(ae.message);
+    if (te) throw new Error(te.message);
+
+    const bal = new Map<string, number>();
+    for (const a of accts ?? []) bal.set(a.id, Number(a.opening_balance ?? 0));
+    let unassigned = 0;
+    for (const t of tx ?? []) {
+      const amt = Number(t.amount ?? 0);
+      if (t.kind === "transfer") {
+        if (t.account_id && bal.has(t.account_id)) bal.set(t.account_id, bal.get(t.account_id)! - amt);
+        if (t.transfer_account_id && bal.has(t.transfer_account_id))
+          bal.set(t.transfer_account_id, bal.get(t.transfer_account_id)! + amt);
+        continue;
+      }
+      const sign = t.kind === "investment" || t.kind === "earning" ? 1 : -1;
+      if (t.account_id && bal.has(t.account_id)) {
+        bal.set(t.account_id, bal.get(t.account_id)! + sign * amt);
+      } else {
+        unassigned += sign * amt;
+      }
+    }
+
+    const accounts = (accts ?? []).map((a) => ({ ...a, balance: Math.round((bal.get(a.id) ?? 0) * 100) / 100 }));
+    const total = accounts
+      .filter((a) => !a.archived)
+      .reduce((s, a) => s + a.balance, 0);
+    return {
+      accounts,
+      total: Math.round(total * 100) / 100,
+      unassigned: Math.round(unassigned * 100) / 100,
+    };
+  });
+
+export const upsertBusinessAccountFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      businessId: z.string().uuid(),
+      name: z.string().trim().min(1).max(80),
+      type: z.enum(["cash", "bank", "wallet", "card", "investment", "savings", "other"]),
+      openingBalance: z.number().default(0),
+      currency: z.string().trim().min(1).max(8).default("BDT"),
+      archived: z.boolean().default(false),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const me = await requireAdmin();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const supa = getSupabaseAdmin();
+    const payload = {
+      business_id: data.businessId,
+      name: data.name,
+      type: data.type,
+      opening_balance: data.openingBalance,
+      currency: data.currency,
+      archived: data.archived,
+    };
+    const q = data.id
+      ? supa.from("business_accounts").update(payload).eq("id", data.id).eq("business_id", data.businessId)
+      : supa.from("business_accounts").insert({ ...payload, created_by: me.userId });
+    const { error } = await q;
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteBusinessAccountFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), businessId: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const { error } = await getSupabaseAdmin()
+      .from("business_accounts")
+      .delete()
+      .eq("id", data.id)
+      .eq("business_id", data.businessId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Move money between two accounts of the same business (net zero).
+export const transferBusinessFundsFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({
+      businessId: z.string().uuid(),
+      fromAccountId: z.string().uuid(),
+      toAccountId: z.string().uuid(),
+      amount: z.number().positive(),
+      note: z.string().max(500).default(""),
+      occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    if (data.fromAccountId === data.toAccountId) throw new Error("Pick two different accounts");
+    await requireAdmin();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const { error } = await getSupabaseAdmin().from("business_transactions").insert({
+      business_id: data.businessId,
+      kind: "transfer",
+      amount: data.amount,
+      note: data.note,
+      occurred_on: data.occurredOn,
+      account_id: data.fromAccountId,
+      transfer_account_id: data.toAccountId,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
