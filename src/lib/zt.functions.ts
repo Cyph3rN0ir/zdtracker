@@ -1154,13 +1154,17 @@ export const listBusinessAccountsFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supa } = await assertBusinessAccess(data.businessId);
+    const { isMissingSchema } = await import("@/lib/supabase.server");
     const { data: rows, error } = await supa
       .from("business_accounts")
       .select("id, name, type, opening_balance, currency, archived, created_at")
       .eq("business_id", data.businessId)
       .order("archived")
       .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (isMissingSchema(error)) return [];
+      throw new Error(error.message);
+    }
     return rows ?? [];
   });
 
@@ -1169,25 +1173,41 @@ export const businessAccountBalancesFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supa } = await assertBusinessAccess(data.businessId);
-    const [{ data: accts, error: ae }, { data: tx, error: te }] = await Promise.all([
-      supa
-        .from("business_accounts")
-        .select("id, name, type, opening_balance, currency, archived, created_at")
-        .eq("business_id", data.businessId)
-        .order("archived")
-        .order("created_at", { ascending: true }),
-      supa
+    const { isMissingSchema } = await import("@/lib/supabase.server");
+    const acctRes = await supa
+      .from("business_accounts")
+      .select("id, name, type, opening_balance, currency, archived, created_at")
+      .eq("business_id", data.businessId)
+      .order("archived")
+      .order("created_at", { ascending: true });
+
+    // Accounts feature not migrated yet: report the pending state instead of
+    // failing the whole business page.
+    if (acctRes.error) {
+      if (isMissingSchema(acctRes.error)) {
+        return { accounts: [], total: 0, unassigned: 0, schemaPending: true };
+      }
+      throw new Error(acctRes.error.message);
+    }
+
+    let txRes: { data: any[] | null; error: any } = await supa
+      .from("business_transactions")
+      .select("kind, amount, account_id, transfer_account_id")
+      .eq("business_id", data.businessId);
+    if (txRes.error && isMissingSchema(txRes.error)) {
+      txRes = await supa
         .from("business_transactions")
-        .select("kind, amount, account_id, transfer_account_id")
-        .eq("business_id", data.businessId),
-    ]);
-    if (ae) throw new Error(ae.message);
-    if (te) throw new Error(te.message);
+        .select("kind, amount")
+        .eq("business_id", data.businessId);
+    }
+    if (txRes.error) throw new Error(txRes.error.message);
+    const accts = acctRes.data ?? [];
+    const tx = txRes.data ?? [];
 
     const bal = new Map<string, number>();
-    for (const a of accts ?? []) bal.set(a.id, Number(a.opening_balance ?? 0));
+    for (const a of accts) bal.set(a.id, Number(a.opening_balance ?? 0));
     let unassigned = 0;
-    for (const t of tx ?? []) {
+    for (const t of tx) {
       const amt = Number(t.amount ?? 0);
       if (t.kind === "transfer") {
         if (t.account_id && bal.has(t.account_id)) bal.set(t.account_id, bal.get(t.account_id)! - amt);
@@ -1203,7 +1223,7 @@ export const businessAccountBalancesFn = createServerFn({ method: "GET" })
       }
     }
 
-    const accounts = (accts ?? []).map((a) => ({ ...a, balance: Math.round((bal.get(a.id) ?? 0) * 100) / 100 }));
+    const accounts = accts.map((a) => ({ ...a, balance: Math.round((bal.get(a.id) ?? 0) * 100) / 100 }));
     const total = accounts
       .filter((a) => !a.archived)
       .reduce((s, a) => s + a.balance, 0);
@@ -1211,6 +1231,7 @@ export const businessAccountBalancesFn = createServerFn({ method: "GET" })
       accounts,
       total: Math.round(total * 100) / 100,
       unassigned: Math.round(unassigned * 100) / 100,
+      schemaPending: false,
     };
   });
 
