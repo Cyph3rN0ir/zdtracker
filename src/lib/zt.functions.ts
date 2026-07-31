@@ -181,7 +181,7 @@ export const setMemberEquityFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     await requireAdmin();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
     const total = data.entries.reduce((a, e) => a + e.equityPercent, 0);
     if (total > 100.001) throw new Error("Total equity cannot exceed 100%");
@@ -191,7 +191,11 @@ export const setMemberEquityFn = createServerFn({ method: "POST" })
         .update({ equity_percent: Math.round(e.equityPercent * 1000) / 1000 })
         .eq("id", e.id)
         .eq("business_id", data.businessId);
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (isMissingSchema(error))
+          throw new Error("Equity setup is pending: run SUPABASE_BUSINESS_EQUITY.sql in Supabase first.");
+        throw new Error(error.message);
+      }
     }
     return { ok: true };
   });
