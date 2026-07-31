@@ -104,13 +104,18 @@ export const listMembersFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     await requireSession();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
-    const { data: mems, error } = await supa
-      .from("business_members")
-      .select("id, user_id, role_in_business, equity_percent, created_at")
-      .eq("business_id", data.businessId)
-      .order("created_at", { ascending: true });
+    const base = "id, user_id, role_in_business, created_at";
+    const run = (cols: string) =>
+      supa
+        .from("business_members")
+        .select(cols)
+        .eq("business_id", data.businessId)
+        .order("created_at", { ascending: true });
+    let res: { data: any[] | null; error: any } = await run(`${base}, equity_percent`);
+    if (res.error && isMissingSchema(res.error)) res = await run(base);
+    const { data: mems, error } = res;
     if (error) throw new Error(error.message);
     const ids = Array.from(new Set((mems ?? []).map((m) => m.user_id)));
     let usersById: Record<string, { username: string; display_name: string; role: string }> = {};
@@ -176,7 +181,7 @@ export const setMemberEquityFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     await requireAdmin();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
     const total = data.entries.reduce((a, e) => a + e.equityPercent, 0);
     if (total > 100.001) throw new Error("Total equity cannot exceed 100%");
@@ -186,7 +191,11 @@ export const setMemberEquityFn = createServerFn({ method: "POST" })
         .update({ equity_percent: Math.round(e.equityPercent * 1000) / 1000 })
         .eq("id", e.id)
         .eq("business_id", data.businessId);
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (isMissingSchema(error))
+          throw new Error("Equity setup is pending: run SUPABASE_BUSINESS_EQUITY.sql in Supabase first.");
+        throw new Error(error.message);
+      }
     }
     return { ok: true };
   });
@@ -198,15 +207,21 @@ export const listTransactionsFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     await requireSession();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
-    const { data: tx, error } = await supa
-      .from("business_transactions")
-      .select("id, kind, amount, party_user_id, note, occurred_on, created_at, account_id, transfer_account_id")
-
-      .eq("business_id", data.businessId)
-      .order("occurred_on", { ascending: false })
-      .order("created_at", { ascending: false });
+    const base = "id, kind, amount, party_user_id, note, occurred_on, created_at";
+    const run = (cols: string) =>
+      supa
+        .from("business_transactions")
+        .select(cols)
+        .eq("business_id", data.businessId)
+        .order("occurred_on", { ascending: false })
+        .order("created_at", { ascending: false });
+    let res: { data: any[] | null; error: any } = await run(
+      `${base}, account_id, transfer_account_id`,
+    );
+    if (res.error && isMissingSchema(res.error)) res = await run(base);
+    const { data: tx, error } = res;
     if (error) throw new Error(error.message);
     const ids = Array.from(new Set((tx ?? []).map((t) => t.party_user_id).filter(Boolean) as string[]));
     let usersById: Record<string, { username: string; display_name: string }> = {};
@@ -214,7 +229,12 @@ export const listTransactionsFn = createServerFn({ method: "GET" })
       const { data: us } = await supa.from("app_users").select("id, username, display_name").in("id", ids);
       usersById = Object.fromEntries((us ?? []).map((u) => [u.id, u]));
     }
-    return (tx ?? []).map((t) => ({ ...t, party: t.party_user_id ? usersById[t.party_user_id] ?? null : null }));
+    return (tx ?? []).map((t) => ({
+      account_id: null,
+      transfer_account_id: null,
+      ...t,
+      party: t.party_user_id ? usersById[t.party_user_id] ?? null : null,
+    }));
   });
 
 export const addTransactionFn = createServerFn({ method: "POST" })
@@ -233,16 +253,23 @@ export const addTransactionFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     await requireAdmin();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-    const { error } = await getSupabaseAdmin().from("business_transactions").insert({
+    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
+    const supa = getSupabaseAdmin();
+    const row: Record<string, unknown> = {
       business_id: data.businessId,
       kind: data.kind,
       amount: data.amount,
       party_user_id: data.partyUserId ?? null,
-      account_id: data.accountId ?? null,
       note: data.note,
       occurred_on: data.occurredOn,
-    });
+    };
+    let { error } = await supa
+      .from("business_transactions")
+      .insert({ ...row, account_id: data.accountId ?? null });
+    if (error && isMissingSchema(error)) {
+      // Accounts migration not applied yet — still record the entry.
+      ({ error } = await supa.from("business_transactions").insert(row));
+    }
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -1131,13 +1158,17 @@ export const listBusinessAccountsFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supa } = await assertBusinessAccess(data.businessId);
+    const { isMissingSchema } = await import("@/lib/supabase.server");
     const { data: rows, error } = await supa
       .from("business_accounts")
       .select("id, name, type, opening_balance, currency, archived, created_at")
       .eq("business_id", data.businessId)
       .order("archived")
       .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (isMissingSchema(error)) return [];
+      throw new Error(error.message);
+    }
     return rows ?? [];
   });
 
@@ -1146,25 +1177,41 @@ export const businessAccountBalancesFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supa } = await assertBusinessAccess(data.businessId);
-    const [{ data: accts, error: ae }, { data: tx, error: te }] = await Promise.all([
-      supa
-        .from("business_accounts")
-        .select("id, name, type, opening_balance, currency, archived, created_at")
-        .eq("business_id", data.businessId)
-        .order("archived")
-        .order("created_at", { ascending: true }),
-      supa
+    const { isMissingSchema } = await import("@/lib/supabase.server");
+    const acctRes = await supa
+      .from("business_accounts")
+      .select("id, name, type, opening_balance, currency, archived, created_at")
+      .eq("business_id", data.businessId)
+      .order("archived")
+      .order("created_at", { ascending: true });
+
+    // Accounts feature not migrated yet: report the pending state instead of
+    // failing the whole business page.
+    if (acctRes.error) {
+      if (isMissingSchema(acctRes.error)) {
+        return { accounts: [], total: 0, unassigned: 0, schemaPending: true };
+      }
+      throw new Error(acctRes.error.message);
+    }
+
+    let txRes: { data: any[] | null; error: any } = await supa
+      .from("business_transactions")
+      .select("kind, amount, account_id, transfer_account_id")
+      .eq("business_id", data.businessId);
+    if (txRes.error && isMissingSchema(txRes.error)) {
+      txRes = await supa
         .from("business_transactions")
-        .select("kind, amount, account_id, transfer_account_id")
-        .eq("business_id", data.businessId),
-    ]);
-    if (ae) throw new Error(ae.message);
-    if (te) throw new Error(te.message);
+        .select("kind, amount")
+        .eq("business_id", data.businessId);
+    }
+    if (txRes.error) throw new Error(txRes.error.message);
+    const accts = acctRes.data ?? [];
+    const tx = txRes.data ?? [];
 
     const bal = new Map<string, number>();
-    for (const a of accts ?? []) bal.set(a.id, Number(a.opening_balance ?? 0));
+    for (const a of accts) bal.set(a.id, Number(a.opening_balance ?? 0));
     let unassigned = 0;
-    for (const t of tx ?? []) {
+    for (const t of tx) {
       const amt = Number(t.amount ?? 0);
       if (t.kind === "transfer") {
         if (t.account_id && bal.has(t.account_id)) bal.set(t.account_id, bal.get(t.account_id)! - amt);
@@ -1180,7 +1227,7 @@ export const businessAccountBalancesFn = createServerFn({ method: "GET" })
       }
     }
 
-    const accounts = (accts ?? []).map((a) => ({ ...a, balance: Math.round((bal.get(a.id) ?? 0) * 100) / 100 }));
+    const accounts = accts.map((a) => ({ ...a, balance: Math.round((bal.get(a.id) ?? 0) * 100) / 100 }));
     const total = accounts
       .filter((a) => !a.archived)
       .reduce((s, a) => s + a.balance, 0);
@@ -1188,6 +1235,7 @@ export const businessAccountBalancesFn = createServerFn({ method: "GET" })
       accounts,
       total: Math.round(total * 100) / 100,
       unassigned: Math.round(unassigned * 100) / 100,
+      schemaPending: false,
     };
   });
 
@@ -1219,7 +1267,12 @@ export const upsertBusinessAccountFn = createServerFn({ method: "POST" })
       ? supa.from("business_accounts").update(payload).eq("id", data.id).eq("business_id", data.businessId)
       : supa.from("business_accounts").insert({ ...payload, created_by: me.userId });
     const { error } = await q;
-    if (error) throw new Error(error.message);
+    if (error) {
+      const { isMissingSchema } = await import("@/lib/supabase.server");
+      if (isMissingSchema(error))
+        throw new Error("Accounts setup is pending: run SUPABASE_BUSINESS_ACCOUNTS.sql in Supabase first.");
+      throw new Error(error.message);
+    }
     return { ok: true };
   });
 
@@ -1264,6 +1317,11 @@ export const transferBusinessFundsFn = createServerFn({ method: "POST" })
       account_id: data.fromAccountId,
       transfer_account_id: data.toAccountId,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      const { isMissingSchema } = await import("@/lib/supabase.server");
+      if (isMissingSchema(error))
+        throw new Error("Accounts setup is pending: run SUPABASE_BUSINESS_ACCOUNTS.sql in Supabase first.");
+      throw new Error(error.message);
+    }
     return { ok: true };
   });

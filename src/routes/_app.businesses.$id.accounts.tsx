@@ -193,6 +193,15 @@ function Accounts() {
         )}
       </SectionCard>
 
+      {q.data?.schemaPending && (
+        <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+          {t(
+            "bacct.pending",
+            "Accounts setup is pending — run SUPABASE_BUSINESS_ACCOUNTS.sql in Supabase to enable this tab.",
+          )}
+        </p>
+      )}
+
       {q.isError && !q.data && !q.isFetching && <ErrorBox error={q.error} />}
 
       {accounts.length === 0 && !q.isLoading ? (
