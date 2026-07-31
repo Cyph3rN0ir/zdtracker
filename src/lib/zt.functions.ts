@@ -107,18 +107,14 @@ export const listMembersFn = createServerFn({ method: "GET" })
     const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
     const base = "id, user_id, role_in_business, created_at";
-    let res = await supa
-      .from("business_members")
-      .select(`${base}, equity_percent`)
-      .eq("business_id", data.businessId)
-      .order("created_at", { ascending: true });
-    if (res.error && isMissingSchema(res.error)) {
-      res = await supa
+    const run = (cols: string) =>
+      supa
         .from("business_members")
-        .select(base)
+        .select(cols)
         .eq("business_id", data.businessId)
         .order("created_at", { ascending: true });
-    }
+    let res: { data: any[] | null; error: any } = await run(`${base}, equity_percent`);
+    if (res.error && isMissingSchema(res.error)) res = await run(base);
     const { data: mems, error } = res;
     if (error) throw new Error(error.message);
     const ids = Array.from(new Set((mems ?? []).map((m) => m.user_id)));
