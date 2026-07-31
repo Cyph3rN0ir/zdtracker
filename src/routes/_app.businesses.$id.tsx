@@ -130,7 +130,7 @@ function BusinessLayout() {
           )}
         </div>
         <Tabs value={active}>
-          <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsList className="no-scrollbar w-full max-w-full justify-start overflow-x-auto overscroll-x-contain">
             {TABS.map((t) => (
               <TabsTrigger key={t.key} value={t.key} asChild>
                 <Link to={t.to} params={{ id }}>{t.label}</Link>
