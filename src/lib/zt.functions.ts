@@ -189,6 +189,7 @@ export const addTransactionFn = createServerFn({ method: "POST" })
         kind: z.enum(["investment", "earning", "expense", "profit_distribution"]),
         amount: z.number().nonnegative(),
         partyUserId: z.string().uuid().nullable().optional(),
+        accountId: z.string().uuid().nullable().optional(),
         note: z.string().max(500).default(""),
         occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       })
@@ -202,12 +203,14 @@ export const addTransactionFn = createServerFn({ method: "POST" })
       kind: data.kind,
       amount: data.amount,
       party_user_id: data.partyUserId ?? null,
+      account_id: data.accountId ?? null,
       note: data.note,
       occurred_on: data.occurredOn,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
 
 export const deleteTransactionFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
