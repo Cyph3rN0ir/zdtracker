@@ -363,6 +363,99 @@
   --sidebar-ring: #B6D733;
 }
 
+/* Paper — pure white, near-black ink, editorial minimal */
+[data-theme="paper"] {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.18 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0 0);
+  --primary: oklch(0.22 0 0);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.965 0 0);
+  --secondary-foreground: oklch(0.25 0 0);
+  --muted: oklch(0.968 0 0);
+  --muted-foreground: oklch(0.52 0 0);
+  --accent: oklch(0.945 0 0);
+  --accent-foreground: oklch(0.22 0 0);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.912 0 0);
+  --input: oklch(0.912 0 0);
+  --ring: oklch(0.22 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.2 0 0);
+  --sidebar-primary: oklch(0.22 0 0);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.945 0 0);
+  --sidebar-accent-foreground: oklch(0.22 0 0);
+  --sidebar-border: oklch(0.912 0 0);
+  --sidebar-ring: oklch(0.22 0 0);
+}
+
+/* Porcelain — cool white with slate-blue accent */
+[data-theme="porcelain"] {
+  --background: oklch(0.995 0.003 250);
+  --foreground: oklch(0.22 0.02 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.02 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.02 255);
+  --primary: oklch(0.48 0.09 255);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --secondary: oklch(0.965 0.008 250);
+  --secondary-foreground: oklch(0.28 0.03 255);
+  --muted: oklch(0.968 0.006 250);
+  --muted-foreground: oklch(0.52 0.02 255);
+  --accent: oklch(0.94 0.02 250);
+  --accent-foreground: oklch(0.3 0.04 255);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.908 0.008 250);
+  --input: oklch(0.908 0.008 250);
+  --ring: oklch(0.48 0.09 255);
+  --sidebar: oklch(0.978 0.006 250);
+  --sidebar-foreground: oklch(0.24 0.02 255);
+  --sidebar-primary: oklch(0.48 0.09 255);
+  --sidebar-primary-foreground: oklch(0.99 0.005 250);
+  --sidebar-accent: oklch(0.94 0.02 250);
+  --sidebar-accent-foreground: oklch(0.3 0.04 255);
+  --sidebar-border: oklch(0.908 0.008 250);
+  --sidebar-ring: oklch(0.48 0.09 255);
+}
+
+/* Ivory — warm off-white with muted terracotta accent */
+[data-theme="ivory"] {
+  --background: oklch(0.993 0.006 85);
+  --foreground: oklch(0.22 0.012 60);
+  --card: oklch(1 0.003 85);
+  --card-foreground: oklch(0.22 0.012 60);
+  --popover: oklch(1 0.003 85);
+  --popover-foreground: oklch(0.22 0.012 60);
+  --primary: oklch(0.52 0.11 45);
+  --primary-foreground: oklch(0.99 0.005 85);
+  --secondary: oklch(0.965 0.012 85);
+  --secondary-foreground: oklch(0.28 0.02 60);
+  --muted: oklch(0.968 0.01 85);
+  --muted-foreground: oklch(0.53 0.02 60);
+  --accent: oklch(0.94 0.025 70);
+  --accent-foreground: oklch(0.3 0.03 55);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.905 0.012 80);
+  --input: oklch(0.905 0.012 80);
+  --ring: oklch(0.52 0.11 45);
+  --sidebar: oklch(0.978 0.01 85);
+  --sidebar-foreground: oklch(0.24 0.015 60);
+  --sidebar-primary: oklch(0.52 0.11 45);
+  --sidebar-primary-foreground: oklch(0.99 0.005 85);
+  --sidebar-accent: oklch(0.94 0.025 70);
+  --sidebar-accent-foreground: oklch(0.3 0.03 55);
+  --sidebar-border: oklch(0.905 0.012 80);
+  --sidebar-ring: oklch(0.52 0.11 45);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
