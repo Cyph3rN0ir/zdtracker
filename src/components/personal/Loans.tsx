@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  upsertPersonalLoanFn, deletePersonalLoanFn, addPersonalTxExFn,
+  upsertPersonalLoanFn, deletePersonalLoanFn, addPersonalTxExFn, settlePersonalLoansFn,
 } from "@/lib/zt.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -134,7 +134,7 @@ export function PersonalLoans({
       </div>
 
 
-      <BalancesByPerson loans={loans} counterparties={counterparties} tx={tx} currency={currency} />
+      <BalancesByPerson profileId={profileId} loans={loans} counterparties={counterparties} tx={tx} accounts={accounts} currency={currency} onChanged={invalidate} />
 
       <Card>
         <CardHeader>
@@ -433,9 +433,10 @@ type PerCp = {
 };
 
 function BalancesByPerson({
-  loans, counterparties, tx, currency,
+  profileId, loans, counterparties, tx, accounts, currency, onChanged,
 }: {
-  loans: Loan[]; counterparties: Cp[]; tx: TxRow[]; currency: string;
+  profileId: string; loans: Loan[]; counterparties: Cp[]; tx: TxRow[];
+  accounts: Account[]; currency: string; onChanged: () => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -605,6 +606,35 @@ function BalancesByPerson({
                 </div>
               </div>
 
+              {(active.iOweNet > 0 || active.owedToMeNet > 0) && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {active.iOweNet > 0 && (
+                    <SettleUpDialog
+                      profileId={profileId}
+                      direction="i_owe"
+                      counterpartyId={active.id === "__unassigned__" ? null : active.id}
+                      personName={active.name}
+                      outstanding={active.iOweNet}
+                      accounts={accounts}
+                      currency={currency}
+                      onDone={onChanged}
+                    />
+                  )}
+                  {active.owedToMeNet > 0 && (
+                    <SettleUpDialog
+                      profileId={profileId}
+                      direction="owed_to_me"
+                      counterpartyId={active.id === "__unassigned__" ? null : active.id}
+                      personName={active.name}
+                      outstanding={active.owedToMeNet}
+                      accounts={accounts}
+                      currency={currency}
+                      onDone={onChanged}
+                    />
+                  )}
+                </div>
+              )}
+
 
               <div className="space-y-2">
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">History</div>
@@ -648,4 +678,112 @@ function BalancesByPerson({
   );
 }
 
+function SettleUpDialog({
+  profileId, direction, counterpartyId, personName, outstanding, accounts, currency, onDone,
+}: {
+  profileId: string;
+  direction: "i_owe" | "owed_to_me";
+  counterpartyId: string | null;
+  personName: string;
+  outstanding: number;
+  accounts: Account[];
+  currency: string;
+  onDone: () => void;
+}) {
+  const settle = useServerFn(settlePersonalLoansFn);
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState(String(outstanding.toFixed(2)));
+  const [accountId, setAccountId] = useState("");
+  const [occurredOn, setOccurredOn] = useState(todayISO());
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const iOwe = direction === "i_owe";
+  const amt = Number(amount) || 0;
+  const over = amt > outstanding + 0.004;
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res: any = await settle({
+        data: {
+          profileId, direction, counterpartyId,
+          amount: Math.min(amt, outstanding),
+          occurredOn,
+          accountId: accountId || null,
+          note: note || (iOwe ? `Bulk repayment to ${personName}` : `Bulk repayment from ${personName}`),
+        },
+      });
+      toast.success(
+        `Settled ${fmtMoney(res?.applied ?? amt, currency)} across ${res?.loansPaid ?? 0} loan(s)` +
+        (res?.loansClosed ? ` — ${res.loansClosed} closed` : ""),
+      );
+      onDone();
+      setOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to settle");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setAmount(outstanding.toFixed(2)); }}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant={iOwe ? "default" : "secondary"} className="flex-1 min-w-0">
+          <HandCoins className="h-3.5 w-3.5" />
+          <span className="truncate">{iOwe ? "Pay off" : "Collect"} {fmtMoney(outstanding, currency)}</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-md max-h-[90dvh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="text-left">
+          <DialogTitle>{iOwe ? "Pay off" : "Collect from"} {personName}</DialogTitle>
+          <DialogDescription>
+            One amount spread across all open loans, oldest first. Fully repaid loans close automatically.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5 col-span-2">
+            <div className="flex items-center justify-between">
+              <Label>Amount</Label>
+              <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs"
+                onClick={() => setAmount(outstanding.toFixed(2))}>
+                Full {fmtMoney(outstanding, currency)}
+              </Button>
+            </div>
+            <Input type="number" step="0.01" min="0" className="text-right font-mono text-base"
+              value={amount} onChange={(e) => setAmount(e.target.value)} />
+            {over && (
+              <div className="text-[11px] text-amber-600 dark:text-amber-400">
+                Higher than outstanding — only {fmtMoney(outstanding, currency)} will be applied.
+              </div>
+            )}
+          </div>
+          <div className="space-y-1.5 col-span-2 sm:col-span-1">
+            <Label>Date</Label>
+            <Input type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} />
+          </div>
+          <div className="space-y-1.5 col-span-2 sm:col-span-1">
+            <Label>Account</Label>
+            <Select value={accountId || NONE} onValueChange={(v) => setAccountId(v === NONE ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>—</SelectItem>
+                {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <Label>Note</Label>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" />
+          </div>
+        </div>
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button disabled={busy || !(amt > 0)} onClick={run}>
+            {busy ? "Saving…" : `Settle ${fmtMoney(Math.min(amt, outstanding), currency)}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 

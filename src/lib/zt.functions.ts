@@ -813,6 +813,102 @@ export const deletePersonalLoanFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Bulk repayment: pay one lump sum against every open loan with a person in a
+// given direction. Allocates oldest-first, writes one linked repayment tx per
+// loan, and auto-closes loans that reach zero outstanding.
+export const settlePersonalLoansFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({
+      profileId: z.string().uuid(),
+      direction: z.enum(["i_owe", "owed_to_me"]),
+      counterpartyId: z.string().uuid().nullable(),
+      amount: z.number().positive(),
+      occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      accountId: z.string().uuid().nullable().optional(),
+      note: z.string().max(500).default(""),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { me, supa } = await assertProfileOwner(data.profileId);
+
+    let lq = supa
+      .from("personal_loans")
+      .select("id, principal, started_on")
+      .eq("profile_id", data.profileId)
+      .eq("direction", data.direction)
+      .eq("status", "open")
+      .order("started_on", { ascending: true });
+    lq = data.counterpartyId
+      ? lq.eq("counterparty_id", data.counterpartyId)
+      : lq.is("counterparty_id", null);
+    const { data: loans, error: le } = await lq;
+    if (le) throw new Error(le.message);
+    if (!loans || loans.length === 0) throw new Error("No open loans to settle");
+
+    const ids = loans.map((l) => l.id);
+    const { data: reps, error: re } = await supa
+      .from("personal_transactions")
+      .select("linked_loan_id, amount, kind")
+      .eq("profile_id", data.profileId)
+      .in("linked_loan_id", ids);
+    if (re) throw new Error(re.message);
+
+    const repaid = new Map<string, number>();
+    for (const t of reps ?? []) {
+      if (t.kind !== "repayment_in" && t.kind !== "repayment_out") continue;
+      if (!t.linked_loan_id) continue;
+      repaid.set(t.linked_loan_id, (repaid.get(t.linked_loan_id) ?? 0) + Number(t.amount));
+    }
+
+    const kind = data.direction === "i_owe" ? "repayment_out" : "repayment_in";
+    let remaining = Math.round(data.amount * 100) / 100;
+    const rows: Record<string, unknown>[] = [];
+    const closeIds: string[] = [];
+
+    for (const l of loans) {
+      if (remaining <= 0.004) break;
+      const outstanding = Math.max(0, Number(l.principal) - (repaid.get(l.id) ?? 0));
+      if (outstanding <= 0.004) { closeIds.push(l.id); continue; }
+      const pay = Math.round(Math.min(outstanding, remaining) * 100) / 100;
+      remaining = Math.round((remaining - pay) * 100) / 100;
+      rows.push({
+        owner_user_id: me.userId,
+        profile_id: data.profileId,
+        kind,
+        amount: pay,
+        note: data.note || "Bulk repayment",
+        occurred_on: data.occurredOn,
+        account_id: data.accountId ?? null,
+        counterparty_id: data.counterpartyId ?? null,
+        linked_loan_id: l.id,
+      });
+      if (outstanding - pay <= 0.004) closeIds.push(l.id);
+    }
+
+    if (rows.length === 0) throw new Error("Nothing outstanding to settle");
+
+    const { error: ie } = await supa.from("personal_transactions").insert(rows);
+    if (ie) throw new Error(ie.message);
+
+    if (closeIds.length > 0) {
+      const { error: ue } = await supa
+        .from("personal_loans")
+        .update({ status: "closed" })
+        .in("id", closeIds)
+        .eq("owner_user_id", me.userId!);
+      if (ue) throw new Error(ue.message);
+    }
+
+    return {
+      ok: true,
+      loansPaid: rows.length,
+      loansClosed: closeIds.length,
+      applied: Math.round((data.amount - remaining) * 100) / 100,
+      unapplied: remaining,
+    };
+  });
+
+
 // ---------- Budgets ----------
 export const listPersonalBudgetsFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ profileId: z.string().uuid() }).parse(d))
