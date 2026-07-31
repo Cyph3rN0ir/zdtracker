@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { addTransactionFn, deleteTransactionFn, listMembersFn, listTransactionsFn } from "@/lib/zt.functions";
+import { addTransactionFn, deleteTransactionFn, listBusinessAccountsFn, listMembersFn, listTransactionsFn } from "@/lib/zt.functions";
 import { ErrorBox } from "@/components/ErrorBox";
 import { fmt } from "@/lib/personal-finance";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,21 +30,25 @@ function Money() {
   const add = useServerFn(addTransactionFn);
   const del = useServerFn(deleteTransactionFn);
   const listMembers = useServerFn(listMembersFn);
+  const listAccounts = useServerFn(listBusinessAccountsFn);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["btx", id], queryFn: () => list({ data: { businessId: id } }) });
   const members = useQuery({ queryKey: ["members", id], queryFn: () => listMembers({ data: { businessId: id } }) });
+  const accounts = useQuery({ queryKey: ["baccountsList", id], queryFn: () => listAccounts({ data: { businessId: id } }) });
 
   const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState<{ kind: Kind; amount: string; partyUserId: string; note: string; occurredOn: string }>({
-    kind: "investment", amount: "", partyUserId: "", note: "", occurredOn: today,
+  const [form, setForm] = useState<{ kind: Kind; amount: string; partyUserId: string; accountId: string; note: string; occurredOn: string }>({
+    kind: "investment", amount: "", partyUserId: "", accountId: "", note: "", occurredOn: today,
   });
+
   const [formErr, setFormErr] = useState<string | null>(null);
   const m = useMutation({
     mutationFn: () =>
       add({
         data: {
           businessId: id, kind: form.kind, amount: Number(form.amount),
-          partyUserId: form.partyUserId || null, note: form.note, occurredOn: form.occurredOn,
+          partyUserId: form.partyUserId || null, accountId: form.accountId || null,
+          note: form.note, occurredOn: form.occurredOn,
         },
       }),
     onSuccess: () => {
@@ -52,6 +56,8 @@ function Money() {
       setForm({ ...form, amount: "", note: "" });
       setFormErr(null);
       qc.invalidateQueries({ queryKey: ["btx", id] });
+      qc.invalidateQueries({ queryKey: ["baccounts", id] });
+
     },
     onError: (e: any) => {
       const msg = e?.message ?? t("money.toast.failed");
@@ -61,7 +67,7 @@ function Money() {
   });
   const dm = useMutation({
     mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => { toast.success(t("money.toast.deleted")); qc.invalidateQueries({ queryKey: ["btx", id] }); },
+    onSuccess: () => { toast.success(t("money.toast.deleted")); qc.invalidateQueries({ queryKey: ["btx", id] }); qc.invalidateQueries({ queryKey: ["baccounts", id] }); },
     onError: (e: any) => toast.error(e?.message ?? t("money.toast.deleteFailed")),
   });
 
@@ -106,10 +112,23 @@ function Money() {
                 <Input type="number" step="0.01" min="0" required className="text-right font-mono tabular-nums"
                   value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
               </div>
-              <div className="space-y-1.5 md:col-span-2">
+              <div className="space-y-1.5">
+                <Label>{t("bacct.account", "Account")}</Label>
+                <Select value={form.accountId || "none"} onValueChange={(v) => setForm({ ...form, accountId: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">—</SelectItem>
+                    {(accounts.data ?? []).filter((a: any) => !a.archived).map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
                 <Label>{t("common.note")}</Label>
                 <Input maxLength={500} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
+
               <div className="space-y-1.5">
                 <Label>{t("money.party")}</Label>
                 <Select value={form.partyUserId || "none"} onValueChange={(v) => setForm({ ...form, partyUserId: v === "none" ? "" : v })}>
