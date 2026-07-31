@@ -67,7 +67,7 @@ function Money() {
   });
   const dm = useMutation({
     mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => { toast.success(t("money.toast.deleted")); qc.invalidateQueries({ queryKey: ["btx", id] }); },
+    onSuccess: () => { toast.success(t("money.toast.deleted")); qc.invalidateQueries({ queryKey: ["btx", id] }); qc.invalidateQueries({ queryKey: ["baccounts", id] }); },
     onError: (e: any) => toast.error(e?.message ?? t("money.toast.deleteFailed")),
   });
 
