@@ -166,7 +166,8 @@ export const listTransactionsFn = createServerFn({ method: "GET" })
     const supa = getSupabaseAdmin();
     const { data: tx, error } = await supa
       .from("business_transactions")
-      .select("id, kind, amount, party_user_id, note, occurred_on, created_at")
+      .select("id, kind, amount, party_user_id, note, occurred_on, created_at, account_id, transfer_account_id")
+
       .eq("business_id", data.businessId)
       .order("occurred_on", { ascending: false })
       .order("created_at", { ascending: false });
