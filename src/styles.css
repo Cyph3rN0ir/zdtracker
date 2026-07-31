@@ -564,7 +564,9 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @utility no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  touch-action: pan-x pan-y;
   &::-webkit-scrollbar {
     display: none;
   }
 }
+
