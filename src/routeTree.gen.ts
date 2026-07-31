@@ -35,6 +35,7 @@ import { Route as AppBusinessesIdTasksRouteImport } from './routes/_app.business
 import { Route as AppBusinessesIdProfitRouteImport } from './routes/_app.businesses.$id.profit'
 import { Route as AppBusinessesIdPeopleRouteImport } from './routes/_app.businesses.$id.people'
 import { Route as AppBusinessesIdMoneyRouteImport } from './routes/_app.businesses.$id.money'
+import { Route as AppBusinessesIdAccountsRouteImport } from './routes/_app.businesses.$id.accounts'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -165,6 +166,11 @@ const AppBusinessesIdMoneyRoute = AppBusinessesIdMoneyRouteImport.update({
   path: '/money',
   getParentRoute: () => AppBusinessesIdRoute,
 } as any)
+const AppBusinessesIdAccountsRoute = AppBusinessesIdAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof AppChatIndexRoute
   '/notebook/': typeof AppNotebookIndexRoute
   '/personal/': typeof AppPersonalIndexRoute
+  '/businesses/$id/accounts': typeof AppBusinessesIdAccountsRoute
   '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
   '/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/chat': typeof AppChatIndexRoute
   '/notebook': typeof AppNotebookIndexRoute
   '/personal': typeof AppPersonalIndexRoute
+  '/businesses/$id/accounts': typeof AppBusinessesIdAccountsRoute
   '/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
   '/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/_app/chat/': typeof AppChatIndexRoute
   '/_app/notebook/': typeof AppNotebookIndexRoute
   '/_app/personal/': typeof AppPersonalIndexRoute
+  '/_app/businesses/$id/accounts': typeof AppBusinessesIdAccountsRoute
   '/_app/businesses/$id/money': typeof AppBusinessesIdMoneyRoute
   '/_app/businesses/$id/people': typeof AppBusinessesIdPeopleRoute
   '/_app/businesses/$id/profit': typeof AppBusinessesIdProfitRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/notebook/'
     | '/personal/'
+    | '/businesses/$id/accounts'
     | '/businesses/$id/money'
     | '/businesses/$id/people'
     | '/businesses/$id/profit'
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/notebook'
     | '/personal'
+    | '/businesses/$id/accounts'
     | '/businesses/$id/money'
     | '/businesses/$id/people'
     | '/businesses/$id/profit'
@@ -316,6 +327,7 @@ export interface FileRouteTypes {
     | '/_app/chat/'
     | '/_app/notebook/'
     | '/_app/personal/'
+    | '/_app/businesses/$id/accounts'
     | '/_app/businesses/$id/money'
     | '/_app/businesses/$id/people'
     | '/_app/businesses/$id/profit'
@@ -516,6 +528,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBusinessesIdMoneyRouteImport
       parentRoute: typeof AppBusinessesIdRoute
     }
+    '/_app/businesses/$id/accounts': {
+      id: '/_app/businesses/$id/accounts'
+      path: '/accounts'
+      fullPath: '/businesses/$id/accounts'
+      preLoaderRoute: typeof AppBusinessesIdAccountsRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
   }
 }
 
@@ -569,6 +588,7 @@ const AppPersonalRouteWithChildren = AppPersonalRoute._addFileChildren(
 )
 
 interface AppBusinessesIdRouteChildren {
+  AppBusinessesIdAccountsRoute: typeof AppBusinessesIdAccountsRoute
   AppBusinessesIdMoneyRoute: typeof AppBusinessesIdMoneyRoute
   AppBusinessesIdPeopleRoute: typeof AppBusinessesIdPeopleRoute
   AppBusinessesIdProfitRoute: typeof AppBusinessesIdProfitRoute
@@ -577,6 +597,7 @@ interface AppBusinessesIdRouteChildren {
 }
 
 const AppBusinessesIdRouteChildren: AppBusinessesIdRouteChildren = {
+  AppBusinessesIdAccountsRoute: AppBusinessesIdAccountsRoute,
   AppBusinessesIdMoneyRoute: AppBusinessesIdMoneyRoute,
   AppBusinessesIdPeopleRoute: AppBusinessesIdPeopleRoute,
   AppBusinessesIdProfitRoute: AppBusinessesIdProfitRoute,
