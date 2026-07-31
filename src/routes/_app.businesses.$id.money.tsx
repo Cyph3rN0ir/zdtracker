@@ -112,10 +112,23 @@ function Money() {
                 <Input type="number" step="0.01" min="0" required className="text-right font-mono tabular-nums"
                   value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
               </div>
-              <div className="space-y-1.5 md:col-span-2">
+              <div className="space-y-1.5">
+                <Label>{t("bacct.account", "Account")}</Label>
+                <Select value={form.accountId || "none"} onValueChange={(v) => setForm({ ...form, accountId: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">—</SelectItem>
+                    {(accounts.data ?? []).filter((a: any) => !a.archived).map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
                 <Label>{t("common.note")}</Label>
                 <Input maxLength={500} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
+
               <div className="space-y-1.5">
                 <Label>{t("money.party")}</Label>
                 <Select value={form.partyUserId || "none"} onValueChange={(v) => setForm({ ...form, partyUserId: v === "none" ? "" : v })}>
