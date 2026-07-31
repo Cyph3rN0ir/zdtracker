@@ -433,9 +433,10 @@ type PerCp = {
 };
 
 function BalancesByPerson({
-  loans, counterparties, tx, currency,
+  profileId, loans, counterparties, tx, accounts, currency, onChanged,
 }: {
-  loans: Loan[]; counterparties: Cp[]; tx: TxRow[]; currency: string;
+  profileId: string; loans: Loan[]; counterparties: Cp[]; tx: TxRow[];
+  accounts: Account[]; currency: string; onChanged: () => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
 
