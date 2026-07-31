@@ -249,16 +249,23 @@ export const addTransactionFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     await requireAdmin();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-    const { error } = await getSupabaseAdmin().from("business_transactions").insert({
+    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
+    const supa = getSupabaseAdmin();
+    const row: Record<string, unknown> = {
       business_id: data.businessId,
       kind: data.kind,
       amount: data.amount,
       party_user_id: data.partyUserId ?? null,
-      account_id: data.accountId ?? null,
       note: data.note,
       occurred_on: data.occurredOn,
-    });
+    };
+    let { error } = await supa
+      .from("business_transactions")
+      .insert({ ...row, account_id: data.accountId ?? null });
+    if (error && isMissingSchema(error)) {
+      // Accounts migration not applied yet — still record the entry.
+      ({ error } = await supa.from("business_transactions").insert(row));
+    }
     if (error) throw new Error(error.message);
     return { ok: true };
   });
