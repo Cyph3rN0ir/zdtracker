@@ -160,7 +160,7 @@ function Accounts() {
         description={t("bacct.totalDesc", "Across all accounts of this business")}
         right={
           isAdmin ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto [&>button]:flex-1 sm:[&>button]:flex-none">
               <Button
                 size="sm"
                 variant="outline"
