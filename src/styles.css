@@ -556,3 +556,12 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     contain-intrinsic-size: 1px 56px;
   }
 }
+
+/* Horizontal scroll rows (tab strips, chip rails) without a visible scrollbar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
