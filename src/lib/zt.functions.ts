@@ -108,7 +108,7 @@ export const listMembersFn = createServerFn({ method: "GET" })
     const supa = getSupabaseAdmin();
     const { data: mems, error } = await supa
       .from("business_members")
-      .select("id, user_id, role_in_business, created_at")
+      .select("id, user_id, role_in_business, equity_percent, created_at")
       .eq("business_id", data.businessId)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
