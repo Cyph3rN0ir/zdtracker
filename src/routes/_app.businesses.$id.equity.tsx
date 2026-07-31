@@ -119,7 +119,7 @@ function Equity() {
     setEditOpen(true);
   };
 
-  const isAdmin = me?.role === "admin";
+  const canManage = me?.role === "admin" || me?.role === "owner";
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -129,8 +129,8 @@ function Equity() {
         title={t("equity.title", "Equity ownership")}
         description={t("equity.desc", "Share of the company held by each person")}
         right={
-          isAdmin ? (
-            <Button size="sm" variant="outline" className="h-8" onClick={openEdit}>
+          canManage ? (
+            <Button size="sm" variant="outline" className="h-10 w-full sm:h-8 sm:w-auto" onClick={openEdit}>
               <Pencil className="h-3.5 w-3.5" /> {t("equity.edit", "Edit shares")}
             </Button>
           ) : undefined

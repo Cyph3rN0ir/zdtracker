@@ -27,11 +27,12 @@ function People() {
   const remove = useServerFn(removeMemberFn);
   const listAllUsers = useServerFn(listUsersFn);
   const qc = useQueryClient();
+  const canManage = me?.role === "admin" || me?.role === "owner";
   const q = useQuery({ queryKey: ["members", id], queryFn: () => list({ data: { businessId: id } }) });
   const users = useQuery({
     queryKey: ["users"],
     queryFn: () => listAllUsers(),
-    enabled: me.role === "admin",
+    enabled: canManage,
   });
   const [sel, setSel] = useState<{ userId: string; role: typeof ROLES[number] }>({ userId: "", role: "owner" });
   const [formErr, setFormErr] = useState<string | null>(null);
@@ -56,7 +57,7 @@ function People() {
 
   return (
     <div className="space-y-6">
-      {me.role === "admin" && (
+      {canManage && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Add a person</CardTitle>
@@ -117,7 +118,7 @@ function People() {
               {grouped[r].length === 0 ? (
                 <div className="rounded-md border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
                   No {r}s yet.
-                  {me.role === "admin" && <div className="mt-1 text-[11px]">Use the form above to add one.</div>}
+                  {canManage && <div className="mt-1 text-[11px]">Use the form above to add one.</div>}
                 </div>
               ) : (
                 <ul className="divide-y divide-border -mx-2">
@@ -129,7 +130,7 @@ function People() {
                           <div className="truncate text-xs text-muted-foreground">{m.user.display_name}</div>
                         )}
                       </div>
-                      {me.role === "admin" && (
+                      {canManage && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(m.id)}>
                           <X className="h-3.5 w-3.5" />
                         </Button>

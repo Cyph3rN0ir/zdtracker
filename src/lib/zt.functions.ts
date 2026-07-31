@@ -141,7 +141,8 @@ export const addMemberFn = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const me = await requireSession();
+    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { error } = await getSupabaseAdmin().from("business_members").insert({
       business_id: data.businessId,
@@ -155,7 +156,8 @@ export const addMemberFn = createServerFn({ method: "POST" })
 export const removeMemberFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const me = await requireSession();
+    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { error } = await getSupabaseAdmin().from("business_members").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -180,7 +182,8 @@ export const setMemberEquityFn = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const me = await requireSession();
+    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
     const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
     const total = data.entries.reduce((a, e) => a + e.equityPercent, 0);
@@ -252,7 +255,8 @@ export const addTransactionFn = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const me = await requireSession();
+    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
     const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
     const row: Record<string, unknown> = {
@@ -278,7 +282,8 @@ export const addTransactionFn = createServerFn({ method: "POST" })
 export const deleteTransactionFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const me = await requireSession();
+    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { error } = await getSupabaseAdmin().from("business_transactions").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -1252,7 +1257,8 @@ export const upsertBusinessAccountFn = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }) => {
-    const me = await requireAdmin();
+    const me = await requireSession();
+    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
     const payload = {
@@ -1281,7 +1287,8 @@ export const deleteBusinessAccountFn = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), businessId: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const me = await requireSession();
+    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { error } = await getSupabaseAdmin()
       .from("business_accounts")
@@ -1306,7 +1313,8 @@ export const transferBusinessFundsFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     if (data.fromAccountId === data.toAccountId) throw new Error("Pick two different accounts");
-    await requireAdmin();
+    const me = await requireSession();
+    if (me.role !== "admin" && me.role !== "owner") throw new Error("Forbidden");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { error } = await getSupabaseAdmin().from("business_transactions").insert({
       business_id: data.businessId,

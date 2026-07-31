@@ -24,6 +24,7 @@ function Profit() {
   const del = useServerFn(deleteTransactionFn);
   const listMembers = useServerFn(listMembersFn);
   const qc = useQueryClient();
+  const canManage = me?.role === "admin" || me?.role === "owner";
   const q = useQuery({ queryKey: ["btx", id], queryFn: () => list({ data: { businessId: id } }) });
   const members = useQuery({ queryKey: ["members", id], queryFn: () => listMembers({ data: { businessId: id } }) });
 
@@ -71,7 +72,7 @@ function Profit() {
         <Stat label="Remaining" sub="after distribution" value={remaining} icon={<Coins className="h-4 w-4" />} />
       </div>
 
-      {me.role === "admin" && (
+      {canManage && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Record distribution</CardTitle>
@@ -142,7 +143,7 @@ function Profit() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <div className="font-mono tabular-nums text-sm">{fmt(t.amount)}</div>
-                      {me.role === "admin" && (
+                      {canManage && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(t.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -160,7 +161,7 @@ function Profit() {
                       <TableHead className="w-40">Recipient</TableHead>
                       <TableHead>Note</TableHead>
                       <TableHead className="text-right w-32">Amount</TableHead>
-                      {me.role === "admin" && <TableHead className="w-12 pr-6"></TableHead>}
+                      {canManage && <TableHead className="w-12 pr-6"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -170,7 +171,7 @@ function Profit() {
                         <TableCell>{t.party?.username ?? "—"}</TableCell>
                         <TableCell>{t.note}</TableCell>
                         <TableCell className="text-right font-mono tabular-nums">{fmt(t.amount)}</TableCell>
-                        {me.role === "admin" && (
+                        {canManage && (
                           <TableCell className="text-right pr-6">
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(t.id)}>
                               <Trash2 className="h-3.5 w-3.5" />

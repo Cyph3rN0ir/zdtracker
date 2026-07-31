@@ -130,11 +130,10 @@ function BusinessLayout() {
           )}
         </div>
         <Tabs value={active}>
-          {/* Mobile: wrap into rows so every tab is reachable without swiping.
-              sm+: single row. */}
-          <TabsList className="flex h-auto w-full max-w-full flex-wrap justify-start gap-1 sm:flex-nowrap sm:overflow-x-auto no-scrollbar overscroll-x-contain">
+          {/* Every destination remains visible and touchable without a gesture on phones. */}
+          <TabsList className="grid h-auto w-full grid-cols-4 gap-1 sm:flex sm:flex-nowrap sm:justify-start sm:overflow-x-auto no-scrollbar overscroll-x-contain">
             {TABS.map((t) => (
-              <TabsTrigger key={t.key} value={t.key} asChild className="h-8 flex-none px-2.5 text-xs sm:text-sm">
+              <TabsTrigger key={t.key} value={t.key} asChild className="h-10 min-w-0 px-1 text-xs sm:h-8 sm:flex-none sm:px-2.5 sm:text-sm">
                 <Link to={t.to} params={{ id }}>{t.label}</Link>
               </TabsTrigger>
             ))}
