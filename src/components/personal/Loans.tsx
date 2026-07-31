@@ -606,6 +606,35 @@ function BalancesByPerson({
                 </div>
               </div>
 
+              {(active.iOweNet > 0 || active.owedToMeNet > 0) && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {active.iOweNet > 0 && (
+                    <SettleUpDialog
+                      profileId={profileId}
+                      direction="i_owe"
+                      counterpartyId={active.id === "__unassigned__" ? null : active.id}
+                      personName={active.name}
+                      outstanding={active.iOweNet}
+                      accounts={accounts}
+                      currency={currency}
+                      onDone={onChanged}
+                    />
+                  )}
+                  {active.owedToMeNet > 0 && (
+                    <SettleUpDialog
+                      profileId={profileId}
+                      direction="owed_to_me"
+                      counterpartyId={active.id === "__unassigned__" ? null : active.id}
+                      personName={active.name}
+                      outstanding={active.owedToMeNet}
+                      accounts={accounts}
+                      currency={currency}
+                      onDone={onChanged}
+                    />
+                  )}
+                </div>
+              )}
+
 
               <div className="space-y-2">
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">History</div>
