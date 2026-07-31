@@ -22,11 +22,14 @@ type CachedMe = {
   userId: string;
   username: string;
   displayName: string;
+  role?: "admin" | "owner" | "investor" | "member";
 };
 
-type AppMe = CachedMe & { role: "admin" | "owner" | "investor" | "member" };
+type AppMe = Omit<CachedMe, "role"> & { role: "admin" | "owner" | "investor" | "member" };
 
 const ME_CACHE_KEY = "zs:me:v1";
+
+const ROLES = ["admin", "owner", "investor", "member"] as const;
 
 function readCachedMe(): AppMe | null {
   if (typeof window === "undefined") return null;
@@ -34,10 +37,12 @@ function readCachedMe(): AppMe | null {
     const raw = window.localStorage.getItem(ME_CACHE_KEY);
     if (!raw) return null;
     const cached = JSON.parse(raw) as CachedMe;
-    // Do not trust admin/owner role from client storage. Offline mode is for
-    // reading cached data and queuing supported personal writes only; privileged
-    // operations still require the server when back online.
-    return { ...cached, role: "member" };
+    // The cached role only decides which controls are *rendered* while we run
+    // on the cached session (offline / meFn unreachable). Every privileged
+    // operation is still authorized server-side, so a tampered cache cannot
+    // grant access — it would only show buttons whose calls then fail.
+    const role = ROLES.includes(cached.role as any) ? (cached.role as AppMe["role"]) : "member";
+    return { userId: cached.userId, username: cached.username, displayName: cached.displayName, role };
   } catch {
     return null;
   }
@@ -50,10 +55,12 @@ function writeCachedMe(me: AppMe) {
       userId: me.userId,
       username: me.username,
       displayName: me.displayName,
+      role: me.role,
     };
     window.localStorage.setItem(ME_CACHE_KEY, JSON.stringify(cached));
   } catch {}
 }
+
 
 function isOfflineLikeError(error: unknown) {
   const msg = String((error as any)?.message ?? error).toLowerCase();

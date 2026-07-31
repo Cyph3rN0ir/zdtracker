@@ -31,7 +31,7 @@ export function SectionCard({
   return (
     <Card className={cn("shadow-none", className)}>
       {(title || description || right) && (
-        <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 px-4 sm:px-5 py-3 sm:py-4">
+        <CardHeader className="flex-col items-stretch gap-2 space-y-0 px-4 sm:px-5 py-3 sm:py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
           <div className="min-w-0">
             {title ? <CardTitle className="text-sm sm:text-base">{title}</CardTitle> : null}
             {description ? (
@@ -41,12 +41,13 @@ export function SectionCard({
             ) : null}
           </div>
           {right ? (
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 max-w-[62%] sm:max-w-none">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end [&>*]:flex-1 sm:[&>*]:flex-none">
               {right}
             </div>
           ) : null}
         </CardHeader>
       )}
+
       <CardContent
         className={cn("min-w-0 px-4 sm:px-5 pb-4 sm:pb-5 pt-0", contentClassName)}
       >

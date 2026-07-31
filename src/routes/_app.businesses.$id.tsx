@@ -130,14 +130,17 @@ function BusinessLayout() {
           )}
         </div>
         <Tabs value={active}>
-          <TabsList className="no-scrollbar w-full max-w-full justify-start overflow-x-auto overscroll-x-contain">
+          {/* Mobile: wrap into rows so every tab is reachable without swiping.
+              sm+: single row. */}
+          <TabsList className="flex h-auto w-full max-w-full flex-wrap justify-start gap-1 sm:flex-nowrap sm:overflow-x-auto no-scrollbar overscroll-x-contain">
             {TABS.map((t) => (
-              <TabsTrigger key={t.key} value={t.key} asChild>
+              <TabsTrigger key={t.key} value={t.key} asChild className="h-8 flex-none px-2.5 text-xs sm:text-sm">
                 <Link to={t.to} params={{ id }}>{t.label}</Link>
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
+
       </div>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
