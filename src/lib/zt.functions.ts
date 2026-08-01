@@ -150,6 +150,13 @@ export const addMemberFn = createServerFn({ method: "POST" })
       role_in_business: data.role,
     });
     if (error && error.code !== "23505") throw new Error(error.message);
+    // Adding someone to the business must also put them in its group chat.
+    try {
+      const { ensureBusinessGroup } = await import("@/lib/chat.server");
+      await ensureBusinessGroup(data.businessId);
+    } catch (e) {
+      console.warn("[business] group chat sync failed:", (e as Error).message);
+    }
     return { ok: true };
   });
 
@@ -159,10 +166,44 @@ export const removeMemberFn = createServerFn({ method: "POST" })
     const me = await requireSession();
     if (me.role !== "admin") throw new Error("Forbidden");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-    const { error } = await getSupabaseAdmin().from("business_members").delete().eq("id", data.id);
+    const supa = getSupabaseAdmin();
+    // Capture the row first so we can also drop them from the group chat.
+    const { data: row } = await supa
+      .from("business_members")
+      .select("business_id, user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    const { error } = await supa.from("business_members").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    if (row) {
+      try {
+        const { data: conv } = await supa
+          .from("conversations")
+          .select("id")
+          .eq("business_id", row.business_id)
+          .eq("kind", "group")
+          .maybeSingle();
+        // The business creator keeps chat access even without a member row.
+        const { data: biz } = await supa
+          .from("businesses")
+          .select("created_by")
+          .eq("id", row.business_id)
+          .maybeSingle();
+        if (conv?.id && biz?.created_by !== row.user_id) {
+          await supa
+            .from("conversation_members")
+            .delete()
+            .eq("conversation_id", conv.id)
+            .eq("user_id", row.user_id);
+        }
+      } catch (e) {
+        console.warn("[business] group chat removal failed:", (e as Error).message);
+      }
+    }
     return { ok: true };
   });
+
 
 // ---------- Equity ----------
 export const setMemberEquityFn = createServerFn({ method: "POST" })
