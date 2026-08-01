@@ -119,7 +119,7 @@ function Equity() {
     setEditOpen(true);
   };
 
-  const canManage = me?.role === "admin" || me?.role === "owner";
+  const canManage = me?.role === "admin";
 
   return (
     <div className="space-y-4 sm:space-y-6">

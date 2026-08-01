@@ -27,7 +27,7 @@ function People() {
   const remove = useServerFn(removeMemberFn);
   const listAllUsers = useServerFn(listUsersFn);
   const qc = useQueryClient();
-  const canManage = me?.role === "admin" || me?.role === "owner";
+  const canManage = me?.role === "admin";
   const q = useQuery({ queryKey: ["members", id], queryFn: () => list({ data: { businessId: id } }) });
   const users = useQuery({
     queryKey: ["users"],

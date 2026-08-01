@@ -24,7 +24,7 @@ function Profit() {
   const del = useServerFn(deleteTransactionFn);
   const listMembers = useServerFn(listMembersFn);
   const qc = useQueryClient();
-  const canManage = me?.role === "admin" || me?.role === "owner";
+  const canManage = me?.role === "admin";
   const q = useQuery({ queryKey: ["btx", id], queryFn: () => list({ data: { businessId: id } }) });
   const members = useQuery({ queryKey: ["members", id], queryFn: () => listMembers({ data: { businessId: id } }) });
 

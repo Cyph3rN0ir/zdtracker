@@ -90,7 +90,7 @@ function Accounts() {
   const { id } = Route.useParams();
   const { me } = Route.useRouteContext() as any;
   const { t } = useI18n();
-  const canManage = me?.role === "admin" || me?.role === "owner";
+  const canManage = me?.role === "admin";
 
   const balances = useServerFn(businessAccountBalancesFn);
   const upsert = useServerFn(upsertBusinessAccountFn);
