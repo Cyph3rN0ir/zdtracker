@@ -108,6 +108,8 @@ function AppLayout() {
   // /businesses/$id/money -> /businesses/$id/equity) instead of on every
   // param/search tweak, so typing or filtering never re-triggers the animation.
   const sectionKey = useMemo(() => pathname.split("/").slice(0, 4).join("/"), [pathname]);
+  // Chat is a full-height app shell: no outer page scroll, no pull-to-refresh.
+  const isChat = pathname === "/chat" || pathname.startsWith("/chat/");
 
 
   // Phase 2 + 4 — proactive offline warmup, queue flushing, and unified
