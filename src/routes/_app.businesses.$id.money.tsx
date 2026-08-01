@@ -32,7 +32,7 @@ function Money() {
   const listMembers = useServerFn(listMembersFn);
   const listAccounts = useServerFn(listBusinessAccountsFn);
   const qc = useQueryClient();
-  const canManage = me?.role === "admin" || me?.role === "owner";
+  const canManage = me?.role === "admin";
   const q = useQuery({ queryKey: ["btx", id], queryFn: () => list({ data: { businessId: id } }) });
   const members = useQuery({ queryKey: ["members", id], queryFn: () => listMembers({ data: { businessId: id } }) });
   const accounts = useQuery({ queryKey: ["baccountsList", id], queryFn: () => listAccounts({ data: { businessId: id } }) });

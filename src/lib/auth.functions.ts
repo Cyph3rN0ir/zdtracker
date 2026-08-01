@@ -88,7 +88,7 @@ export const adminCreateUserFn = createServerFn({ method: "POST" })
 export const listUsersFn = createServerFn({ method: "GET" }).handler(async () => {
   const { getSession } = await import("@/lib/session.server");
   const s = await getSession();
-  if (s.data.role !== "admin" && s.data.role !== "owner") throw new Error("Forbidden");
+  if (s.data.role !== "admin") throw new Error("Forbidden");
   const { getSupabaseAdmin } = await import("@/lib/supabase.server");
   const { data, error } = await getSupabaseAdmin()
     .from("app_users")
