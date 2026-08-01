@@ -317,15 +317,21 @@ function AppLayout() {
         </div>
       </header>
 
-      <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full pb-safe">
-        <PullToRefresh>
-          {/* Keyed on the top-level section so switching pages/tabs animates in
-              once, without re-animating on in-page param changes. */}
-          <div key={sectionKey} className="page-in">
-            <Outlet />
-          </div>
-        </PullToRefresh>
-      </main>
+      {isChat ? (
+        <main className="h-[calc(100dvh-3.25rem)] md:h-dvh min-h-0 w-full overflow-hidden">
+          <Outlet />
+        </main>
+      ) : (
+        <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full pb-safe">
+          <PullToRefresh>
+            {/* Keyed on the top-level section so switching pages/tabs animates in
+                once, without re-animating on in-page param changes. */}
+            <div key={sectionKey} className="page-in">
+              <Outlet />
+            </div>
+          </PullToRefresh>
+        </main>
+      )}
 
       {/* Unified offline/sync indicator is mounted in __root via OfflineBanner. */}
     </div>
