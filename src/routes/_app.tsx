@@ -104,6 +104,12 @@ function AppLayout() {
   // Belt-and-braces: close drawer if pathname ever changes (e.g. browser back).
   useEffect(() => { setOpen(false); }, [pathname]);
 
+  // Animate the route content once per section change (e.g. /chat -> /personal,
+  // /businesses/$id/money -> /businesses/$id/equity) instead of on every
+  // param/search tweak, so typing or filtering never re-triggers the animation.
+  const sectionKey = useMemo(() => pathname.split("/").slice(0, 4).join("/"), [pathname]);
+
+
   // Phase 2 + 4 — proactive offline warmup, queue flushing, and unified
   // sync-status reporting. Drives the shared OfflineBanner via OfflineStatus.
   const qc = useQueryClient();
