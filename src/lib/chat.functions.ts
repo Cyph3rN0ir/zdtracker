@@ -295,6 +295,18 @@ export const removeGroupMemberFn = createServerFn({ method: "POST" })
     await requireAdmin(me.userId!);
     const { supa, conv } = await loadGroup(data.conversationId);
 
+    // The business creator always keeps access to their own group chat.
+    const { data: biz } = await supa
+      .from("businesses")
+      .select("created_by")
+      .eq("id", conv.business_id)
+      .maybeSingle();
+    if (biz?.created_by === data.userId) {
+      throw new Error("The business owner can't be removed from the group chat");
+    }
+
+
+
     const { error } = await supa
       .from("conversation_members")
       .delete()
