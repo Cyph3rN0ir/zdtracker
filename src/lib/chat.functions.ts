@@ -15,6 +15,27 @@ export const listConversationsFn = createServerFn({ method: "GET" }).handler(asy
   const { getSupabaseAdmin } = await import("@/lib/supabase.server");
   const supa = getSupabaseAdmin();
 
+  // Self-heal: make sure every business this user belongs to has a group
+  // conversation and that the user is inside it. Without this, people added
+  // to a business after its group chat existed never appeared in the chat.
+  try {
+    const [{ data: myMems }, { data: myOwned }] = await Promise.all([
+      supa.from("business_members").select("business_id").eq("user_id", me.userId!),
+      supa.from("businesses").select("id").eq("created_by", me.userId!),
+    ]);
+    const myBusinessIds = Array.from(
+      new Set([
+        ...(myMems ?? []).map((m) => m.business_id as string),
+        ...(myOwned ?? []).map((b) => b.id as string),
+      ]),
+    );
+    await Promise.all(myBusinessIds.map((bid) => ensureBusinessGroup(bid)));
+  } catch (e) {
+    console.warn("[chat] group sync skipped:", (e as Error).message);
+  }
+
+
+
   const { data: mems, error: e1 } = await supa
     .from("conversation_members")
     .select("conversation_id, last_read_at")
