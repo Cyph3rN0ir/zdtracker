@@ -338,7 +338,7 @@ function NavLink({ to, icon, children, onNavigate, badge }: { to: string; icon: 
       to={to}
       activeOptions={{ exact: to === "/" }}
       onClick={onNavigate}
-      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors data-[status=active]:bg-accent data-[status=active]:text-accent-foreground data-[status=active]:font-medium"
+      className="tap relative flex items-center gap-2.5 overflow-hidden rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground data-[status=active]:bg-accent data-[status=active]:text-accent-foreground data-[status=active]:font-medium before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:scale-y-0 before:rounded-r-full before:bg-primary before:transition-transform before:duration-200 data-[status=active]:before:scale-y-100"
       activeProps={{ "data-status": "active" } as any}
     >
       {icon}
