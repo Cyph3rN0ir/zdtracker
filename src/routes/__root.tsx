@@ -121,7 +121,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  const themeBoot = `(function(){try{var k='zt.theme';var t=localStorage.getItem(k)||'zerodesk';var dark=['dark','midnight','ember','noir','zerodesk'].indexOf(t)!==-1;var r=document.documentElement;r.dataset.theme=t;if(dark)r.classList.add('dark');}catch(e){document.documentElement.dataset.theme='zerodesk';document.documentElement.classList.add('dark');}})();`;
+  const themeBoot = `(function(){try{var k='zt.theme';var t=localStorage.getItem(k)||'zerodesk';var dark=['dark','midnight','ember','noir','zerodesk','infrared'].indexOf(t)!==-1;var r=document.documentElement;r.dataset.theme=t;if(dark)r.classList.add('dark');}catch(e){document.documentElement.dataset.theme='zerodesk';document.documentElement.classList.add('dark');}})();`;
   return (
     <html lang="en" data-theme="zerodesk" className="dark">
       <head>
