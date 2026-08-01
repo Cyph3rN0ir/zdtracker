@@ -412,7 +412,48 @@ const MAP: Record<string, string> = {
   "Lists — Notebook — ZeroSync": "তালিকা — নোটবুক — জিরোসিঙ্ক",
   "List — Notebook — ZeroSync": "তালিকা — নোটবুক — জিরোসিঙ্ক",
   "Note — Notebook — ZeroSync": "নোট — নোটবুক — জিরোসিঙ্ক",
+
+  // Equity tab
+  "Equity ownership": "মালিকানার অংশ",
+  "Share of the company held by each person": "প্রত্যেক ব্যক্তির কাছে থাকা কোম্পানির অংশ",
+  "Edit shares": "অংশ সম্পাদনা করুন",
+  "Equity updated": "মালিকানা হালনাগাদ হয়েছে",
+  "Holders": "অংশীদার",
+  "Allocated": "বণ্টিত",
+  "Unallocated": "অবণ্টিত",
+  "Total equity cannot exceed 100%": "মোট মালিকানা ১০০% এর বেশি হতে পারে না",
+  "Set each person's percentage. The total cannot exceed 100%.":
+    "প্রত্যেকের শতকরা হার নির্ধারণ করুন। মোট ১০০% এর বেশি হতে পারবে না।",
+  "Add people to this business first, then assign their equity.":
+    "প্রথমে এই ব্যবসায় সদস্য যোগ করুন, তারপর তাদের মালিকানা নির্ধারণ করুন।",
+  "Unknown user": "অজানা ব্যবহারকারী",
+
+  // Accounts tab
+  "Total assets": "মোট সম্পদ",
+  "Across all accounts of this business": "এই ব্যবসার সব অ্যাকাউন্ট মিলিয়ে",
+  "Track where this business keeps its money.": "এই ব্যবসা কোথায় অর্থ রাখে তা ট্র্যাক করুন।",
+  "No accounts yet": "এখনো কোনো অ্যাকাউন্ট নেই",
+  "Edit account": "অ্যাকাউন্ট সম্পাদনা",
+  "Account saved": "অ্যাকাউন্ট সংরক্ষিত হয়েছে",
+  "Account deleted": "অ্যাকাউন্ট মুছে ফেলা হয়েছে",
+  "Failed to save account": "অ্যাকাউন্ট সংরক্ষণ ব্যর্থ হয়েছে",
+  "Enter an account name": "অ্যাকাউন্টের নাম লিখুন",
+  "Enter a valid opening balance": "সঠিক প্রারম্ভিক ব্যালেন্স লিখুন",
+  "Opening": "প্রারম্ভিক",
+  "Archived": "সংরক্ষিত",
+  "Unassigned transactions": "অ্যাকাউন্টবিহীন লেনদেন",
+  "Move money between two accounts. Totals stay unchanged.":
+    "দুটি অ্যাকাউন্টের মধ্যে অর্থ স্থানান্তর করুন। মোট পরিমাণ অপরিবর্তিত থাকে।",
+  "Pick both accounts": "দুটি অ্যাকাউন্টই নির্বাচন করুন",
+  "Pick two different accounts": "দুটি ভিন্ন অ্যাকাউন্ট নির্বাচন করুন",
+  "Transfer recorded": "স্থানান্তর রেকর্ড হয়েছে",
+  "Transfer failed": "স্থানান্তর ব্যর্থ হয়েছে",
+  "From": "থেকে",
+  "You": "আপনি",
+  "Business actions": "ব্যবসার কার্যক্রম",
+  "Something went wrong": "কিছু ভুল হয়েছে",
 };
+
 
 // Word-level fallback so partial English fragments (e.g. inside concatenated
 // strings) still get translated when the whole-string lookup misses.
