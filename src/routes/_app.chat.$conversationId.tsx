@@ -7,6 +7,9 @@ import {
   listMessagesFn,
   sendMessageFn,
   markReadFn,
+  listGroupCandidatesFn,
+  addGroupMembersFn,
+  removeGroupMemberFn,
 } from "@/lib/chat.functions";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
@@ -647,3 +650,192 @@ const MessageBubble = memo(function MessageBubble({
     </div>
   );
 });
+
+// ---------------- Members sheet (with admin management) ----------------
+type ConvMember = { id: string; name: string; role?: string };
+type ConvInfo = {
+  id: string;
+  title: string;
+  members: ConvMember[];
+  canManage?: boolean;
+} | null;
+
+function MembersSheet({
+  conversationId,
+  conv,
+}: {
+  conversationId: string;
+  conv: ConvInfo;
+}) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [q, setQ] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  const listCandidates = useServerFn(listGroupCandidatesFn);
+  const addMembers = useServerFn(addGroupMembersFn);
+  const removeMember = useServerFn(removeGroupMemberFn);
+
+  const canManage = !!conv?.canManage;
+
+  const candQ = useQuery({
+    queryKey: ["chat", "candidates", conversationId],
+    queryFn: () => listCandidates({ data: { conversationId } }),
+    enabled: open && adding && canManage,
+  });
+
+  const invalidate = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ["chat", "conv", conversationId] });
+    qc.invalidateQueries({ queryKey: ["chat", "candidates", conversationId] });
+    qc.invalidateQueries({ queryKey: ["chat", "conversations"] });
+  }, [qc, conversationId]);
+
+  const addM = useMutation({
+    mutationFn: (userId: string) => addMembers({ data: { conversationId, userIds: [userId] } }),
+    onSuccess: invalidate,
+    onError: (e: Error) => setErr(e.message),
+  });
+  const removeM = useMutation({
+    mutationFn: (userId: string) => removeMember({ data: { conversationId, userId } }),
+    onSuccess: invalidate,
+    onError: (e: Error) => setErr(e.message),
+  });
+
+  const candidates = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const all = candQ.data ?? [];
+    return needle ? all.filter((u) => u.name.toLowerCase().includes(needle)) : all;
+  }, [candQ.data, q]);
+
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) {
+          setAdding(false);
+          setQ("");
+          setErr(null);
+        }
+      }}
+    >
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="View members" className="shrink-0">
+          <UsersIcon className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-[85vw] sm:w-80 p-0 flex flex-col">
+        <SheetHeader className="px-4 py-3 border-b border-border text-left">
+          <SheetTitle className="text-base">{adding ? "Add members" : "Members"}</SheetTitle>
+          <SheetDescription className="text-xs">
+            {adding
+              ? "Anyone you add joins this group chat"
+              : `${conv?.members.length ?? 0} in ${conv?.title ?? ""}`}
+          </SheetDescription>
+        </SheetHeader>
+
+        {err && (
+          <div className="mx-4 mt-3 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {err}
+          </div>
+        )}
+
+        {canManage && (
+          <div className="px-4 py-3 border-b border-border">
+            <Button
+              variant={adding ? "secondary" : "outline"}
+              size="sm"
+              className="w-full text-sm"
+              onClick={() => {
+                setErr(null);
+                setAdding((v) => !v);
+              }}
+            >
+              {adding ? "Back to members" : "Add member"}
+            </Button>
+          </div>
+        )}
+
+        {adding ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <div className="px-4 py-2">
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search people…"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto py-1">
+              {candQ.isLoading && (
+                <div className="px-4 py-6 text-sm text-muted-foreground text-center">Loading…</div>
+              )}
+              {!candQ.isLoading && candidates.length === 0 && (
+                <div className="px-4 py-6 text-sm text-muted-foreground text-center">
+                  No one left to add
+                </div>
+              )}
+              {candidates.map((u) => (
+                <div key={u.id} className="flex items-center gap-3 px-4 py-2">
+                  <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-sm font-medium shrink-0">
+                    {u.name.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{u.name}</div>
+                    {u.inBusiness && (
+                      <div className="text-[11px] text-muted-foreground">In this business</div>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0"
+                    disabled={addM.isPending}
+                    onClick={() => {
+                      setErr(null);
+                      addM.mutate(u.id);
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto py-2">
+            {(conv?.members ?? []).map((u) => (
+              <div key={u.id} className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50">
+                <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium shrink-0">
+                  {u.name.slice(0, 1).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate">{u.name}</div>
+                </div>
+                {canManage && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    aria-label={`Remove ${u.name}`}
+                    disabled={removeM.isPending}
+                    onClick={() => {
+                      setErr(null);
+                      removeM.mutate(u.id);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            {(conv?.members.length ?? 0) === 0 && (
+              <div className="px-4 py-6 text-sm text-muted-foreground text-center">No members</div>
+            )}
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
