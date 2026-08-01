@@ -1,6 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSession, requireMember, broadcast } from "@/lib/chat.server";
+import {
+  requireSession,
+  requireMember,
+  broadcast,
+  syncBusinessGroupMembers,
+  ensureBusinessGroup,
+  requireAdmin,
+} from "@/lib/chat.server";
 
 // ---------------- List conversations ----------------
 export const listConversationsFn = createServerFn({ method: "GET" }).handler(async () => {
