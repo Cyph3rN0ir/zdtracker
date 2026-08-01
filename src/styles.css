@@ -369,6 +369,39 @@
   --sidebar-ring: #B6D733;
 }
 
+/* Infra Red — pure black OLED surfaces, red accent, white text */
+[data-theme="infrared"] {
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --card: #0A0A0A;
+  --card-foreground: #FFFFFF;
+  --popover: #101010;
+  --popover-foreground: #FFFFFF;
+  --primary: #E11D2E;
+  --primary-foreground: #FFFFFF;
+  --secondary: #141414;
+  --secondary-foreground: #FFFFFF;
+  --muted: #0D0D0D;
+  --muted-foreground: #9A9A9A;
+  --accent: #E11D2E;
+  --accent-foreground: #FFFFFF;
+  --destructive: #FF5A5A;
+  --destructive-foreground: #000000;
+  --border: #242424;
+  --input: #242424;
+  --ring: #E11D2E;
+  --sidebar: #050505;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #E11D2E;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E11D2E;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #242424;
+  --sidebar-ring: #E11D2E;
+}
+
+
+
 /* Paper — pure white, near-black ink, editorial minimal */
 [data-theme="paper"] {
   --background: oklch(1 0 0);

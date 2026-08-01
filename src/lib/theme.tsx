@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type Theme = "light" | "dark" | "midnight" | "forest" | "ember" | "noir" | "ocean" | "sand" | "zerodesk" | "paper" | "porcelain" | "ivory";
+export type Theme = "light" | "dark" | "midnight" | "forest" | "ember" | "noir" | "ocean" | "sand" | "zerodesk" | "infrared" | "paper" | "porcelain" | "ivory";
 
 export const THEMES: { id: Theme; label: string; swatch: [string, string, string] }[] = [
   { id: "light",    label: "Light",            swatch: ["#ffffff", "#f4f4f5", "#18181b"] },
   { id: "dark",     label: "Dark",             swatch: ["#1a1c22", "#2a2d36", "#e7e9ee"] },
   { id: "zerodesk", label: "ZeroDesk Classic", swatch: ["#0F0F0F", "#1A1A1A", "#B6D733"] },
+  { id: "infrared", label: "Infra Red",        swatch: ["#000000", "#141414", "#E11D2E"] },
   { id: "paper",    label: "Paper White",      swatch: ["#ffffff", "#f5f5f5", "#1c1c1c"] },
   { id: "porcelain",label: "Porcelain",        swatch: ["#fdfdff", "#f2f4f8", "#4a5b86"] },
   { id: "ivory",    label: "Ivory Warm",       swatch: ["#fefdfa", "#f6f2ea", "#a75a35"] },
@@ -24,7 +25,7 @@ function apply(theme: Theme) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   root.dataset.theme = theme;
-  root.classList.toggle("dark", theme === "dark" || theme === "midnight" || theme === "ember" || theme === "noir" || theme === "zerodesk");
+  root.classList.toggle("dark", theme === "dark" || theme === "midnight" || theme === "ember" || theme === "noir" || theme === "zerodesk" || theme === "infrared");
 }
 
 const DEFAULT_THEME: Theme = "zerodesk";
