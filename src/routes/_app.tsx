@@ -108,6 +108,8 @@ function AppLayout() {
   // /businesses/$id/money -> /businesses/$id/equity) instead of on every
   // param/search tweak, so typing or filtering never re-triggers the animation.
   const sectionKey = useMemo(() => pathname.split("/").slice(0, 4).join("/"), [pathname]);
+  // Chat is a full-height app shell: no outer page scroll, no pull-to-refresh.
+  const isChat = pathname === "/chat" || pathname.startsWith("/chat/");
 
 
   // Phase 2 + 4 — proactive offline warmup, queue flushing, and unified
@@ -290,7 +292,7 @@ function AppLayout() {
   ), [me, t, lang, setLang, theme, setTheme, activeTheme, closeDrawer, unreadTotal]);
 
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[240px_1fr] bg-muted/30">
+    <div className={`bg-muted/30 md:grid md:grid-cols-[240px_1fr] ${isChat ? "h-dvh overflow-hidden md:h-dvh" : "min-h-screen"}`}>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex border-r border-border bg-card flex-col">
         {nav}
@@ -317,15 +319,21 @@ function AppLayout() {
         </div>
       </header>
 
-      <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full pb-safe">
-        <PullToRefresh>
-          {/* Keyed on the top-level section so switching pages/tabs animates in
-              once, without re-animating on in-page param changes. */}
-          <div key={sectionKey} className="page-in">
-            <Outlet />
-          </div>
-        </PullToRefresh>
-      </main>
+      {isChat ? (
+        <main className="h-[calc(100dvh-3.25rem)] md:h-dvh min-h-0 w-full overflow-hidden">
+          <Outlet />
+        </main>
+      ) : (
+        <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full pb-safe">
+          <PullToRefresh>
+            {/* Keyed on the top-level section so switching pages/tabs animates in
+                once, without re-animating on in-page param changes. */}
+            <div key={sectionKey} className="page-in">
+              <Outlet />
+            </div>
+          </PullToRefresh>
+        </main>
+      )}
 
       {/* Unified offline/sync indicator is mounted in __root via OfflineBanner. */}
     </div>
