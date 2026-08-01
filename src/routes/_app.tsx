@@ -104,6 +104,12 @@ function AppLayout() {
   // Belt-and-braces: close drawer if pathname ever changes (e.g. browser back).
   useEffect(() => { setOpen(false); }, [pathname]);
 
+  // Animate the route content once per section change (e.g. /chat -> /personal,
+  // /businesses/$id/money -> /businesses/$id/equity) instead of on every
+  // param/search tweak, so typing or filtering never re-triggers the animation.
+  const sectionKey = useMemo(() => pathname.split("/").slice(0, 4).join("/"), [pathname]);
+
+
   // Phase 2 + 4 — proactive offline warmup, queue flushing, and unified
   // sync-status reporting. Drives the shared OfflineBanner via OfflineStatus.
   const qc = useQueryClient();
@@ -291,10 +297,10 @@ function AppLayout() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
+      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-card/85 supports-[backdrop-filter]:bg-card/70 backdrop-blur-xl px-3 py-2">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Open menu">
+            <Button variant="ghost" size="icon" aria-label="Open menu" className="tap">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -311,11 +317,16 @@ function AppLayout() {
         </div>
       </header>
 
-      <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full">
+      <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full pb-safe">
         <PullToRefresh>
-          <Outlet />
+          {/* Keyed on the top-level section so switching pages/tabs animates in
+              once, without re-animating on in-page param changes. */}
+          <div key={sectionKey} className="page-in">
+            <Outlet />
+          </div>
         </PullToRefresh>
       </main>
+
       {/* Unified offline/sync indicator is mounted in __root via OfflineBanner. */}
     </div>
   );
@@ -327,7 +338,7 @@ function NavLink({ to, icon, children, onNavigate, badge }: { to: string; icon: 
       to={to}
       activeOptions={{ exact: to === "/" }}
       onClick={onNavigate}
-      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors data-[status=active]:bg-accent data-[status=active]:text-accent-foreground data-[status=active]:font-medium"
+      className="tap relative flex items-center gap-2.5 overflow-hidden rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground data-[status=active]:bg-accent data-[status=active]:text-accent-foreground data-[status=active]:font-medium before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:scale-y-0 before:rounded-r-full before:bg-primary before:transition-transform before:duration-200 data-[status=active]:before:scale-y-100"
       activeProps={{ "data-status": "active" } as any}
     >
       {icon}

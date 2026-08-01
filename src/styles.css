@@ -9,6 +9,7 @@
 
   --animate-tab-in: tab-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-fade-in: fade-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-page-in: page-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
   @keyframes tab-in {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -17,6 +18,11 @@
     from { opacity: 0; transform: translateY(2px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  @keyframes page-in {
+    from { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.995); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  }
+
 }
 
 
@@ -570,3 +576,58 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   }
 }
 
+
+/* === Motion & touch polish (mobile-first) ===================================
+   Page/panel transitions, tap feedback, and momentum tuning. Everything below
+   collapses to near-instant under prefers-reduced-motion. */
+
+/* Route content transition: keyed per top-level section in _app.tsx. */
+@utility page-in {
+  animation: var(--animate-page-in);
+}
+
+/* Physical tap feedback for interactive surfaces on touch devices. */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  button, a, [role="tab"], [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Springy press on real pointer-coarse devices only (no desktop jitter). */
+  @media (hover: none) and (pointer: coarse) {
+    button:not(:disabled):active,
+    a:active,
+    [role="tab"]:active,
+    [role="button"]:not([aria-disabled="true"]):active {
+      transform: scale(0.975);
+      transition: transform 90ms cubic-bezier(0.2, 0, 0.2, 1);
+    }
+  }
+}
+
+@layer utilities {
+  /* Explicit press affordance where the global rule is too broad. */
+  .tap {
+    transition: transform 120ms cubic-bezier(0.2, 0, 0.2, 1), background-color 140ms ease, color 140ms ease;
+    &:active { transform: scale(0.97); }
+  }
+  /* Smooth, snap-free momentum rail for tab strips / chip rows. */
+  .rail {
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 0.5rem;
+    & > * { scroll-snap-align: start; }
+  }
+  /* Bottom breathing room so fixed composers / safe areas never clip content. */
+  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .page-in { animation: none !important; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
