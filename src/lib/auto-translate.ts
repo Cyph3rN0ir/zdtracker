@@ -72,6 +72,7 @@ const MAP: Record<string, string> = {
   "People": "সদস্যরা",
   "Money": "অর্থ",
   "Tasks": "কাজ",
+  "Equity": "মালিকানা",
   "Profit": "মুনাফা",
   "Income": "আয়",
   "Expense": "ব্যয়",
