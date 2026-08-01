@@ -292,7 +292,7 @@ function AppLayout() {
   ), [me, t, lang, setLang, theme, setTheme, activeTheme, closeDrawer, unreadTotal]);
 
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[240px_1fr] bg-muted/30">
+    <div className={`bg-muted/30 md:grid md:grid-cols-[240px_1fr] ${isChat ? "h-dvh overflow-hidden md:h-dvh" : "min-h-screen"}`}>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex border-r border-border bg-card flex-col">
         {nav}
