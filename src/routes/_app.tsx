@@ -291,10 +291,10 @@ function AppLayout() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
+      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-card/85 supports-[backdrop-filter]:bg-card/70 backdrop-blur-xl px-3 py-2">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Open menu">
+            <Button variant="ghost" size="icon" aria-label="Open menu" className="tap">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -311,11 +311,16 @@ function AppLayout() {
         </div>
       </header>
 
-      <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full">
+      <main className="pwa-scroll p-4 sm:p-6 md:p-8 max-w-7xl w-full pb-safe">
         <PullToRefresh>
-          <Outlet />
+          {/* Keyed on the top-level section so switching pages/tabs animates in
+              once, without re-animating on in-page param changes. */}
+          <div key={sectionKey} className="page-in">
+            <Outlet />
+          </div>
         </PullToRefresh>
       </main>
+
       {/* Unified offline/sync indicator is mounted in __root via OfflineBanner. */}
     </div>
   );
