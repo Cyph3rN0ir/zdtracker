@@ -1,12 +1,40 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSession, requireMember, broadcast } from "@/lib/chat.server";
+import {
+  requireSession,
+  requireMember,
+  broadcast,
+  syncBusinessGroupMembers,
+  ensureBusinessGroup,
+  requireAdmin,
+} from "@/lib/chat.server";
 
 // ---------------- List conversations ----------------
 export const listConversationsFn = createServerFn({ method: "GET" }).handler(async () => {
   const me = await requireSession();
   const { getSupabaseAdmin } = await import("@/lib/supabase.server");
   const supa = getSupabaseAdmin();
+
+  // Self-heal: make sure every business this user belongs to has a group
+  // conversation and that the user is inside it. Without this, people added
+  // to a business after its group chat existed never appeared in the chat.
+  try {
+    const [{ data: myMems }, { data: myOwned }] = await Promise.all([
+      supa.from("business_members").select("business_id").eq("user_id", me.userId!),
+      supa.from("businesses").select("id").eq("created_by", me.userId!),
+    ]);
+    const myBusinessIds = Array.from(
+      new Set([
+        ...(myMems ?? []).map((m) => m.business_id as string),
+        ...(myOwned ?? []).map((b) => b.id as string),
+      ]),
+    );
+    await Promise.all(myBusinessIds.map((bid) => ensureBusinessGroup(bid)));
+  } catch (e) {
+    console.warn("[chat] group sync skipped:", (e as Error).message);
+  }
+
+
 
   const { data: mems, error: e1 } = await supa
     .from("conversation_members")
@@ -119,6 +147,15 @@ export const getConversationFn = createServerFn({ method: "GET" })
       .single();
     if (error) throw new Error(error.message);
 
+    // Keep group rosters aligned with the business roster on every open.
+    if (c.kind === "group") {
+      try {
+        await syncBusinessGroupMembers(c.business_id, c.id);
+      } catch (e) {
+        console.warn("[chat] roster sync failed:", (e as Error).message);
+      }
+    }
+
     const { data: biz } = await supa
       .from("businesses")
       .select("name")
@@ -133,13 +170,14 @@ export const getConversationFn = createServerFn({ method: "GET" })
     const { data: users } = memberIds.length
       ? await supa
           .from("app_users")
-          .select("id, username, display_name")
+          .select("id, username, display_name, role")
           .in("id", memberIds)
-      : { data: [] as Array<{ id: string; username: string; display_name: string | null }> };
+      : { data: [] as Array<{ id: string; username: string; display_name: string | null; role: string | null }> };
 
     const usersOut = (users ?? []).map((u) => ({
       id: u.id,
       name: (u.display_name && u.display_name.trim()) || u.username,
+      role: (u.role ?? "member") as string,
     }));
 
     let title = biz?.name ?? "";
@@ -148,6 +186,14 @@ export const getConversationFn = createServerFn({ method: "GET" })
       title = other?.name ?? "Direct";
     }
 
+    // Only global admins may curate group membership.
+    const { data: meRow } = await supa
+      .from("app_users")
+      .select("role")
+      .eq("id", me.userId!)
+      .maybeSingle();
+    const canManage = c.kind === "group" && meRow?.role === "admin";
+
     return {
       id: c.id,
       kind: c.kind as "group" | "direct",
@@ -155,8 +201,135 @@ export const getConversationFn = createServerFn({ method: "GET" })
       businessName: biz?.name ?? "",
       title,
       members: usersOut,
+      canManage,
     };
   });
+
+// ---------------- Group membership management (admin only) ----------------
+async function loadGroup(conversationId: string) {
+  const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+  const supa = getSupabaseAdmin();
+  const { data: c, error } = await supa
+    .from("conversations")
+    .select("id, kind, business_id")
+    .eq("id", conversationId)
+    .single();
+  if (error) throw new Error(error.message);
+  if (c.kind !== "group") throw new Error("Not a group conversation");
+  return { supa, conv: c };
+}
+
+/** Business people who could be added to (or are already in) the group. */
+export const listGroupCandidatesFn = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => z.object({ conversationId: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const me = await requireSession();
+    await requireAdmin(me.userId!);
+    const { supa, conv } = await loadGroup(data.conversationId);
+
+    const [{ data: convMems }, { data: allUsers }, { data: bizMems }, { data: biz }] =
+      await Promise.all([
+        supa.from("conversation_members").select("user_id").eq("conversation_id", conv.id),
+        supa.from("app_users").select("id, username, display_name").order("username"),
+        supa.from("business_members").select("user_id").eq("business_id", conv.business_id),
+        supa.from("businesses").select("created_by").eq("id", conv.business_id).maybeSingle(),
+      ]);
+
+    const inGroup = new Set((convMems ?? []).map((m) => m.user_id));
+    const inBusiness = new Set<string>((bizMems ?? []).map((m) => m.user_id));
+    if (biz?.created_by) inBusiness.add(biz.created_by);
+
+    return (allUsers ?? [])
+      .filter((u) => !inGroup.has(u.id))
+      .map((u) => ({
+        id: u.id,
+        name: (u.display_name && u.display_name.trim()) || u.username,
+        inBusiness: inBusiness.has(u.id),
+      }))
+      // Business people first — they're the likely additions.
+      .sort((a, b) => Number(b.inBusiness) - Number(a.inBusiness) || a.name.localeCompare(b.name));
+  });
+
+export const addGroupMembersFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        conversationId: z.string().uuid(),
+        userIds: z.array(z.string().uuid()).min(1).max(50),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const me = await requireSession();
+    await requireAdmin(me.userId!);
+    const { supa, conv } = await loadGroup(data.conversationId);
+
+    const { data: existing } = await supa
+      .from("conversation_members")
+      .select("user_id")
+      .eq("conversation_id", conv.id);
+    const have = new Set((existing ?? []).map((m) => m.user_id));
+    const toAdd = data.userIds.filter((id) => !have.has(id));
+    if (toAdd.length === 0) return { added: 0 };
+
+    const { error } = await supa
+      .from("conversation_members")
+      .insert(toAdd.map((user_id) => ({ conversation_id: conv.id, user_id })));
+    if (error) throw new Error(error.message);
+
+    await Promise.all([
+      broadcast(`conv:${conv.id}`, { membersChanged: true }),
+      ...toAdd.map((uid) => broadcast(`user:${uid}`, { conversationId: conv.id })),
+    ]);
+    return { added: toAdd.length };
+  });
+
+export const removeGroupMemberFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({ conversationId: z.string().uuid(), userId: z.string().uuid() })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const me = await requireSession();
+    await requireAdmin(me.userId!);
+    const { supa, conv } = await loadGroup(data.conversationId);
+
+    // The business creator always keeps access to their own group chat.
+    const { data: biz } = await supa
+      .from("businesses")
+      .select("created_by")
+      .eq("id", conv.business_id)
+      .maybeSingle();
+    if (biz?.created_by === data.userId) {
+      throw new Error("The business owner can't be removed from the group chat");
+    }
+
+
+
+    const { error } = await supa
+      .from("conversation_members")
+      .delete()
+      .eq("conversation_id", conv.id)
+      .eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+
+    // Removing someone who is still on the business roster would be undone by
+    // the next roster sync, so drop them from the business too — that is the
+    // only consistent meaning of "remove from the business group chat".
+    await supa
+      .from("business_members")
+      .delete()
+      .eq("business_id", conv.business_id)
+      .eq("user_id", data.userId);
+
+    await Promise.all([
+      broadcast(`conv:${conv.id}`, { membersChanged: true }),
+      broadcast(`user:${data.userId}`, { conversationId: conv.id }),
+    ]);
+    return { ok: true };
+  });
+
 
 // ---------------- List messages ----------------
 export const listMessagesFn = createServerFn({ method: "GET" })
