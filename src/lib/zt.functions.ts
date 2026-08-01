@@ -939,6 +939,9 @@ export const settlePersonalLoansFn = createServerFn({ method: "POST" })
       occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       accountId: z.string().uuid().nullable().optional(),
       note: z.string().max(500).default(""),
+      // Closed loans can still carry outstanding principal (closed manually
+      // without repayment). Include them by default so they can be repaid.
+      includeClosed: z.boolean().default(true),
     }).parse(d),
   )
   .handler(async ({ data }) => {
@@ -946,17 +949,17 @@ export const settlePersonalLoansFn = createServerFn({ method: "POST" })
 
     let lq = supa
       .from("personal_loans")
-      .select("id, principal, started_on")
+      .select("id, principal, started_on, status")
       .eq("profile_id", data.profileId)
       .eq("direction", data.direction)
-      .eq("status", "open")
       .order("started_on", { ascending: true });
+    if (!data.includeClosed) lq = lq.eq("status", "open");
     lq = data.counterpartyId
       ? lq.eq("counterparty_id", data.counterpartyId)
       : lq.is("counterparty_id", null);
     const { data: loans, error: le } = await lq;
     if (le) throw new Error(le.message);
-    if (!loans || loans.length === 0) throw new Error("No open loans to settle");
+    if (!loans || loans.length === 0) throw new Error("No loans to settle");
 
     const ids = loans.map((l) => l.id);
     const { data: reps, error: re } = await supa

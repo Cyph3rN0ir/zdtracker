@@ -99,6 +99,18 @@ export function PersonalLoans({
     onSuccess: () => { toast.success("Loan closed"); invalidate(); },
   });
 
+  const reopenM = useMutation({
+    mutationFn: (l: Loan) => upsert({
+      data: {
+        id: l.id, profileId, direction: l.direction,
+        counterpartyId: l.counterparty_id, principal: Number(l.principal),
+        interestRate: Number(l.interest_rate), startedOn: l.started_on,
+        dueOn: l.due_on, status: "open", note: l.note,
+      },
+    }),
+    onSuccess: () => { toast.success("Loan reopened"); invalidate(); },
+  });
+
   // Repayment totals per loan from linked transactions.
   const repaidByLoan = useMemo(() => {
     const m = new Map<string, number>();
@@ -114,21 +126,22 @@ export function PersonalLoans({
 
   const open = loans.filter((l) => l.status === "open");
   const closed = loans.filter((l) => l.status === "closed");
+  const outstandingOf = (l: Loan) => Math.max(0, Number(l.principal) - (repaidByLoan.get(l.id) ?? 0));
 
-  const totalOwedByMe = open.filter((l) => l.direction === "i_owe")
-    .reduce((s, l) => s + Math.max(0, Number(l.principal) - (repaidByLoan.get(l.id) ?? 0)), 0);
-  const totalOwedToMe = open.filter((l) => l.direction === "owed_to_me")
-    .reduce((s, l) => s + Math.max(0, Number(l.principal) - (repaidByLoan.get(l.id) ?? 0)), 0);
+  // Outstanding counts regardless of status: a loan closed manually without
+  // repayment still represents real debt.
+  const totalOwedByMe = loans.filter((l) => l.direction === "i_owe").reduce((s, l) => s + outstandingOf(l), 0);
+  const totalOwedToMe = loans.filter((l) => l.direction === "owed_to_me").reduce((s, l) => s + outstandingOf(l), 0);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="pb-1.5 px-3 sm:px-6"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium truncate">I owe (open)</CardTitle></CardHeader>
+          <CardHeader className="pb-1.5 px-3 sm:px-6"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium truncate">I owe</CardTitle></CardHeader>
           <CardContent className="px-3 sm:px-6"><div className="min-w-0 text-base sm:text-lg font-mono tabular-nums font-semibold text-rose-500 break-words leading-tight">{fmtMoney(totalOwedByMe, currency)}</div></CardContent>
         </Card>
         <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="pb-1.5 px-3 sm:px-6"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium truncate">Owed to me (open)</CardTitle></CardHeader>
+          <CardHeader className="pb-1.5 px-3 sm:px-6"><CardTitle className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium truncate">Owed to me</CardTitle></CardHeader>
           <CardContent className="px-3 sm:px-6"><div className="min-w-0 text-base sm:text-lg font-mono tabular-nums font-semibold text-emerald-500 break-words leading-tight">{fmtMoney(totalOwedToMe, currency)}</div></CardContent>
         </Card>
       </div>
@@ -213,7 +226,7 @@ export function PersonalLoans({
                       <div className="sm:col-span-2 text-xs text-muted-foreground">Outstanding<br /><span className={`font-mono tabular-nums ${outstanding > 0 ? "text-foreground" : "text-emerald-500"}`}>{fmtMoney(outstanding, currency)}</span></div>
                     </div>
                     <div className="flex justify-end gap-1.5 sm:col-span-3 flex-wrap">
-                      <RepaymentDialog loan={l} accounts={accounts} currency={currency}
+                      <RepaymentDialog loan={l} accounts={accounts} currency={currency} outstanding={outstanding}
                         onAdd={async (amount, accountId, note, occurredOn) => {
                           await addTx({
                             data: {
@@ -249,15 +262,50 @@ export function PersonalLoans({
           <CardHeader><CardTitle className="text-base">Closed</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="divide-y">
-              {closed.map((l) => (
-                <div key={l.id} className="flex items-center justify-between px-4 py-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{l.direction === "i_owe" ? "I owed" : "Was owed"}</Badge>
-                    <span>{cpName(l.counterparty_id)}</span>
+              {closed.map((l) => {
+                const outstanding = outstandingOf(l);
+                return (
+                  <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Badge variant="outline">{l.direction === "i_owe" ? "I owed" : "Was owed"}</Badge>
+                      <span className="truncate">{cpName(l.counterparty_id)}</span>
+                      {outstanding > 0.004 && (
+                        <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
+                          {fmtMoney(outstanding, currency)} unpaid
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      <span className="font-mono tabular-nums">{fmtMoney(l.principal, currency)}</span>
+                      {outstanding > 0.004 && (
+                        <>
+                          <RepaymentDialog loan={l} accounts={accounts} currency={currency} outstanding={outstanding}
+                            onAdd={async (amount, accountId, note, occurredOn) => {
+                              await addTx({
+                                data: {
+                                  profileId,
+                                  kind: l.direction === "i_owe" ? "repayment_out" : "repayment_in",
+                                  amount, note: note || `Repayment for loan`,
+                                  occurredOn,
+                                  accountId: accountId || null,
+                                  categoryId: null,
+                                  counterpartyId: l.counterparty_id,
+                                  transferAccountId: null,
+                                  linkedLoanId: l.id,
+                                },
+                              });
+                              toast.success("Repayment recorded");
+                              invalidate();
+                            }}
+                          />
+                          <Button variant="ghost" size="sm" onClick={() => reopenM.mutate(l)}>Reopen</Button>
+                        </>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" onClick={() => dm.mutate(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </div>
                   </div>
-                  <span className="font-mono tabular-nums">{fmtMoney(l.principal, currency)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -267,9 +315,9 @@ export function PersonalLoans({
 }
 
 function RepaymentDialog({
-  loan, accounts, currency, onAdd,
+  loan, accounts, currency, onAdd, outstanding,
 }: {
-  loan: Loan; accounts: Account[]; currency: string;
+  loan: Loan; accounts: Account[]; currency: string; outstanding: number;
   onAdd: (amount: number, accountId: string, note: string, occurredOn: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -283,15 +331,23 @@ function RepaymentDialog({
       <DialogTrigger asChild>
         <Button size="sm" variant="secondary"><HandCoins className="h-3.5 w-3.5" /> Repayment</Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-md max-h-[90dvh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="text-left">
           <DialogTitle>Record repayment</DialogTitle>
-          <DialogDescription>Repayment for {fmtMoney(loan.principal, currency)} loan.</DialogDescription>
+          <DialogDescription>
+            Outstanding {fmtMoney(outstanding, currency)} of {fmtMoney(loan.principal, currency)}. Enter any custom amount.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 col-span-2">
             <Label>Amount</Label>
-            <Input type="number" step="0.01" min="0" className="text-right font-mono" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Input type="number" step="0.01" min="0" className="text-right font-mono text-base" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              {([["25%", 0.25], ["50%", 0.5], ["Full", 1]] as const).map(([lbl, f]) => (
+                <Button key={lbl} type="button" variant="outline" size="sm" className="h-7 px-2.5 text-xs"
+                  onClick={() => setAmount((Math.round(outstanding * f * 100) / 100).toFixed(2))}>{lbl}</Button>
+              ))}
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Date</Label>
@@ -320,9 +376,6 @@ function RepaymentDialog({
             finally { setBusy(false); }
           }}>Save</Button>
         </DialogFooter>
-        <div className="text-xs text-muted-foreground">
-          Records a <code>{loan.direction === "i_owe" ? "repayment_out" : "repayment_in"}</code> transaction linked to this loan ({fmtMoney(loan.principal, currency)}).
-        </div>
       </DialogContent>
     </Dialog>
   );
@@ -728,29 +781,47 @@ function SettleUpDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setAmount(outstanding.toFixed(2)); }}>
       <DialogTrigger asChild>
-        <Button size="sm" variant={iOwe ? "default" : "secondary"} className="flex-1 min-w-0">
-          <HandCoins className="h-3.5 w-3.5" />
-          <span className="truncate">{iOwe ? "Pay off" : "Collect"} {fmtMoney(outstanding, currency)}</span>
+        <Button
+          size="sm"
+          variant="outline"
+          className={`flex-1 min-w-0 h-11 justify-between gap-2 rounded-lg px-3 font-medium transition-colors ${
+            iOwe
+              ? "border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 hover:border-rose-500/50"
+              : "border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/50"
+          }`}
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <HandCoins className={`h-4 w-4 shrink-0 ${iOwe ? "text-rose-500" : "text-emerald-500"}`} />
+            <span className="truncate text-[13px]">{iOwe ? "Pay off" : "Collect"}</span>
+          </span>
+          <span className={`font-mono tabular-nums text-[13px] shrink-0 ${iOwe ? "text-rose-500" : "text-emerald-500"}`}>
+            {fmtMoney(outstanding, currency)}
+          </span>
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-md max-h-[90dvh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="text-left">
           <DialogTitle>{iOwe ? "Pay off" : "Collect from"} {personName}</DialogTitle>
           <DialogDescription>
-            One amount spread across all open loans, oldest first. Fully repaid loans close automatically.
+            Enter any custom amount — it's spread across every outstanding loan (including closed ones), oldest first. Fully repaid loans close automatically.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5 col-span-2">
             <div className="flex items-center justify-between">
               <Label>Amount</Label>
-              <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs"
-                onClick={() => setAmount(outstanding.toFixed(2))}>
-                Full {fmtMoney(outstanding, currency)}
-              </Button>
+              <span className="text-xs text-muted-foreground font-mono tabular-nums">
+                Outstanding {fmtMoney(outstanding, currency)}
+              </span>
             </div>
-            <Input type="number" step="0.01" min="0" className="text-right font-mono text-base"
+            <Input type="number" step="0.01" min="0" className="text-right font-mono text-base h-11"
               value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              {([["25%", 0.25], ["50%", 0.5], ["75%", 0.75], ["Full", 1]] as const).map(([lbl, f]) => (
+                <Button key={lbl} type="button" variant="outline" size="sm" className="h-7 px-2.5 text-xs"
+                  onClick={() => setAmount((Math.round(outstanding * f * 100) / 100).toFixed(2))}>{lbl}</Button>
+              ))}
+            </div>
             {over && (
               <div className="text-[11px] text-amber-600 dark:text-amber-400">
                 Higher than outstanding — only {fmtMoney(outstanding, currency)} will be applied.
@@ -778,7 +849,7 @@ function SettleUpDialog({
         </div>
         <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={busy || !(amt > 0)} onClick={run}>
+          <Button className="h-11 sm:h-10" disabled={busy || !(amt > 0)} onClick={run}>
             {busy ? "Saving…" : `Settle ${fmtMoney(Math.min(amt, outstanding), currency)}`}
           </Button>
         </DialogFooter>
