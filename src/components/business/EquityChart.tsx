@@ -25,14 +25,20 @@ export function EquityDonut({ data }: { data: EquitySlice[] }) {
         </Pie>
         <Tooltip
           formatter={(v: number, n: string) => [`${Number(v).toFixed(2)}%`, n]}
+          cursor={{ fill: "transparent" }}
+          wrapperStyle={{ outline: "none" }}
           contentStyle={{
             background: "var(--popover)",
             border: "1px solid var(--border)",
             borderRadius: 8,
             fontSize: 12,
             color: "var(--popover-foreground)",
+            boxShadow: "0 8px 24px -12px rgb(0 0 0 / 0.45)",
           }}
+          labelStyle={{ color: "var(--popover-foreground)" }}
+          itemStyle={{ color: "var(--popover-foreground)" }}
         />
+
       </PieChart>
     </ResponsiveContainer>
   );
