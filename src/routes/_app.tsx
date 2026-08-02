@@ -201,7 +201,12 @@ function AppLayout() {
     <>
       <div className="p-5 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          <div
+            className={lang === "bn"
+              ? "text-sm font-semibold text-muted-foreground"
+              : "text-[11px] font-display font-bold uppercase tracking-[0.18em] text-muted-foreground"}
+            style={lang === "bn" ? { fontFamily: '"Hind Siliguri", sans-serif' } : undefined}
+          >
             {t("brand")}
           </div>
         </div>
@@ -312,7 +317,12 @@ function AppLayout() {
           </SheetContent>
         </Sheet>
         <div className="flex items-center gap-2">
-          <div className="text-sm font-display font-bold tracking-wide">{t("brand")}</div>
+          <div
+            className={lang === "bn" ? "text-sm font-semibold" : "text-sm font-display font-bold tracking-wide"}
+            style={lang === "bn" ? { fontFamily: '"Hind Siliguri", sans-serif' } : undefined}
+          >
+            {t("brand")}
+          </div>
         </div>
         <div className="h-8 w-8 grid place-items-center rounded-md bg-primary text-primary-foreground text-xs font-semibold">
           {(me.displayName || me.username).slice(0, 1).toUpperCase()}
