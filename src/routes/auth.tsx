@@ -54,6 +54,9 @@ function AuthPage() {
   }
 
   const bn = lang === "bn";
+  const labelClass = bn
+    ? "text-xs font-medium text-muted-foreground"
+    : "text-[11px] font-medium uppercase tracking-wider text-muted-foreground";
   const brandClass = bn
     ? "text-sm font-semibold"
     : "text-[11px] font-display font-bold uppercase tracking-[0.2em]";
@@ -86,19 +89,18 @@ function AuthPage() {
               {t("brand")}
             </span>
           </div>
-          <div className="flex shrink-0 items-center gap-3 text-[11px] font-medium">
+          <div className="flex shrink-0 items-center gap-1 rounded-full border border-border/70 bg-background/60 p-0.5 text-[11px] font-semibold">
             <button
               type="button"
               onClick={() => setLang("en")}
-              className={`tap transition-colors ${lang === "en" ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground"}`}
+              className={`tap rounded-full px-2.5 py-1 transition-colors ${lang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               EN
             </button>
-            <span className="h-3 w-px bg-border" />
             <button
               type="button"
               onClick={() => setLang("bn")}
-              className={`tap transition-colors ${bn ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground"}`}
+              className={`tap rounded-full px-2.5 py-1 transition-colors ${bn ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               style={{ fontFamily: '"Hind Siliguri", sans-serif' }}
             >
               বাংলা
@@ -112,7 +114,7 @@ function AuthPage() {
 
           <div className="mt-8 space-y-5">
             <div>
-              <Label htmlFor="u" className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="u" className={labelClass}>
                 {t("auth.username")}
               </Label>
               <Input
@@ -126,7 +128,7 @@ function AuthPage() {
               />
             </div>
             <div>
-              <Label htmlFor="p" className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="p" className={labelClass}>
                 {t("auth.password")}
               </Label>
               <Input
