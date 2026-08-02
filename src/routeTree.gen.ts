@@ -9,42 +9,42 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteImport } from './routes/_app'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
-import { Route as AppChatRouteImport } from './routes/_app.chat'
-import { Route as AppNotebookRouteImport } from './routes/_app.notebook'
-import { Route as AppPersonalRouteImport } from './routes/_app.personal'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
-import { Route as AppAdminUsersRouteImport } from './routes/_app.admin.users'
-import { Route as AppBusinessesIdRouteImport } from './routes/_app.businesses.$id'
-import { Route as AppChatIndexRouteImport } from './routes/_app.chat.index'
-import { Route as AppChatConversationIdRouteImport } from './routes/_app.chat.$conversationId'
-import { Route as AppChatNewRouteImport } from './routes/_app.chat.new'
-import { Route as AppMyTasksRouteImport } from './routes/_app.my.tasks'
-import { Route as AppNotebookIndexRouteImport } from './routes/_app.notebook.index'
-import { Route as AppNotebookTodayRouteImport } from './routes/_app.notebook.today'
+import { Route as AppPersonalRouteImport } from './routes/_app.personal'
+import { Route as AppNotebookRouteImport } from './routes/_app.notebook'
+import { Route as AppChatRouteImport } from './routes/_app.chat'
 import { Route as AppPersonalIndexRouteImport } from './routes/_app.personal.index'
-import { Route as AppPersonalIdRouteImport } from './routes/_app.personal.$id'
+import { Route as AppNotebookIndexRouteImport } from './routes/_app.notebook.index'
+import { Route as AppChatIndexRouteImport } from './routes/_app.chat.index'
 import { Route as ApiPushConfigRouteImport } from './routes/api.push.config'
-import { Route as AppBusinessesIdIndexRouteImport } from './routes/_app.businesses.$id.index'
-import { Route as AppBusinessesIdAccountsRouteImport } from './routes/_app.businesses.$id.accounts'
-import { Route as AppBusinessesIdEquityRouteImport } from './routes/_app.businesses.$id.equity'
-import { Route as AppBusinessesIdMoneyRouteImport } from './routes/_app.businesses.$id.money'
-import { Route as AppBusinessesIdPeopleRouteImport } from './routes/_app.businesses.$id.people'
-import { Route as AppBusinessesIdProfitRouteImport } from './routes/_app.businesses.$id.profit'
-import { Route as AppBusinessesIdTasksRouteImport } from './routes/_app.businesses.$id.tasks'
+import { Route as AppPersonalIdRouteImport } from './routes/_app.personal.$id'
+import { Route as AppNotebookTodayRouteImport } from './routes/_app.notebook.today'
+import { Route as AppMyTasksRouteImport } from './routes/_app.my.tasks'
+import { Route as AppChatNewRouteImport } from './routes/_app.chat.new'
+import { Route as AppChatConversationIdRouteImport } from './routes/_app.chat.$conversationId'
+import { Route as AppBusinessesIdRouteImport } from './routes/_app.businesses.$id'
+import { Route as AppAdminUsersRouteImport } from './routes/_app.admin.users'
 import { Route as AppNotebookListsIndexRouteImport } from './routes/_app.notebook.lists.index'
-import { Route as AppNotebookListsListIdRouteImport } from './routes/_app.notebook.lists.$listId'
+import { Route as AppBusinessesIdIndexRouteImport } from './routes/_app.businesses.$id.index'
 import { Route as AppNotebookNotesNoteIdRouteImport } from './routes/_app.notebook.notes.$noteId'
+import { Route as AppNotebookListsListIdRouteImport } from './routes/_app.notebook.lists.$listId'
+import { Route as AppBusinessesIdTasksRouteImport } from './routes/_app.businesses.$id.tasks'
+import { Route as AppBusinessesIdProfitRouteImport } from './routes/_app.businesses.$id.profit'
+import { Route as AppBusinessesIdPeopleRouteImport } from './routes/_app.businesses.$id.people'
+import { Route as AppBusinessesIdMoneyRouteImport } from './routes/_app.businesses.$id.money'
+import { Route as AppBusinessesIdEquityRouteImport } from './routes/_app.businesses.$id.equity'
+import { Route as AppBusinessesIdAccountsRouteImport } from './routes/_app.businesses.$id.accounts'
 
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -52,14 +52,9 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppChatRoute = AppChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppNotebookRoute = AppNotebookRouteImport.update({
-  id: '/notebook',
-  path: '/notebook',
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPersonalRoute = AppPersonalRouteImport.update({
@@ -67,24 +62,54 @@ const AppPersonalRoute = AppPersonalRouteImport.update({
   path: '/personal',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const AppNotebookRoute = AppNotebookRouteImport.update({
+  id: '/notebook',
+  path: '/notebook',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
-  id: '/admin/users',
-  path: '/admin/users',
+const AppChatRoute = AppChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => AppRoute,
 } as any)
-const AppBusinessesIdRoute = AppBusinessesIdRouteImport.update({
-  id: '/businesses/$id',
-  path: '/businesses/$id',
-  getParentRoute: () => AppRoute,
+const AppPersonalIndexRoute = AppPersonalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppPersonalRoute,
+} as any)
+const AppNotebookIndexRoute = AppNotebookIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppNotebookRoute,
 } as any)
 const AppChatIndexRoute = AppChatIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppChatRoute,
+} as any)
+const ApiPushConfigRoute = ApiPushConfigRouteImport.update({
+  id: '/api/push/config',
+  path: '/api/push/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppPersonalIdRoute = AppPersonalIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppPersonalRoute,
+} as any)
+const AppNotebookTodayRoute = AppNotebookTodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => AppNotebookRoute,
+} as any)
+const AppMyTasksRoute = AppMyTasksRouteImport.update({
+  id: '/my/tasks',
+  path: '/my/tasks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChatNewRoute = AppChatNewRouteImport.update({
+  id: '/new',
+  path: '/new',
   getParentRoute: () => AppChatRoute,
 } as any)
 const AppChatConversationIdRoute = AppChatConversationIdRouteImport.update({
@@ -92,79 +117,29 @@ const AppChatConversationIdRoute = AppChatConversationIdRouteImport.update({
   path: '/$conversationId',
   getParentRoute: () => AppChatRoute,
 } as any)
-const AppChatNewRoute = AppChatNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AppChatRoute,
-} as any)
-const AppMyTasksRoute = AppMyTasksRouteImport.update({
-  id: '/my/tasks',
-  path: '/my/tasks',
+const AppBusinessesIdRoute = AppBusinessesIdRouteImport.update({
+  id: '/businesses/$id',
+  path: '/businesses/$id',
   getParentRoute: () => AppRoute,
 } as any)
-const AppNotebookIndexRoute = AppNotebookIndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotebookListsIndexRoute = AppNotebookListsIndexRouteImport.update({
+  id: '/lists/',
+  path: '/lists/',
   getParentRoute: () => AppNotebookRoute,
-} as any)
-const AppNotebookTodayRoute = AppNotebookTodayRouteImport.update({
-  id: '/today',
-  path: '/today',
-  getParentRoute: () => AppNotebookRoute,
-} as any)
-const AppPersonalIndexRoute = AppPersonalIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppPersonalRoute,
-} as any)
-const AppPersonalIdRoute = AppPersonalIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppPersonalRoute,
-} as any)
-const ApiPushConfigRoute = ApiPushConfigRouteImport.update({
-  id: '/api/push/config',
-  path: '/api/push/config',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AppBusinessesIdIndexRoute = AppBusinessesIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppBusinessesIdRoute,
 } as any)
-const AppBusinessesIdAccountsRoute = AppBusinessesIdAccountsRouteImport.update({
-  id: '/accounts',
-  path: '/accounts',
-  getParentRoute: () => AppBusinessesIdRoute,
-} as any)
-const AppBusinessesIdEquityRoute = AppBusinessesIdEquityRouteImport.update({
-  id: '/equity',
-  path: '/equity',
-  getParentRoute: () => AppBusinessesIdRoute,
-} as any)
-const AppBusinessesIdMoneyRoute = AppBusinessesIdMoneyRouteImport.update({
-  id: '/money',
-  path: '/money',
-  getParentRoute: () => AppBusinessesIdRoute,
-} as any)
-const AppBusinessesIdPeopleRoute = AppBusinessesIdPeopleRouteImport.update({
-  id: '/people',
-  path: '/people',
-  getParentRoute: () => AppBusinessesIdRoute,
-} as any)
-const AppBusinessesIdProfitRoute = AppBusinessesIdProfitRouteImport.update({
-  id: '/profit',
-  path: '/profit',
-  getParentRoute: () => AppBusinessesIdRoute,
-} as any)
-const AppBusinessesIdTasksRoute = AppBusinessesIdTasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => AppBusinessesIdRoute,
-} as any)
-const AppNotebookListsIndexRoute = AppNotebookListsIndexRouteImport.update({
-  id: '/lists/',
-  path: '/lists/',
+const AppNotebookNotesNoteIdRoute = AppNotebookNotesNoteIdRouteImport.update({
+  id: '/notes/$noteId',
+  path: '/notes/$noteId',
   getParentRoute: () => AppNotebookRoute,
 } as any)
 const AppNotebookListsListIdRoute = AppNotebookListsListIdRouteImport.update({
@@ -172,10 +147,35 @@ const AppNotebookListsListIdRoute = AppNotebookListsListIdRouteImport.update({
   path: '/lists/$listId',
   getParentRoute: () => AppNotebookRoute,
 } as any)
-const AppNotebookNotesNoteIdRoute = AppNotebookNotesNoteIdRouteImport.update({
-  id: '/notes/$noteId',
-  path: '/notes/$noteId',
-  getParentRoute: () => AppNotebookRoute,
+const AppBusinessesIdTasksRoute = AppBusinessesIdTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
+const AppBusinessesIdProfitRoute = AppBusinessesIdProfitRouteImport.update({
+  id: '/profit',
+  path: '/profit',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
+const AppBusinessesIdPeopleRoute = AppBusinessesIdPeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
+const AppBusinessesIdMoneyRoute = AppBusinessesIdMoneyRouteImport.update({
+  id: '/money',
+  path: '/money',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
+const AppBusinessesIdEquityRoute = AppBusinessesIdEquityRouteImport.update({
+  id: '/equity',
+  path: '/equity',
+  getParentRoute: () => AppBusinessesIdRoute,
+} as any)
+const AppBusinessesIdAccountsRoute = AppBusinessesIdAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AppBusinessesIdRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -358,18 +358,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_app': {
-      id: '/_app'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -379,18 +379,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/chat': {
-      id: '/_app/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof AppChatRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/notebook': {
-      id: '/_app/notebook'
-      path: '/notebook'
-      fullPath: '/notebook'
-      preLoaderRoute: typeof AppNotebookRouteImport
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/personal': {
@@ -400,32 +393,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPersonalRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/settings': {
-      id: '/_app/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
+    '/_app/notebook': {
+      id: '/_app/notebook'
+      path: '/notebook'
+      fullPath: '/notebook'
+      preLoaderRoute: typeof AppNotebookRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/admin/users': {
-      id: '/_app/admin/users'
-      path: '/admin/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AppAdminUsersRouteImport
+    '/_app/chat': {
+      id: '/_app/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof AppChatRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/businesses/$id': {
-      id: '/_app/businesses/$id'
-      path: '/businesses/$id'
-      fullPath: '/businesses/$id'
-      preLoaderRoute: typeof AppBusinessesIdRouteImport
-      parentRoute: typeof AppRoute
+    '/_app/personal/': {
+      id: '/_app/personal/'
+      path: '/'
+      fullPath: '/personal/'
+      preLoaderRoute: typeof AppPersonalIndexRouteImport
+      parentRoute: typeof AppPersonalRoute
+    }
+    '/_app/notebook/': {
+      id: '/_app/notebook/'
+      path: '/'
+      fullPath: '/notebook/'
+      preLoaderRoute: typeof AppNotebookIndexRouteImport
+      parentRoute: typeof AppNotebookRoute
     }
     '/_app/chat/': {
       id: '/_app/chat/'
       path: '/'
       fullPath: '/chat/'
       preLoaderRoute: typeof AppChatIndexRouteImport
+      parentRoute: typeof AppChatRoute
+    }
+    '/api/push/config': {
+      id: '/api/push/config'
+      path: '/api/push/config'
+      fullPath: '/api/push/config'
+      preLoaderRoute: typeof ApiPushConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/personal/$id': {
+      id: '/_app/personal/$id'
+      path: '/$id'
+      fullPath: '/personal/$id'
+      preLoaderRoute: typeof AppPersonalIdRouteImport
+      parentRoute: typeof AppPersonalRoute
+    }
+    '/_app/notebook/today': {
+      id: '/_app/notebook/today'
+      path: '/today'
+      fullPath: '/notebook/today'
+      preLoaderRoute: typeof AppNotebookTodayRouteImport
+      parentRoute: typeof AppNotebookRoute
+    }
+    '/_app/my/tasks': {
+      id: '/_app/my/tasks'
+      path: '/my/tasks'
+      fullPath: '/my/tasks'
+      preLoaderRoute: typeof AppMyTasksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/chat/new': {
+      id: '/_app/chat/new'
+      path: '/new'
+      fullPath: '/chat/new'
+      preLoaderRoute: typeof AppChatNewRouteImport
       parentRoute: typeof AppChatRoute
     }
     '/_app/chat/$conversationId': {
@@ -435,54 +470,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChatConversationIdRouteImport
       parentRoute: typeof AppChatRoute
     }
-    '/_app/chat/new': {
-      id: '/_app/chat/new'
-      path: '/new'
-      fullPath: '/chat/new'
-      preLoaderRoute: typeof AppChatNewRouteImport
-      parentRoute: typeof AppChatRoute
-    }
-    '/_app/my/tasks': {
-      id: '/_app/my/tasks'
-      path: '/my/tasks'
-      fullPath: '/my/tasks'
-      preLoaderRoute: typeof AppMyTasksRouteImport
+    '/_app/businesses/$id': {
+      id: '/_app/businesses/$id'
+      path: '/businesses/$id'
+      fullPath: '/businesses/$id'
+      preLoaderRoute: typeof AppBusinessesIdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/notebook/': {
-      id: '/_app/notebook/'
-      path: '/'
-      fullPath: '/notebook/'
-      preLoaderRoute: typeof AppNotebookIndexRouteImport
+    '/_app/admin/users': {
+      id: '/_app/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AppAdminUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notebook/lists/': {
+      id: '/_app/notebook/lists/'
+      path: '/lists'
+      fullPath: '/notebook/lists/'
+      preLoaderRoute: typeof AppNotebookListsIndexRouteImport
       parentRoute: typeof AppNotebookRoute
-    }
-    '/_app/notebook/today': {
-      id: '/_app/notebook/today'
-      path: '/today'
-      fullPath: '/notebook/today'
-      preLoaderRoute: typeof AppNotebookTodayRouteImport
-      parentRoute: typeof AppNotebookRoute
-    }
-    '/_app/personal/': {
-      id: '/_app/personal/'
-      path: '/'
-      fullPath: '/personal/'
-      preLoaderRoute: typeof AppPersonalIndexRouteImport
-      parentRoute: typeof AppPersonalRoute
-    }
-    '/_app/personal/$id': {
-      id: '/_app/personal/$id'
-      path: '/$id'
-      fullPath: '/personal/$id'
-      preLoaderRoute: typeof AppPersonalIdRouteImport
-      parentRoute: typeof AppPersonalRoute
-    }
-    '/api/push/config': {
-      id: '/api/push/config'
-      path: '/api/push/config'
-      fullPath: '/api/push/config'
-      preLoaderRoute: typeof ApiPushConfigRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_app/businesses/$id/': {
       id: '/_app/businesses/$id/'
@@ -491,53 +498,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBusinessesIdIndexRouteImport
       parentRoute: typeof AppBusinessesIdRoute
     }
-    '/_app/businesses/$id/accounts': {
-      id: '/_app/businesses/$id/accounts'
-      path: '/accounts'
-      fullPath: '/businesses/$id/accounts'
-      preLoaderRoute: typeof AppBusinessesIdAccountsRouteImport
-      parentRoute: typeof AppBusinessesIdRoute
-    }
-    '/_app/businesses/$id/equity': {
-      id: '/_app/businesses/$id/equity'
-      path: '/equity'
-      fullPath: '/businesses/$id/equity'
-      preLoaderRoute: typeof AppBusinessesIdEquityRouteImport
-      parentRoute: typeof AppBusinessesIdRoute
-    }
-    '/_app/businesses/$id/money': {
-      id: '/_app/businesses/$id/money'
-      path: '/money'
-      fullPath: '/businesses/$id/money'
-      preLoaderRoute: typeof AppBusinessesIdMoneyRouteImport
-      parentRoute: typeof AppBusinessesIdRoute
-    }
-    '/_app/businesses/$id/people': {
-      id: '/_app/businesses/$id/people'
-      path: '/people'
-      fullPath: '/businesses/$id/people'
-      preLoaderRoute: typeof AppBusinessesIdPeopleRouteImport
-      parentRoute: typeof AppBusinessesIdRoute
-    }
-    '/_app/businesses/$id/profit': {
-      id: '/_app/businesses/$id/profit'
-      path: '/profit'
-      fullPath: '/businesses/$id/profit'
-      preLoaderRoute: typeof AppBusinessesIdProfitRouteImport
-      parentRoute: typeof AppBusinessesIdRoute
-    }
-    '/_app/businesses/$id/tasks': {
-      id: '/_app/businesses/$id/tasks'
-      path: '/tasks'
-      fullPath: '/businesses/$id/tasks'
-      preLoaderRoute: typeof AppBusinessesIdTasksRouteImport
-      parentRoute: typeof AppBusinessesIdRoute
-    }
-    '/_app/notebook/lists/': {
-      id: '/_app/notebook/lists/'
-      path: '/lists'
-      fullPath: '/notebook/lists/'
-      preLoaderRoute: typeof AppNotebookListsIndexRouteImport
+    '/_app/notebook/notes/$noteId': {
+      id: '/_app/notebook/notes/$noteId'
+      path: '/notes/$noteId'
+      fullPath: '/notebook/notes/$noteId'
+      preLoaderRoute: typeof AppNotebookNotesNoteIdRouteImport
       parentRoute: typeof AppNotebookRoute
     }
     '/_app/notebook/lists/$listId': {
@@ -547,12 +512,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNotebookListsListIdRouteImport
       parentRoute: typeof AppNotebookRoute
     }
-    '/_app/notebook/notes/$noteId': {
-      id: '/_app/notebook/notes/$noteId'
-      path: '/notes/$noteId'
-      fullPath: '/notebook/notes/$noteId'
-      preLoaderRoute: typeof AppNotebookNotesNoteIdRouteImport
-      parentRoute: typeof AppNotebookRoute
+    '/_app/businesses/$id/tasks': {
+      id: '/_app/businesses/$id/tasks'
+      path: '/tasks'
+      fullPath: '/businesses/$id/tasks'
+      preLoaderRoute: typeof AppBusinessesIdTasksRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
+    '/_app/businesses/$id/profit': {
+      id: '/_app/businesses/$id/profit'
+      path: '/profit'
+      fullPath: '/businesses/$id/profit'
+      preLoaderRoute: typeof AppBusinessesIdProfitRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
+    '/_app/businesses/$id/people': {
+      id: '/_app/businesses/$id/people'
+      path: '/people'
+      fullPath: '/businesses/$id/people'
+      preLoaderRoute: typeof AppBusinessesIdPeopleRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
+    '/_app/businesses/$id/money': {
+      id: '/_app/businesses/$id/money'
+      path: '/money'
+      fullPath: '/businesses/$id/money'
+      preLoaderRoute: typeof AppBusinessesIdMoneyRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
+    '/_app/businesses/$id/equity': {
+      id: '/_app/businesses/$id/equity'
+      path: '/equity'
+      fullPath: '/businesses/$id/equity'
+      preLoaderRoute: typeof AppBusinessesIdEquityRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
+    }
+    '/_app/businesses/$id/accounts': {
+      id: '/_app/businesses/$id/accounts'
+      path: '/accounts'
+      fullPath: '/businesses/$id/accounts'
+      preLoaderRoute: typeof AppBusinessesIdAccountsRouteImport
+      parentRoute: typeof AppBusinessesIdRoute
     }
   }
 }
@@ -662,3 +662,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
