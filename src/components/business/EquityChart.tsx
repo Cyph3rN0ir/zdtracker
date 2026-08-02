@@ -3,7 +3,6 @@
  * chart library only loads when the Equity tab renders.
  */
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import type { ReactNode } from "react";
 
 export type EquitySlice = { id: string; name: string; value: number; color: string };
 
