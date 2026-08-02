@@ -59,8 +59,20 @@ function AuthPage() {
     : "text-[11px] font-display font-bold uppercase tracking-[0.2em]";
 
   return (
-    <div className="flex min-h-dvh flex-col justify-center bg-background px-6 py-10">
-      <div className="mx-auto w-full max-w-[22rem] animate-fade-in">
+    <div className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-muted/50 px-5 py-10">
+      {/* subtle structural backdrop — no glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.55]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--border) 55%, transparent) 1px, transparent 1px)",
+          backgroundSize: "44px 44px",
+          maskImage: "radial-gradient(120% 70% at 50% 40%, black 30%, transparent 100%)",
+        }}
+      />
+      <div className="relative mx-auto w-full max-w-[23rem] animate-fade-in rounded-[1.25rem] border border-border/70 bg-card/70 p-6 backdrop-blur-xl sm:p-7">
+
         {/* Brand row */}
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <div className="flex min-w-0 items-center gap-2">
