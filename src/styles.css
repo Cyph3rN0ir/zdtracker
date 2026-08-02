@@ -86,7 +86,7 @@
 }
 
 :root {
-  --radius: 0.25rem;
+  --radius: 0.875rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.18 0 0);
   --card: oklch(1 0 0);
@@ -662,5 +662,42 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   *, *::before, *::after {
     animation-duration: 1ms !important;
     transition-duration: 1ms !important;
+  }
+}
+
+@layer utilities {
+  /* Frosted panel — token-driven so it adapts to every theme. */
+  .glass-panel {
+    background: color-mix(in oklab, var(--card) 72%, transparent);
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    backdrop-filter: blur(22px) saturate(150%);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--foreground) 6%, transparent) inset,
+      0 24px 60px -24px color-mix(in oklab, var(--foreground) 28%, transparent);
+  }
+  /* Soft ambient accent wash used behind glass panels. */
+  .aurora-bg {
+    position: relative;
+    isolation: isolate;
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      border-radius: 9999px;
+      filter: blur(70px);
+      opacity: 0.35;
+      pointer-events: none;
+    }
+    &::before {
+      width: 20rem; height: 20rem;
+      top: -7rem; left: -6rem;
+      background: color-mix(in oklab, var(--primary) 12%, transparent);
+    }
+    &::after {
+      width: 17rem; height: 17rem;
+      bottom: -7rem; right: -5rem;
+      background: color-mix(in oklab, var(--accent) 18%, transparent);
+    }
   }
 }
