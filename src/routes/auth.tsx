@@ -141,9 +141,6 @@ function AuthPage() {
           </Button>
         </form>
 
-        <div className="border-t border-border px-5 py-3 text-center text-[11px] text-muted-foreground">
-          {t("auth.subtitle")}
-        </div>
       </div>
     </div>
   );
