@@ -65,7 +65,6 @@ export function EquityDonut({ data }: { data: EquitySlice[] }) {
           stroke="none"
           // prevent the focus ring / active border on click
           tabIndex={-1}
-          focus={false}
           isAnimationActive={false}
         >
           {data.map((d) => (
