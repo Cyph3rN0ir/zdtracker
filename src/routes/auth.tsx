@@ -106,7 +106,7 @@ function AuthPage() {
           </div>
         </div>
 
-        <form onSubmit={submit} className="mt-12">
+        <form onSubmit={submit} className="mt-8">
           <h1 className="font-display text-[26px] leading-tight tracking-tight">{t("auth.signIn")}</h1>
           <p className="mt-1 text-[13px] text-muted-foreground">{t("auth.subtitle")}</p>
 
