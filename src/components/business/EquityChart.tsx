@@ -75,7 +75,7 @@ export function EquityDonut({ data }: { data: EquitySlice[] }) {
         <Tooltip
           cursor={{ fill: "transparent", stroke: "transparent" }}
           wrapperStyle={{ outline: "none", border: "none" }}
-          content={<TooltipCard as unknown as ReactNode ? undefined : undefined} ?? undefined}
+          content={<TooltipCard />}
         />
       </PieChart>
     </ResponsiveContainer>
