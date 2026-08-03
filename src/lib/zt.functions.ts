@@ -60,9 +60,8 @@ export const createBusinessFn = createServerFn({ method: "POST" })
 export const getBusinessFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
-    await requireSession();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-    const { data: row, error } = await getSupabaseAdmin()
+    const { supa } = await assertBusinessAccess(data.id);
+    const { data: row, error } = await supa
       .from("businesses")
       .select("id, name, created_at")
       .eq("id", data.id)
@@ -103,9 +102,8 @@ export const renameBusinessFn = createServerFn({ method: "POST" })
 export const listMembersFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
-    await requireSession();
-    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
-    const supa = getSupabaseAdmin();
+    const { supa } = await assertBusinessAccess(data.businessId);
+    const { isMissingSchema } = await import("@/lib/supabase.server");
     const base = "id, user_id, role_in_business, created_at";
     const run = (cols: string) =>
       supa
@@ -250,9 +248,8 @@ export const setMemberEquityFn = createServerFn({ method: "POST" })
 export const listTransactionsFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
-    await requireSession();
-    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
-    const supa = getSupabaseAdmin();
+    const { supa } = await assertBusinessAccess(data.businessId);
+    const { isMissingSchema } = await import("@/lib/supabase.server");
     const base = "id, kind, amount, party_user_id, note, occurred_on, created_at";
     const run = (cols: string) =>
       supa
@@ -494,9 +491,7 @@ export const listBusinessTasksFn = createServerFn({ method: "GET" })
     z.object({ businessId: z.string().uuid(), weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(d),
   )
   .handler(async ({ data }) => {
-    await requireSession();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-    const supa = getSupabaseAdmin();
+    const { supa } = await assertBusinessAccess(data.businessId);
     const start = new Date(data.weekStart + "T00:00:00Z");
     const end = new Date(start);
     end.setUTCDate(end.getUTCDate() + 7);
