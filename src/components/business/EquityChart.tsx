@@ -1,81 +1,91 @@
 /**
- * Recharts donut for business equity ownership. Kept in its own module so the
- * chart library only loads when the Equity tab renders.
+ * Lightweight pure-SVG donut for business equity ownership.
+ * No chart library: renders instantly, no focus rings / tap highlights on mobile.
  */
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useMemo, useState } from "react";
 
 export type EquitySlice = { id: string; name: string; value: number; color: string };
 
-function TooltipCard({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number; payload: EquitySlice }>;
-}) {
-  if (!active || !payload || !payload.length) return null;
-  const p = payload[0];
-  const slice = p.payload;
-  const v = Number(p.value) || 0;
-  const pct = v % 1 === 0 ? v.toFixed(0) : v.toFixed(2);
-  return (
-    <div
-      style={{
-        background: "color-mix(in oklab, var(--popover) 88%, transparent)",
-        backdropFilter: "blur(10px)",
-        WebkitBackdropFilter: "blur(10px)",
-        borderRadius: 10,
-        padding: "8px 12px",
-        boxShadow: "0 10px 30px -12px rgb(0 0 0 / 0.5)",
-        border: "none",
-        outline: "none",
-      }}
-    >
-      <div className="flex items-center gap-2">
-        <span
-          style={{ background: slice.color }}
-          className="h-2.5 w-2.5 rounded-full"
-        />
-        <span className="text-xs font-medium" style={{ color: "var(--popover-foreground)" }}>
-          {p.name}
-        </span>
-      </div>
-      <div
-        className="mt-0.5 font-mono tabular-nums text-sm font-semibold"
-        style={{ color: "var(--popover-foreground)" }}
-      >
-        {pct}%
-      </div>
-    </div>
-  );
-}
+const SIZE = 200;
+const R = 78;
+const STROKE = 26;
+const C = 2 * Math.PI * R;
+const GAP = 1.2; // percent of circumference used as separator
 
 export function EquityDonut({ data }: { data: EquitySlice[] }) {
+  const [active, setActive] = useState<string | null>(null);
+
+  const arcs = useMemo(() => {
+    const total = data.reduce((a, d) => a + (Number(d.value) || 0), 0) || 100;
+    let acc = 0;
+    return data.map((d) => {
+      const frac = (Number(d.value) || 0) / total;
+      const len = Math.max(0, frac * C - GAP);
+      const arc = { ...d, len, offset: -acc * C };
+      acc += frac;
+      return arc;
+    });
+  }, [data]);
+
+  const hovered = arcs.find((a) => a.id === active);
+  const fmt = (v: number) => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
+
   return (
-    <ResponsiveContainer>
-      <PieChart>
-        <Pie
-          data={data}
-          dataKey="value"
-          nameKey="name"
-          innerRadius="58%"
-          outerRadius="88%"
-          paddingAngle={2}
-          stroke="none"
-          // prevent the focus ring / active border on click
-          tabIndex={-1}
-          isAnimationActive={false}
-        >
-          {data.map((d) => (
-            <Cell key={d.id} fill={d.color} tabIndex={-1} />
-          ))}
-        </Pie>
-        <Tooltip
-          cursor={{ fill: "transparent", stroke: "transparent" }}
-          wrapperStyle={{ outline: "none", border: "none" }}
-          content={<TooltipCard />}
-        />
-      </PieChart>
-    </ResponsiveContainer>
+    <div
+      className="relative h-full w-full select-none"
+      onPointerLeave={() => setActive(null)}
+    >
+      <svg
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        className="h-full w-full -rotate-90 outline-none [-webkit-tap-highlight-color:transparent]"
+        focusable="false"
+        aria-hidden="true"
+      >
+        {arcs.map((a) => (
+          <circle
+            key={a.id}
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={R}
+            fill="none"
+            stroke={a.color}
+            strokeWidth={active === a.id ? STROKE + 5 : STROKE}
+            strokeLinecap="butt"
+            strokeDasharray={`${a.len} ${C - a.len}`}
+            strokeDashoffset={a.offset}
+            opacity={active && active !== a.id ? 0.45 : 1}
+            style={{
+              transition: "stroke-width 150ms ease, opacity 150ms ease",
+              cursor: "pointer",
+              outline: "none",
+              WebkitTapHighlightColor: "transparent",
+            }}
+            onPointerDown={() => setActive(a.id)}
+            onPointerEnter={() => setActive(a.id)}
+          />
+        ))}
+      </svg>
+
+      {hovered ? (
+        <div className="pointer-events-none absolute inset-x-0 -bottom-1 flex justify-center">
+          <div
+            className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs shadow-lg backdrop-blur-md"
+            style={{
+              background: "color-mix(in oklab, var(--popover) 90%, transparent)",
+              color: "var(--popover-foreground)",
+            }}
+          >
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ background: hovered.color }}
+            />
+            <span className="max-w-[9rem] truncate font-medium">{hovered.name}</span>
+            <span className="font-mono tabular-nums font-semibold">
+              {fmt(Number(hovered.value) || 0)}%
+            </span>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
