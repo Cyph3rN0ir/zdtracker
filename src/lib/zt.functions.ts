@@ -60,9 +60,8 @@ export const createBusinessFn = createServerFn({ method: "POST" })
 export const getBusinessFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
-    await requireSession();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-    const { data: row, error } = await getSupabaseAdmin()
+    const { supa } = await assertBusinessAccess(data.id);
+    const { data: row, error } = await supa
       .from("businesses")
       .select("id, name, created_at")
       .eq("id", data.id)
