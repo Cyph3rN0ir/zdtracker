@@ -161,14 +161,18 @@ export const upsertNoteFn = createServerFn({ method: "POST" })
     const me = await requireSession();
     const supa = await db();
     if (data.id) {
+      // Only touch list_id when the caller explicitly provided it. Otherwise a
+      // partial save (title/body autosave) would detach the note from its list
+      // and make it disappear from the list view.
+      const patch: Record<string, unknown> = {
+        title: data.title,
+        body_md: data.body_md,
+        updated_at: new Date().toISOString(),
+      };
+      if (data.listId !== undefined) patch.list_id = data.listId;
       const { error } = await supa
         .from("notes")
-        .update({
-          title: data.title,
-          body_md: data.body_md,
-          list_id: data.listId ?? null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(patch)
         .eq("id", data.id)
         .eq("user_id", me.userId!);
       if (error) throw new Error(error.message);
