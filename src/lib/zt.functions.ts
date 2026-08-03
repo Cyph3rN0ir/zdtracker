@@ -102,9 +102,8 @@ export const renameBusinessFn = createServerFn({ method: "POST" })
 export const listMembersFn = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ businessId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
-    await requireSession();
-    const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
-    const supa = getSupabaseAdmin();
+    const { supa } = await assertBusinessAccess(data.businessId);
+    const { isMissingSchema } = await import("@/lib/supabase.server");
     const base = "id, user_id, role_in_business, created_at";
     const run = (cols: string) =>
       supa
