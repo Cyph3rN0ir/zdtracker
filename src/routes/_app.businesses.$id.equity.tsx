@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { listMembersFn, setMemberEquityFn } from "@/lib/zt.functions";
 import { useI18n } from "@/lib/i18n";
@@ -20,10 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PieChart, Pencil } from "lucide-react";
-
-const EquityDonut = lazy(() =>
-  import("@/components/business/EquityChart").then((m) => ({ default: m.EquityDonut })),
-);
+import { EquityDonut } from "@/components/business/EquityChart";
 
 export const Route = createFileRoute("/_app/businesses/$id/equity")({
   component: Equity,
@@ -145,9 +142,7 @@ function Equity() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)] gap-5 md:gap-6 items-center">
             <div className="relative mx-auto h-52 w-52 sm:h-60 sm:w-60 min-w-0">
-              <Suspense fallback={<Skeleton className="h-full w-full rounded-full" />}>
-                <EquityDonut data={slices} />
-              </Suspense>
+              <EquityDonut data={slices} />
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <span className="font-mono tabular-nums text-2xl sm:text-3xl font-semibold">
                   {pct(allocated)}
