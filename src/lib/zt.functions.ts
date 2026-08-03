@@ -491,9 +491,7 @@ export const listBusinessTasksFn = createServerFn({ method: "GET" })
     z.object({ businessId: z.string().uuid(), weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(d),
   )
   .handler(async ({ data }) => {
-    await requireSession();
-    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
-    const supa = getSupabaseAdmin();
+    const { supa } = await assertBusinessAccess(data.businessId);
     const start = new Date(data.weekStart + "T00:00:00Z");
     const end = new Date(start);
     end.setUTCDate(end.getUTCDate() + 7);
