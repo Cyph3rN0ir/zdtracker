@@ -336,7 +336,7 @@ const MAP: Record<string, string> = {
   "member": "সদস্য",
   "No messages yet.": "এখনো কোনো বার্তা নেই।",
   "Group · No messages yet": "গ্রুপ · এখনো কোনো বার্তা নেই",
-  "Send the first message to start the conversation.": "কথোপকথন শুরু করতে প্রথম বার্তা পাঠান।",
+  "Send the first message to start the conversation.": "কথোপকথন শুরু করতে প্রথম বার্তাটি পাঠান।",
   "now": "এখন",
   "Sending": "পাঠানো হচ্ছে",
   "Sent": "পাঠানো হয়েছে",
