@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listTransactionsFn } from "@/lib/zt.functions";
 import { fmt } from "@/lib/personal-finance";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/_app/businesses/$id/")({
   component: Overview,
@@ -21,7 +21,7 @@ function Overview() {
   const profit = (totals.earning ?? 0) - (totals.expense ?? 0);
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Stat label="Invested" value={totals.investment ?? 0} icon={<PiggyBank className="h-4 w-4" />} />
+      <Stat label="Invested" value={totals.investment ?? 0} icon={<Wallet className="h-4 w-4" />} />
       <Stat label="Earnings" value={totals.earning ?? 0} icon={<TrendingUp className="h-4 w-4" />} />
       <Stat label="Expenses" value={totals.expense ?? 0} icon={<TrendingDown className="h-4 w-4" />} />
       <Stat label="Profit" sub="earnings − expenses" value={profit} icon={<Wallet className="h-4 w-4" />} accent />

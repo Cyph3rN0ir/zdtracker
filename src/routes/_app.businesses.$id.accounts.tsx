@@ -48,7 +48,6 @@ import {
   Landmark,
   MoreVertical,
   Pencil,
-  PiggyBank,
   Plus,
   Trash2,
   TrendingUp,
@@ -73,7 +72,7 @@ function typeIcon(t: string) {
     case "wallet": return <Wallet className={cls} />;
     case "card": return <CreditCard className={cls} />;
     case "investment": return <TrendingUp className={cls} />;
-    case "savings": return <PiggyBank className={cls} />;
+    case "savings": return <Wallet className={cls} />;
     default: return <Circle className={cls} />;
   }
 }

@@ -20,7 +20,7 @@ const MAP: Record<string, string> = {
   "Navigation": "নেভিগেশন",
   "Open menu": "মেনু খুলুন",
   "Language": "ভাষা",
-  "language selector": "i want you to make another theme named \"Bkash\" , where the color pallate is like \"/* Brand */\n\n--primary: #E3136F;\n\n--primary-dark: #B80D5A;   /* hover/press */\n\n--primary-tint: #FFE3ED;   /* light backgrounds, badges */\n\n/* Neutrals */\n\n--bg: #FFFFFF;\n\n--surface: #FAFAFA;\n\n--text-primary: #2B2B2B;   /* darkened slightly for AA contrast */\n\n--text-secondary: #767676; /* darkened from #8A8A8A for readability */\n\n--border: #ECECEC;\n\n/* Semantic */\n\n--success: #1FA35C;\n\n--error: #C2273C;\n\n--error-tint: #FDECEE;\n\n--warning: #E0A11A;\n\n/* Accent family (unified, instead of 8 unrelated hues) */\n\n--accent-1: #E3136F;  /* pink — primary actions */\n\n--accent-2: #54B6B3;  /* teal — money movement */\n\n--accent-3: #805584;  /* purple — savings/wealth */\n\n--accent-4: #D7A15C;  /* gold — loans/premium */\"\n\n\n\nhttps://jprczeqjuhgnaauvsugu.supabase.co\n\naccess token-\n\nsbp_223d1eef5c8e173831e95c3148916e72fccb844e\n\nso perform sql queries at your own, if needed , so perform sql queries at your own, if needed",
+  "language selector": "in /businesses/ , when entering a business, in the overview tab, there is a lucide-piggy-bank icon , i want you show a wallet icon instead of it. i dont like piggy bank",
 
   // Common
   "Save": "সংরক্ষণ",
