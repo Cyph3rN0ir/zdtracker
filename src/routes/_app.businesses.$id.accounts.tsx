@@ -49,7 +49,6 @@ import {
   MoreVertical,
   Pencil,
   Plus,
-  Plus,
   Trash2,
   TrendingUp,
   Wallet,
