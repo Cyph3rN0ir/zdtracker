@@ -9,14 +9,25 @@ export async function requireSession() {
 
 export async function requireMember(conversationId: string, userId: string) {
   const supa = getSupabaseAdmin();
+  
+  // RLS bypass: check existence using service role.
   const { data, error } = await supa
     .from("conversation_members")
-    .select("user_id")
+    .select("conversation_id")
     .eq("conversation_id", conversationId)
     .eq("user_id", userId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+    
+  if (error) {
+    console.error("[chat] membership check error:", error);
+    throw new Error(error.message);
+  }
+  
+  if (!data) {
+    console.warn(`[chat] User ${userId} is not a member of conversation ${conversationId}`);
+    throw new Error("Forbidden");
+  }
+  
   return supa;
 }
 
