@@ -640,14 +640,20 @@ const MessageBubble = memo(function MessageBubble({
   onReply,
   onReaction,
   onJumpReply,
+  onPin,
+  onEdit,
 }: {
   m: Msg;
   isGroup: boolean;
   onReply: (m: Msg) => void;
   onReaction: (m: Msg, emoji: string) => void;
   onJumpReply: (id: string) => void;
+  onPin: (m: Msg) => void;
+  onEdit: (m: Msg, body: string) => void;
 }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editBody, setEditBody] = useState(m.body);
   const handleReply = () => onReply(m);
   
   const reactions = useMemo(() => {
