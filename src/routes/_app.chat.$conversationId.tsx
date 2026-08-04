@@ -836,6 +836,7 @@ const MessageBubble = memo(function MessageBubble({
                 </>
               )}
               <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                {m.isPinned && <Pin className="h-2.5 w-2.5 fill-current" />}
                 <span>{formatTime(m.createdAt)}</span>
                 {m.mine && (
                   m.pending ? (
