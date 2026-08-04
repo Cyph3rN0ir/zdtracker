@@ -380,7 +380,7 @@ export const listMessagesFn = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(data.limit);
 
-    let finalMsgs = msgs;
+    let finalMsgs: any[] = msgs ?? [];
     if (error) {
       if (isMissingSchema(error)) {
         const { data: legacyMsgs, error: legacyError } = await supa
@@ -394,12 +394,17 @@ export const listMessagesFn = createServerFn({ method: "GET" })
           if (isMissingSchema(legacyError)) return [];
           throw new Error(legacyError.message);
         }
-        finalMsgs = legacyMsgs;
+        finalMsgs = (legacyMsgs ?? []).map(m => ({
+          ...m,
+          is_pinned: false,
+          edited_at: null,
+          edit_history: []
+        }));
       } else {
         throw new Error(error.message);
       }
     }
-    const rows = (finalMsgs ?? []).slice().reverse();
+    const rows = finalMsgs.slice().reverse();
 
     // All members + their last_read_at (for read receipts)
     const { data: memberRows } = await supa
