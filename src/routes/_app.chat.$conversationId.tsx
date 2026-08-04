@@ -10,6 +10,8 @@ import {
   listGroupCandidatesFn,
   addGroupMembersFn,
   removeGroupMemberFn,
+  pinMessageFn,
+  editMessageFn,
 } from "@/lib/chat.functions";
 import { toggleReactionFn } from "@/lib/chat-reactions.functions";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
@@ -27,6 +29,11 @@ import {
   X,
   Smile,
   Reply,
+  Search,
+  Pin,
+  MoreVertical,
+  Pencil,
+  History,
 } from "lucide-react";
 import {
   Sheet,
@@ -49,6 +56,9 @@ type Msg = {
   createdAt: string;
   replyTo: { id: string; body: string; senderName: string } | null;
   reactions: Array<{ emoji: string; userId: string; mine: boolean }>;
+  isPinned: boolean;
+  editedAt: string | null;
+  editHistory: Array<{ body: string; edited_at: string }>;
   mine: boolean;
   readers: Array<{ id: string; name: string }>;
   readByAll: boolean;
@@ -77,6 +87,8 @@ function ThreadView() {
   const sendMsg = useServerFn(sendMessageFn);
   const markRead = useServerFn(markReadFn);
   const toggleReaction = useServerFn(toggleReactionFn);
+  const pinMessage = useServerFn(pinMessageFn);
+  const editMessage = useServerFn(editMessageFn);
   const qc = useQueryClient();
   const router = useRouter();
 
@@ -95,6 +107,8 @@ function ThreadView() {
   const channelRef = useRef<ReturnType<ReturnType<typeof getSupabaseBrowser>["channel"]> | null>(null);
   const myIdRef = useRef<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; at: number }>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     const supa = getSupabaseBrowser();
@@ -279,6 +293,9 @@ function ThreadView() {
         readByAll: false,
         otherMembersCount: Math.max((conv?.members.length ?? 1) - 1, 0),
         reactions: [],
+        isPinned: false,
+        editedAt: null,
+        editHistory: [],
         pending: true,
       };
       qc.setQueryData<Msg[]>(["chat", "messages", conversationId], [...prev, optimistic]);
@@ -348,17 +365,24 @@ function ThreadView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
+  const filteredMessages = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const all = msgsQ.data ?? [];
+    if (!q) return all;
+    return all.filter((m) => m.body.toLowerCase().includes(q));
+  }, [msgsQ.data, searchQuery]);
+
   // ----- Group messages by day -----
   const grouped = useMemo(() => {
     const out: Array<{ day: string; items: Msg[] }> = [];
-    for (const m of msgsQ.data ?? []) {
+    for (const m of filteredMessages) {
       const day = formatDay(m.createdAt);
       const last = out[out.length - 1];
       if (last && last.day === day) last.items.push(m);
       else out.push({ day, items: [m] });
     }
     return out;
-  }, [msgsQ.data]);
+  }, [filteredMessages]);
 
   const scrollToMessage = useCallback((id: string) => {
     const el = document.getElementById(`msg-${id}`);
@@ -378,6 +402,18 @@ function ThreadView() {
       qc.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
     });
   }, [conversationId, qc, toggleReaction]);
+
+  const handlePin = useCallback((m: Msg) => {
+    pinMessage({ data: { messageId: m.id, pinned: !m.isPinned } }).then(() => {
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
+    });
+  }, [conversationId, qc, pinMessage]);
+
+  const handleEdit = useCallback((m: Msg, newBody: string) => {
+    editMessage({ data: { messageId: m.id, body: newBody } }).then(() => {
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
+    });
+  }, [conversationId, qc, editMessage]);
 
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
@@ -409,10 +445,43 @@ function ThreadView() {
             )}
           </div>
         </div>
-        {isGroup && (
-          <MembersSheet conversationId={conversationId} conv={conv ?? null} />
-        )}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSearch(!showSearch)}
+            className={showSearch ? "bg-accent" : ""}
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+          {isGroup && (
+            <MembersSheet conversationId={conversationId} conv={conv ?? null} />
+          )}
+        </div>
       </header>
+
+      {showSearch && (
+        <div className="px-3 py-2 border-b border-border bg-card animate-in slide-in-from-top-2 duration-200">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              autoFocus
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search messages..."
+              className="w-full pl-8 pr-8 py-1.5 text-sm bg-muted border-none rounded-md outline-none focus:ring-1 focus:ring-primary"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="relative flex-1 min-h-0">
         <div
@@ -446,6 +515,8 @@ function ThreadView() {
                        onReply={handleReply}
                        onReaction={handleReaction}
                        onJumpReply={scrollToMessage}
+                       onPin={handlePin}
+                       onEdit={handleEdit}
                      />
                   </div>
                 ))}
@@ -571,14 +642,20 @@ const MessageBubble = memo(function MessageBubble({
   onReply,
   onReaction,
   onJumpReply,
+  onPin,
+  onEdit,
 }: {
   m: Msg;
   isGroup: boolean;
   onReply: (m: Msg) => void;
   onReaction: (m: Msg, emoji: string) => void;
   onJumpReply: (id: string) => void;
+  onPin: (m: Msg) => void;
+  onEdit: (m: Msg, body: string) => void;
 }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editBody, setEditBody] = useState(m.body);
   const handleReply = () => onReply(m);
   
   const reactions = useMemo(() => {
@@ -604,15 +681,36 @@ const MessageBubble = memo(function MessageBubble({
             <button
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground"
+              title="React"
             >
               <Smile className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={handleReply}
               className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground"
+              title="Reply"
             >
               <Reply className="h-3.5 w-3.5" />
             </button>
+            <button
+              onClick={() => onPin(m)}
+              className={`p-1 hover:bg-accent rounded-full ${m.isPinned ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              title={m.isPinned ? "Unpin" : "Pin"}
+            >
+              <Pin className={`h-3.5 w-3.5 ${m.isPinned ? "fill-current" : ""}`} />
+            </button>
+            {m.mine && (
+              <button
+                onClick={() => {
+                  setIsEditing(true);
+                  setEditBody(m.body);
+                }}
+                className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground"
+                title="Edit"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Emoji Picker Popover */}
@@ -651,6 +749,27 @@ const MessageBubble = memo(function MessageBubble({
               >
                 <Smile className="h-4 w-4" />
               </button>
+              <button
+                type="button"
+                onClick={() => onPin(m)}
+                className={`${m.isPinned ? "text-primary" : "text-muted-foreground"} active:text-foreground p-1.5 bg-muted/30 rounded-full`}
+                aria-label={m.isPinned ? "Unpin" : "Pin"}
+              >
+                <Pin className={`h-4 w-4 ${m.isPinned ? "fill-current" : ""}`} />
+              </button>
+              {m.mine && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(true);
+                    setEditBody(m.body);
+                  }}
+                  className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
+                  aria-label="Edit"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
             </div>
           )}
           
@@ -676,8 +795,48 @@ const MessageBubble = memo(function MessageBubble({
                   <div className="opacity-80 truncate line-clamp-2">{m.replyTo.body}</div>
                 </button>
               )}
-              <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</div>
+              {isEditing ? (
+                <div className="flex flex-col gap-2 min-w-[200px]">
+                  <Textarea
+                    autoFocus
+                    value={editBody}
+                    onChange={(e) => setEditBody(e.target.value)}
+                    className="text-sm bg-background/50 border-none min-h-[60px] resize-none focus:ring-1 focus:ring-primary-foreground/30"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[10px] text-primary-foreground/80 hover:bg-primary-foreground/10"
+                      onClick={() => setIsEditing(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 px-2 text-[10px] bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                      onClick={() => {
+                        onEdit(m, editBody);
+                        setIsEditing(false);
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</div>
+                  {m.editedAt && (
+                    <div className="flex items-center gap-1 mt-0.5 opacity-60 text-[9px] font-medium">
+                      <Pencil className="h-2.5 w-2.5" />
+                      <span>edited</span>
+                    </div>
+                  )}
+                </>
+              )}
               <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                {m.isPinned && <Pin className="h-2.5 w-2.5 fill-current" />}
                 <span>{formatTime(m.createdAt)}</span>
                 {m.mine && (
                   m.pending ? (

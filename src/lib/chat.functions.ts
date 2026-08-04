@@ -347,7 +347,7 @@ export const listMessagesFn = createServerFn({ method: "GET" })
 
     const { data: msgs, error } = await supa
       .from("messages")
-      .select("id, sender_id, body, reply_to_id, created_at, reactions:message_reactions(emoji, user_id)")
+      .select("id, sender_id, body, reply_to_id, created_at, is_pinned, edited_at, edit_history, reactions:message_reactions(emoji, user_id)")
       .eq("conversation_id", data.conversationId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
@@ -422,6 +422,9 @@ export const listMessagesFn = createServerFn({ method: "GET" })
           userId: r.user_id,
           mine: r.user_id === me.userId
         })),
+        isPinned: !!m.is_pinned,
+        editedAt: m.edited_at,
+        editHistory: m.edit_history,
         mine,
         readers,
         readByAll: mine && otherMembers.length > 0 && readers.length === otherMembers.length,
@@ -431,6 +434,71 @@ export const listMessagesFn = createServerFn({ method: "GET" })
   });
 
 // ---------------- Send message ----------------
+export const pinMessageFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ messageId: z.string().uuid(), pinned: z.boolean() }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const me = await requireSession();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const supa = getSupabaseAdmin();
+    
+    // Check if user is a member of the conversation this message belongs to
+    const { data: msg } = await supa
+      .from("messages")
+      .select("conversation_id")
+      .eq("id", data.messageId)
+      .single();
+    if (!msg) throw new Error("Message not found");
+    await requireMember(msg.conversation_id, me.userId!);
+
+    const { error } = await supa
+      .from("messages")
+      .update({ is_pinned: data.pinned })
+      .eq("id", data.messageId);
+    if (error) throw new Error(error.message);
+
+    await broadcast(`conv:${msg.conversation_id}`, { pinnedChanged: data.messageId });
+    return { ok: true };
+  });
+
+export const editMessageFn = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ messageId: z.string().uuid(), body: z.string().trim().min(1).max(4000) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const me = await requireSession();
+    const { getSupabaseAdmin } = await import("@/lib/supabase.server");
+    const supa = getSupabaseAdmin();
+
+    const { data: msg } = await supa
+      .from("messages")
+      .select("conversation_id, sender_id, body, edit_history")
+      .eq("id", data.messageId)
+      .single();
+    if (!msg) throw new Error("Message not found");
+    if (msg.sender_id !== me.userId) throw new Error("Forbidden: You can only edit your own messages");
+
+    const history = Array.isArray(msg.edit_history) ? msg.edit_history : [];
+    const newHistory = [
+      ...history,
+      { body: msg.body, edited_at: new Date().toISOString() }
+    ].slice(-10); // keep last 10 versions
+
+    const { error } = await supa
+      .from("messages")
+      .update({ 
+        body: data.body, 
+        edited_at: new Date().toISOString(),
+        edit_history: newHistory
+      })
+      .eq("id", data.messageId);
+    if (error) throw new Error(error.message);
+
+    await broadcast(`conv:${msg.conversation_id}`, { messageEdited: data.messageId });
+    return { ok: true };
+  });
+
 export const sendMessageFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
