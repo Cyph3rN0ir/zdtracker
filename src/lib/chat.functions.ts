@@ -8,6 +8,7 @@ import {
   ensureBusinessGroup,
   requireAdmin,
 } from "@/lib/chat.server";
+import { isMissingSchema } from "@/lib/supabase.server";
 
 // ---------------- List conversations ----------------
 export const listConversationsFn = createServerFn({ method: "GET" }).handler(async () => {
@@ -351,7 +352,11 @@ export const listMessagesFn = createServerFn({ method: "GET" })
       .eq("conversation_id", data.conversationId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
-    if (error) throw new Error(error.message);
+
+    if (error) {
+      if (isMissingSchema(error)) return [];
+      throw new Error(error.message);
+    }
     const rows = (msgs ?? []).slice().reverse();
 
     // All members + their last_read_at (for read receipts)
