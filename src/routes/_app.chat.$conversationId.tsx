@@ -728,6 +728,27 @@ const MessageBubble = memo(function MessageBubble({
               >
                 <Smile className="h-4 w-4" />
               </button>
+              <button
+                type="button"
+                onClick={() => onPin(m)}
+                className={`${m.isPinned ? "text-primary" : "text-muted-foreground"} active:text-foreground p-1.5 bg-muted/30 rounded-full`}
+                aria-label={m.isPinned ? "Unpin" : "Pin"}
+              >
+                <Pin className={`h-4 w-4 ${m.isPinned ? "fill-current" : ""}`} />
+              </button>
+              {m.mine && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(true);
+                    setEditBody(m.body);
+                  }}
+                  className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
+                  aria-label="Edit"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
             </div>
           )}
           
