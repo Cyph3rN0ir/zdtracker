@@ -580,7 +580,7 @@ export const sendMessageFn = createServerFn({ method: "POST" })
       .eq("user_id", me.userId!);
 
     // Broadcast to conversation channel + per-recipient channels for list updates
-    await broadcast(`conv:${data.conversationId}`, { messageId: inserted.id });
+    await broadcast(`conv:${data.conversationId}`, { messageId: inserted.id, senderId: me.userId });
 
     const { data: members } = await supa
       .from("conversation_members")
