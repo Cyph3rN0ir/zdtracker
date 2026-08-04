@@ -495,6 +495,49 @@
   --sidebar-ring: oklch(0.52 0.11 45);
 }
 
+/* Bkash — pink primary, clean light neutrals, high contrast text */
+[data-theme="bkash"] {
+  --background: #FFFFFF;
+  --foreground: #2B2B2B;
+  --card: #FAFAFA;
+  --card-foreground: #2B2B2B;
+  --popover: #FFFFFF;
+  --popover-foreground: #2B2B2B;
+  --primary: #E3136F;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFE3ED;
+  --secondary-foreground: #B80D5A;
+  --muted: #FAFAFA;
+  --muted-foreground: #767676;
+  --accent: #E3136F;
+  --accent-foreground: #FFFFFF;
+  --destructive: #C2273C;
+  --destructive-foreground: #FFFFFF;
+  --border: #ECECEC;
+  --input: #ECECEC;
+  --ring: #E3136F;
+  --sidebar: #FAFAFA;
+  --sidebar-foreground: #2B2B2B;
+  --sidebar-primary: #E3136F;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFE3ED;
+  --sidebar-accent-foreground: #B80D5A;
+  --sidebar-border: #ECECEC;
+  --sidebar-ring: #E3136F;
+
+  /* Semantic overrides based on the palette */
+  --success: #1FA35C;
+  --warning: #E0A11A;
+  --error: #C2273C;
+
+  /* Chart accents */
+  --chart-1: #E3136F; /* accent-1 */
+  --chart-2: #54B6B3; /* accent-2 */
+  --chart-3: #805584; /* accent-3 */
+  --chart-4: #D7A15C; /* accent-4 */
+}
+
+
 @layer base {
   * {
     border-color: var(--color-border);
