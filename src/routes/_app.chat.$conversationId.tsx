@@ -445,10 +445,43 @@ function ThreadView() {
             )}
           </div>
         </div>
-        {isGroup && (
-          <MembersSheet conversationId={conversationId} conv={conv ?? null} />
-        )}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSearch(!showSearch)}
+            className={showSearch ? "bg-accent" : ""}
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+          {isGroup && (
+            <MembersSheet conversationId={conversationId} conv={conv ?? null} />
+          )}
+        </div>
       </header>
+
+      {showSearch && (
+        <div className="px-3 py-2 border-b border-border bg-card animate-in slide-in-from-top-2 duration-200">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              autoFocus
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search messages..."
+              className="w-full pl-8 pr-8 py-1.5 text-sm bg-muted border-none rounded-md outline-none focus:ring-1 focus:ring-primary"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="relative flex-1 min-h-0">
         <div
