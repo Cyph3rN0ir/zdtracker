@@ -98,7 +98,10 @@ function ThreadView() {
   });
   const msgsQ = useQuery<Msg[]>({
     queryKey: ["chat", "messages", conversationId],
-    queryFn: () => listMsgs({ data: { conversationId } }) as Promise<Msg[]>,
+    queryFn: async () => {
+      const result = await listMsgs({ data: { conversationId } });
+      return result as Msg[];
+    },
     // Realtime delivers new messages instantly; this poll is a safety net.
     refetchInterval: 120000,
   });
@@ -491,6 +494,24 @@ function ThreadView() {
         >
           {msgsQ.isLoading ? (
             <MessageSkeletons />
+          ) : msgsQ.error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="bg-destructive/10 text-destructive p-3 rounded-full mb-4">
+                <X className="h-6 w-6" />
+              </div>
+              <h3 className="font-semibold mb-1">Failed to load messages</h3>
+              <p className="text-sm text-muted-foreground max-w-[250px]">
+                {(msgsQ.error as Error).message}
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-4"
+                onClick={() => msgsQ.refetch()}
+              >
+                Try again
+              </Button>
+            </div>
           ) : (msgsQ.data?.length ?? 0) === 0 ? (
             <div className="flex flex-col items-center justify-center text-center pt-16 px-6 text-muted-foreground">
               <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">

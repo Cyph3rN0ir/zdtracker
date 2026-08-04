@@ -8,6 +8,7 @@ import {
   ensureBusinessGroup,
   requireAdmin,
 } from "@/lib/chat.server";
+import { isMissingSchema } from "@/lib/supabase.server";
 
 // ---------------- List conversations ----------------
 export const listConversationsFn = createServerFn({ method: "GET" }).handler(async () => {
@@ -86,21 +87,30 @@ export const listConversationsFn = createServerFn({ method: "GET" }).handler(asy
   }> = [];
 
   for (const c of convs ?? []) {
-    const { data: lastArr } = await supa
+    // Last message: handle missing columns if necessary
+    let last: any = null;
+    let lastRead = memMap.get(c.id) ?? new Date(0).toISOString();
+    let unread = 0;
+
+    const { data: lastArr, error: eLast } = await supa
       .from("messages")
       .select("body, created_at, sender_id")
       .eq("conversation_id", c.id)
       .order("created_at", { ascending: false })
       .limit(1);
-    const last = lastArr?.[0] ?? null;
 
-    const lastRead = memMap.get(c.id) ?? new Date(0).toISOString();
-    const { count: unread } = await supa
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("conversation_id", c.id)
-      .gt("created_at", lastRead)
-      .neq("sender_id", me.userId!);
+    if (eLast && isMissingSchema(eLast)) {
+      // Degrade: ignore last message if query fails due to schema
+    } else {
+      last = lastArr?.[0] ?? null;
+      const { count: uCount, error: eUnread } = await supa
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", c.id)
+        .gt("created_at", lastRead)
+        .neq("sender_id", me.userId!);
+      if (!eUnread) unread = uCount ?? 0;
+    }
 
     const businessName = bizMap.get(c.business_id) ?? "";
     let title = businessName;
@@ -126,7 +136,7 @@ export const listConversationsFn = createServerFn({ method: "GET" }).handler(asy
       otherUserId,
       lastMessage: last?.body ?? null,
       lastMessageAt: last?.created_at ?? c.created_at,
-      unread: unread ?? 0,
+      unread,
     });
   }
 
@@ -144,8 +154,10 @@ export const getConversationFn = createServerFn({ method: "GET" })
       .from("conversations")
       .select("id, kind, business_id, created_at")
       .eq("id", data.conversationId)
-      .single();
+      .maybeSingle();
+    
     if (error) throw new Error(error.message);
+    if (!c) throw new Error("Conversation not found or you are not a member.");
 
     // Keep group rosters aligned with the business roster on every open.
     if (c.kind === "group") {
@@ -351,8 +363,32 @@ export const listMessagesFn = createServerFn({ method: "GET" })
       .eq("conversation_id", data.conversationId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
-    if (error) throw new Error(error.message);
-    const rows = (msgs ?? []).slice().reverse();
+
+    let finalMsgs: any[] = msgs ?? [];
+    if (error) {
+      if (isMissingSchema(error)) {
+        const { data: legacyMsgs, error: legacyError } = await supa
+          .from("messages")
+          .select("id, sender_id, body, reply_to_id, created_at, reactions:message_reactions(emoji, user_id)")
+          .eq("conversation_id", data.conversationId)
+          .order("created_at", { ascending: false })
+          .limit(data.limit);
+        
+        if (legacyError) {
+          if (isMissingSchema(legacyError)) return [];
+          throw new Error(legacyError.message);
+        }
+        finalMsgs = (legacyMsgs ?? []).map(m => ({
+          ...m,
+          is_pinned: false,
+          edited_at: null,
+          edit_history: []
+        }));
+      } else {
+        throw new Error(error.message);
+      }
+    }
+    const rows = finalMsgs.slice().reverse();
 
     // All members + their last_read_at (for read receipts)
     const { data: memberRows } = await supa
