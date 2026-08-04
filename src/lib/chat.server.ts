@@ -27,6 +27,15 @@ export async function broadcast(channelName: string, payload: Record<string, unk
     // Note: In some serverless environments like Workers, .send() might be buffered 
     // or need an await to ensure the network request completes before the worker exits.
     await ch.send({ type: "broadcast", event: "ping", payload });
+    // Also broadcast a typing indicator stop event for the sender to clear other clients' UI
+    if (payload.senderId) {
+      await ch.send({ 
+        type: "broadcast", 
+        event: "typing", 
+        payload: { userId: payload.senderId, typing: false } 
+      });
+    }
+
   } finally {
     // Wait a tiny bit for the broadcast to actually leave the outbound buffer
     // if using a standard Supabase client in a non-long-running process.
