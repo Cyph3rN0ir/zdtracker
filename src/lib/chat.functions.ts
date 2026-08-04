@@ -87,48 +87,30 @@ export const listConversationsFn = createServerFn({ method: "GET" }).handler(asy
   }> = [];
 
   for (const c of convs ?? []) {
+    // Last message: handle missing columns if necessary
+    let last: any = null;
+    let lastRead = memMap.get(c.id) ?? new Date(0).toISOString();
+    let unread = 0;
+
     const { data: lastArr, error: eLast } = await supa
       .from("messages")
       .select("body, created_at, sender_id")
       .eq("conversation_id", c.id)
       .order("created_at", { ascending: false })
       .limit(1);
-    
-    if (eLast && isMissingSchema(eLast)) {
-      // Skip message info if table or column missing
-      result.push({
-        id: c.id,
-        kind: c.kind as "group" | "direct",
-        businessId: c.business_id,
-        businessName: bizMap.get(c.business_id) ?? "",
-        title: "", // will be calculated below
-        subtitle: c.kind === "group" ? "Group" : (bizMap.get(c.business_id) ?? ""),
-        otherUserId: null,
-        lastMessage: null,
-        lastMessageAt: c.created_at,
-        unread: 0,
-      });
-      // Patch title for direct
-      const lastIdx = result.length - 1;
-      if (c.kind === "direct") {
-        const other = (allMembers ?? []).find(m => m.conversation_id === c.id && m.user_id !== me.userId);
-        const u = other?.user_id ? userMap.get(other.user_id) : undefined;
-        result[lastIdx].title = (u?.display_name && u.display_name.trim()) || u?.username || "Direct";
-        result[lastIdx].otherUserId = other?.user_id ?? null;
-      } else {
-        result[lastIdx].title = result[lastIdx].businessName;
-      }
-      continue;
-    }
-    const last = lastArr?.[0] ?? null;
 
-    const lastRead = memMap.get(c.id) ?? new Date(0).toISOString();
-    const { count: unread } = await supa
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("conversation_id", c.id)
-      .gt("created_at", lastRead)
-      .neq("sender_id", me.userId!);
+    if (eLast && isMissingSchema(eLast)) {
+      // Degrade: ignore last message if query fails due to schema
+    } else {
+      last = lastArr?.[0] ?? null;
+      const { count: uCount, error: eUnread } = await supa
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", c.id)
+        .gt("created_at", lastRead)
+        .neq("sender_id", me.userId!);
+      if (!eUnread) unread = uCount ?? 0;
+    }
 
     const businessName = bizMap.get(c.business_id) ?? "";
     let title = businessName;
@@ -154,7 +136,7 @@ export const listConversationsFn = createServerFn({ method: "GET" }).handler(asy
       otherUserId,
       lastMessage: last?.body ?? null,
       lastMessageAt: last?.created_at ?? c.created_at,
-      unread: unread ?? 0,
+      unread,
     });
   }
 
