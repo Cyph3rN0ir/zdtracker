@@ -347,7 +347,7 @@ export const listMessagesFn = createServerFn({ method: "GET" })
 
     const { data: msgs, error } = await supa
       .from("messages")
-      .select("id, sender_id, body, reply_to_id, created_at, reactions:message_reactions(emoji, user_id)")
+      .select("id, sender_id, body, reply_to_id, created_at, is_pinned, edited_at, edit_history, reactions:message_reactions(emoji, user_id)")
       .eq("conversation_id", data.conversationId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
