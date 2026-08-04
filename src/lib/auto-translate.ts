@@ -20,7 +20,7 @@ const MAP: Record<string, string> = {
   "Navigation": "নেভিগেশন",
   "Open menu": "মেনু খুলুন",
   "Language": "ভাষা",
-  "language selector": "in /businesses/ , when entering a business, in the overview tab, there is a lucide-piggy-bank icon , i want you show a wallet icon instead of it. i dont like piggy bank",
+  "language selector": "i want you inprove the chat features more. i want you to add more chat features that a actual chat app has. and fix inconsistensies foro mobile versions.\nadd features like giving emoji reacts like facebook.\nissues: the mobile version doesnt shows the option to reply to a chat, shows invisible, but the faeture exists and shows in web browser desktop version\n\nadditionally add chat features that enhance the quality of life for the users\n\nhttps://jprczeqjuhgnaauvsugu.supabase.co\n\naccess token-\n\nsbp_223d1eef5c8e173831e95c3148916e72fccb844e\n\nso perform sql queries at your own, if needed , so perform sql queries at your own, if needed.",
 
   // Common
   "Save": "সংরক্ষণ",
