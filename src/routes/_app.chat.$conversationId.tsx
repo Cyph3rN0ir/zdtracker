@@ -599,7 +599,7 @@ const MessageBubble = memo(function MessageBubble({
           <div className="text-[11px] font-medium text-primary mb-0.5 px-1">{m.senderName}</div>
         )}
         <div className="flex items-end gap-1 relative">
-          {/* Quick Actions (Desktop: Group Hover, Mobile: Always available buttons or tap) */}
+          {/* Quick Actions (Desktop: Group Hover, Mobile: Always visible buttons or tap) */}
           <div className={`flex items-center gap-0.5 absolute -top-8 ${m.mine ? "right-0" : "left-0"} opacity-0 group-hover:opacity-100 transition-opacity bg-card border border-border rounded-full shadow-sm px-1 py-0.5 z-10 hidden sm:flex`}>
             <button
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -633,15 +633,15 @@ const MessageBubble = memo(function MessageBubble({
             </div>
           )}
 
-          {m.mine && !m.pending && (
-            <div className="flex sm:hidden flex-col gap-1 pr-1 pb-1">
+          {!m.pending && (
+            <div className={`flex sm:hidden flex-col gap-1 ${m.mine ? "pr-1" : "pl-1"} pb-1`}>
               <button
                 type="button"
                 onClick={handleReply}
                 className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
                 aria-label="Reply"
               >
-                <CornerUpLeft className="h-4 w-4" />
+                <Reply className="h-4 w-4" />
               </button>
               <button
                 type="button"
@@ -715,26 +715,6 @@ const MessageBubble = memo(function MessageBubble({
             {reactions.length > 0 && <div className="h-2.5" />}
           </div>
 
-          {!m.mine && (
-            <div className="flex sm:hidden flex-col gap-1 pl-1 pb-1">
-              <button
-                type="button"
-                onClick={handleReply}
-                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
-                aria-label="Reply"
-              >
-                <CornerUpLeft className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
-                aria-label="React"
-              >
-                <Smile className="h-4 w-4" />
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>
