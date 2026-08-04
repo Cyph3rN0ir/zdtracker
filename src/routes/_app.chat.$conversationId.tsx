@@ -107,6 +107,8 @@ function ThreadView() {
   const channelRef = useRef<ReturnType<ReturnType<typeof getSupabaseBrowser>["channel"]> | null>(null);
   const myIdRef = useRef<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; at: number }>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     const supa = getSupabaseBrowser();
