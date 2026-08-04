@@ -20,6 +20,7 @@ const MAP: Record<string, string> = {
   "Navigation": "নেভিগেশন",
   "Open menu": "মেনু খুলুন",
   "Language": "ভাষা",
+  "language selector": "ভাষা নির্বাচক",
 
   // Common
   "Save": "সংরক্ষণ",

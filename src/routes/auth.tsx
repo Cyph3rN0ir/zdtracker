@@ -92,6 +92,7 @@ function AuthPage() {
           <div className="flex shrink-0 items-center gap-1 rounded-full border border-border/70 bg-background/60 p-0.5 text-[11px] font-semibold">
             <button
               type="button"
+              aria-label="Switch to English"
               onClick={() => setLang("en")}
               className={`tap rounded-full px-2.5 py-1 transition-colors ${lang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
@@ -99,6 +100,7 @@ function AuthPage() {
             </button>
             <button
               type="button"
+              aria-label="বাংলায় পরিবর্তন করুন"
               onClick={() => setLang("bn")}
               className={`tap rounded-full px-2.5 py-1 transition-colors ${bn ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               style={{ fontFamily: '"Hind Siliguri", sans-serif' }}
