@@ -365,17 +365,24 @@ function ThreadView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
+  const filteredMessages = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const all = msgsQ.data ?? [];
+    if (!q) return all;
+    return all.filter((m) => m.body.toLowerCase().includes(q));
+  }, [msgsQ.data, searchQuery]);
+
   // ----- Group messages by day -----
   const grouped = useMemo(() => {
     const out: Array<{ day: string; items: Msg[] }> = [];
-    for (const m of msgsQ.data ?? []) {
+    for (const m of filteredMessages) {
       const day = formatDay(m.createdAt);
       const last = out[out.length - 1];
       if (last && last.day === day) last.items.push(m);
       else out.push({ day, items: [m] });
     }
     return out;
-  }, [msgsQ.data]);
+  }, [filteredMessages]);
 
   const scrollToMessage = useCallback((id: string) => {
     const el = document.getElementById(`msg-${id}`);
@@ -395,6 +402,18 @@ function ThreadView() {
       qc.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
     });
   }, [conversationId, qc, toggleReaction]);
+
+  const handlePin = useCallback((m: Msg) => {
+    pinMessage({ data: { messageId: m.id, pinned: !m.isPinned } }).then(() => {
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
+    });
+  }, [conversationId, qc, pinMessage]);
+
+  const handleEdit = useCallback((m: Msg, newBody: string) => {
+    editMessage({ data: { messageId: m.id, body: newBody } }).then(() => {
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
+    });
+  }, [conversationId, qc, editMessage]);
 
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
