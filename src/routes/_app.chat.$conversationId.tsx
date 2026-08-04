@@ -11,6 +11,7 @@ import {
   addGroupMembersFn,
   removeGroupMemberFn,
 } from "@/lib/chat.functions";
+import { toggleReactionFn } from "@/lib/chat-reactions.functions";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +25,8 @@ import {
   Send,
   Users as UsersIcon,
   X,
+  Smile,
+  Reply,
 } from "lucide-react";
 import {
   Sheet,
@@ -45,6 +48,7 @@ type Msg = {
   body: string;
   createdAt: string;
   replyTo: { id: string; body: string; senderName: string } | null;
+  reactions: Array<{ emoji: string; userId: string; mine: boolean }>;
   mine: boolean;
   readers: Array<{ id: string; name: string }>;
   readByAll: boolean;
@@ -72,6 +76,7 @@ function ThreadView() {
   const listMsgs = useServerFn(listMessagesFn);
   const sendMsg = useServerFn(sendMessageFn);
   const markRead = useServerFn(markReadFn);
+  const toggleReaction = useServerFn(toggleReactionFn);
   const qc = useQueryClient();
   const router = useRouter();
 
@@ -273,6 +278,7 @@ function ThreadView() {
         readers: [],
         readByAll: false,
         otherMembersCount: Math.max((conv?.members.length ?? 1) - 1, 0),
+        reactions: [],
         pending: true,
       };
       qc.setQueryData<Msg[]>(["chat", "messages", conversationId], [...prev, optimistic]);
@@ -367,6 +373,12 @@ function ThreadView() {
     setReplyTo({ id: m.id, senderName: m.senderName, body: m.body });
   }, []);
 
+  const handleReaction = useCallback((m: Msg, emoji: string) => {
+    toggleReaction({ data: { messageId: m.id, emoji } }).then(() => {
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
+    });
+  }, [conversationId, qc, toggleReaction]);
+
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
     else router.navigate({ to: "/chat" });
@@ -430,10 +442,11 @@ function ThreadView() {
                   <div key={m.id} className="cv-auto-msg">
                     <MessageBubble
                       m={m}
-                      isGroup={!!isGroup}
-                      onReply={handleReply}
-                      onJumpReply={scrollToMessage}
-                    />
+                       isGroup={!!isGroup}
+                       onReply={handleReply}
+                       onReaction={handleReaction}
+                       onJumpReply={scrollToMessage}
+                     />
                   </div>
                 ))}
               </div>
@@ -556,94 +569,171 @@ const MessageBubble = memo(function MessageBubble({
   m,
   isGroup,
   onReply,
+  onReaction,
   onJumpReply,
 }: {
   m: Msg;
   isGroup: boolean;
   onReply: (m: Msg) => void;
+  onReaction: (m: Msg, emoji: string) => void;
   onJumpReply: (id: string) => void;
 }) {
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const handleReply = () => onReply(m);
+  
+  const reactions = useMemo(() => {
+    const map = new Map<string, { count: number; mine: boolean }>();
+    for (const r of m.reactions) {
+      const existing = map.get(r.emoji) || { count: 0, mine: false };
+      map.set(r.emoji, { count: existing.count + 1, mine: existing.mine || r.mine });
+    }
+    return Array.from(map.entries()).map(([emoji, data]) => ({ emoji, ...data }));
+  }, [m.reactions]);
+
+  const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+
   return (
-    <div id={`msg-${m.id}`} className={`flex ${m.mine ? "justify-end" : "justify-start"} group`}>
-      <div className={`max-w-[80%] sm:max-w-[70%] ${m.mine ? "items-end" : "items-start"} flex flex-col`}>
+    <div id={`msg-${m.id}`} className={`flex ${m.mine ? "justify-end" : "justify-start"} group relative`}>
+      <div className={`max-w-[85%] sm:max-w-[70%] ${m.mine ? "items-end" : "items-start"} flex flex-col`}>
         {isGroup && !m.mine && (
           <div className="text-[11px] font-medium text-primary mb-0.5 px-1">{m.senderName}</div>
         )}
-        <div className="flex items-end gap-1">
-          {m.mine && !m.pending && (
+        <div className="flex items-end gap-1 relative">
+          {/* Quick Actions (Desktop: Group Hover, Mobile: Always available buttons or tap) */}
+          <div className={`flex items-center gap-0.5 absolute -top-8 ${m.mine ? "right-0" : "left-0"} opacity-0 group-hover:opacity-100 transition-opacity bg-card border border-border rounded-full shadow-sm px-1 py-0.5 z-10 hidden sm:flex`}>
             <button
-              type="button"
-              onClick={handleReply}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-1"
-              aria-label="Reply"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground"
             >
-              <CornerUpLeft className="h-3.5 w-3.5" />
+              <Smile className="h-3.5 w-3.5" />
             </button>
+            <button
+              onClick={handleReply}
+              className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground"
+            >
+              <Reply className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Emoji Picker Popover */}
+          {showEmojiPicker && (
+            <div className={`absolute -top-10 ${m.mine ? "right-0" : "left-0"} z-20 flex gap-1 bg-card border border-border p-1 rounded-full shadow-lg animate-in fade-in zoom-in duration-100`}>
+              {EMOJIS.map(e => (
+                <button
+                  key={e}
+                  onClick={() => {
+                    onReaction(m, e);
+                    setShowEmojiPicker(false);
+                  }}
+                  className="hover:scale-125 transition-transform p-1 text-lg leading-none"
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
           )}
-          <div
-            className={`rounded-2xl px-3 py-2 text-sm break-words transition-opacity ${
-              m.mine
-                ? "bg-primary text-primary-foreground rounded-br-sm"
-                : "bg-muted text-foreground rounded-bl-sm"
-            } ${m.pending ? "opacity-70" : ""}`}
-          >
-            {m.replyTo && (
+
+          {m.mine && !m.pending && (
+            <div className="flex sm:hidden flex-col gap-1 pr-1 pb-1">
               <button
                 type="button"
-                onClick={() => onJumpReply(m.replyTo!.id)}
-                className={`block w-full text-left mb-1.5 rounded border-l-2 px-2 py-1 text-xs ${
-                  m.mine
-                    ? "border-primary-foreground/50 bg-primary-foreground/10"
-                    : "border-primary/60 bg-background/60"
-                }`}
+                onClick={handleReply}
+                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
+                aria-label="Reply"
               >
-                <div className="font-medium opacity-90 truncate">{m.replyTo.senderName}</div>
-                <div className="opacity-80 truncate">{m.replyTo.body}</div>
+                <CornerUpLeft className="h-4 w-4" />
               </button>
-            )}
-            <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</div>
-            <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-              <span>{formatTime(m.createdAt)}</span>
-              {m.mine && (
-                m.pending ? (
-                  <Clock className="h-3 w-3 opacity-70" aria-label="Sending" />
-                ) : m.otherMembersCount > 0 ? (
-                  <span
-                    className="inline-flex items-center"
-                    title={
-                      m.readByAll
-                        ? isGroup
-                            ? `Seen by ${m.readers.map((r) => r.name).join(", ")}`
-                            : `Seen${m.readers[0] ? ` by ${m.readers[0].name}` : ""}`
-                        : isGroup && m.readers.length > 0
-                            ? `Seen by ${m.readers.length}/${m.otherMembersCount}`
-                            : "Sent"
-                    }
-                    aria-label={m.readByAll ? "Seen" : "Sent"}
-                  >
-                    {m.readByAll ? (
-                      <CheckCheck className="h-3.5 w-3.5" />
-                    ) : (
-                      <Check className="h-3.5 w-3.5 opacity-70" />
-                    )}
-                    {isGroup && m.readers.length > 0 && !m.readByAll && (
-                      <span className="ml-0.5">{m.readers.length}</span>
-                    )}
-                  </span>
-                ) : null
+              <button
+                type="button"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
+                aria-label="React"
+              >
+                <Smile className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          
+          <div className="flex flex-col items-end">
+            <div
+              className={`rounded-2xl px-3 py-2 text-sm break-words transition-opacity relative ${
+                m.mine
+                  ? "bg-primary text-primary-foreground rounded-br-sm"
+                  : "bg-muted text-foreground rounded-bl-sm"
+              } ${m.pending ? "opacity-70" : ""}`}
+            >
+              {m.replyTo && (
+                <button
+                  type="button"
+                  onClick={() => onJumpReply(m.replyTo!.id)}
+                  className={`block w-full text-left mb-1.5 rounded border-l-2 px-2 py-1 text-xs ${
+                    m.mine
+                      ? "border-primary-foreground/50 bg-primary-foreground/10"
+                      : "border-primary/60 bg-background/60"
+                  }`}
+                >
+                  <div className="font-medium opacity-90 truncate">{m.replyTo.senderName}</div>
+                  <div className="opacity-80 truncate line-clamp-2">{m.replyTo.body}</div>
+                </button>
+              )}
+              <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</div>
+              <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                <span>{formatTime(m.createdAt)}</span>
+                {m.mine && (
+                  m.pending ? (
+                    <Clock className="h-3 w-3 opacity-70" aria-label="Sending" />
+                  ) : m.otherMembersCount > 0 ? (
+                    <span className="inline-flex items-center" aria-label={m.readByAll ? "Seen" : "Sent"}>
+                      {m.readByAll ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5 opacity-70" />}
+                      {isGroup && m.readers.length > 0 && !m.readByAll && <span className="ml-0.5">{m.readers.length}</span>}
+                    </span>
+                  ) : null
+                )}
+              </div>
+
+              {/* Reaction Pill Container (Overlapping bubble) */}
+              {reactions.length > 0 && (
+                <div className={`absolute -bottom-2.5 flex flex-wrap gap-1 ${m.mine ? "right-2 flex-row-reverse" : "left-2"}`}>
+                  {reactions.map(r => (
+                    <button
+                      key={r.emoji}
+                      onClick={() => onReaction(m, r.emoji)}
+                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border shadow-sm transition-colors ${
+                        r.mine 
+                          ? "bg-primary-tint border-primary/20 text-primary" 
+                          : "bg-card border-border text-muted-foreground"
+                      }`}
+                    >
+                      <span>{r.emoji}</span>
+                      {r.count > 1 && <span className="font-semibold">{r.count}</span>}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
+            {/* Reactions can add extra height, but since absolute positioned we might need margin */}
+            {reactions.length > 0 && <div className="h-2.5" />}
           </div>
+
           {!m.mine && (
-            <button
-              type="button"
-              onClick={handleReply}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-1"
-              aria-label="Reply"
-            >
-              <CornerUpLeft className="h-3.5 w-3.5" />
-            </button>
+            <div className="flex sm:hidden flex-col gap-1 pl-1 pb-1">
+              <button
+                type="button"
+                onClick={handleReply}
+                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
+                aria-label="Reply"
+              >
+                <CornerUpLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
+                aria-label="React"
+              >
+                <Smile className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </div>
       </div>

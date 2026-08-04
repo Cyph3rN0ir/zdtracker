@@ -347,7 +347,7 @@ export const listMessagesFn = createServerFn({ method: "GET" })
 
     const { data: msgs, error } = await supa
       .from("messages")
-      .select("id, sender_id, body, reply_to_id, created_at")
+      .select("id, sender_id, body, reply_to_id, created_at, reactions:message_reactions(emoji, user_id)")
       .eq("conversation_id", data.conversationId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
@@ -407,6 +407,7 @@ export const listMessagesFn = createServerFn({ method: "GET" })
               name: nameMap.get(mem.user_id) ?? "User",
             }))
         : [];
+      const reactions = (m as any).reactions ?? [];
       return {
         id: m.id,
         senderId: m.sender_id,
@@ -416,6 +417,11 @@ export const listMessagesFn = createServerFn({ method: "GET" })
         replyTo: m.reply_to_id
           ? { id: m.reply_to_id, ...(replyMap.get(m.reply_to_id) ?? { body: "(deleted)", senderName: "Unknown" }) }
           : null,
+        reactions: reactions.map((r: any) => ({
+          emoji: r.emoji,
+          userId: r.user_id,
+          mine: r.user_id === me.userId
+        })),
         mine,
         readers,
         readByAll: mine && otherMembers.length > 0 && readers.length === otherMembers.length,
