@@ -10,6 +10,8 @@ import {
   listGroupCandidatesFn,
   addGroupMembersFn,
   removeGroupMemberFn,
+  pinMessageFn,
+  editMessageFn,
 } from "@/lib/chat.functions";
 import { toggleReactionFn } from "@/lib/chat-reactions.functions";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
