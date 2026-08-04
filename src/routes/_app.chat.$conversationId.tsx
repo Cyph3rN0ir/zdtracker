@@ -520,6 +520,7 @@ function ThreadView() {
               <div className="text-sm font-medium text-foreground">No messages yet</div>
               <div className="text-xs mt-1">Send the first message to start the conversation.</div>
             </div>
+
           ) : (
             grouped.map((g) => (
               <div key={g.day} className="space-y-2">
