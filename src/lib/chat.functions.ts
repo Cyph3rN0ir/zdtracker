@@ -422,6 +422,9 @@ export const listMessagesFn = createServerFn({ method: "GET" })
           userId: r.user_id,
           mine: r.user_id === me.userId
         })),
+        isPinned: !!m.is_pinned,
+        editedAt: m.edited_at,
+        editHistory: m.edit_history,
         mine,
         readers,
         readByAll: mine && otherMembers.length > 0 && readers.length === otherMembers.length,
