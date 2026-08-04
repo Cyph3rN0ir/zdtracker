@@ -774,7 +774,46 @@ const MessageBubble = memo(function MessageBubble({
                   <div className="opacity-80 truncate line-clamp-2">{m.replyTo.body}</div>
                 </button>
               )}
-              <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</div>
+              {isEditing ? (
+                <div className="flex flex-col gap-2 min-w-[200px]">
+                  <Textarea
+                    autoFocus
+                    value={editBody}
+                    onChange={(e) => setEditBody(e.target.value)}
+                    className="text-sm bg-background/50 border-none min-h-[60px] resize-none focus:ring-1 focus:ring-primary-foreground/30"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[10px] text-primary-foreground/80 hover:bg-primary-foreground/10"
+                      onClick={() => setIsEditing(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 px-2 text-[10px] bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                      onClick={() => {
+                        onEdit(m, editBody);
+                        setIsEditing(false);
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</div>
+                  {m.editedAt && (
+                    <div className="flex items-center gap-1 mt-0.5 opacity-60 text-[9px] font-medium">
+                      <Pencil className="h-2.5 w-2.5" />
+                      <span>edited</span>
+                    </div>
+                  )}
+                </>
+              )}
               <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                 <span>{formatTime(m.createdAt)}</span>
                 {m.mine && (
