@@ -172,8 +172,10 @@ export const getConversationFn = createServerFn({ method: "GET" })
       .from("conversations")
       .select("id, kind, business_id, created_at")
       .eq("id", data.conversationId)
-      .single();
+      .maybeSingle();
+    
     if (error) throw new Error(error.message);
+    if (!c) throw new Error("Conversation not found or you are not a member.");
 
     // Keep group rosters aligned with the business roster on every open.
     if (c.kind === "group") {
