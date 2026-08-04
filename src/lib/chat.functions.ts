@@ -380,11 +380,26 @@ export const listMessagesFn = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(data.limit);
 
+    let finalMsgs = msgs;
     if (error) {
-      if (isMissingSchema(error)) return [];
-      throw new Error(error.message);
+      if (isMissingSchema(error)) {
+        const { data: legacyMsgs, error: legacyError } = await supa
+          .from("messages")
+          .select("id, sender_id, body, reply_to_id, created_at, reactions:message_reactions(emoji, user_id)")
+          .eq("conversation_id", data.conversationId)
+          .order("created_at", { ascending: false })
+          .limit(data.limit);
+        
+        if (legacyError) {
+          if (isMissingSchema(legacyError)) return [];
+          throw new Error(legacyError.message);
+        }
+        finalMsgs = legacyMsgs;
+      } else {
+        throw new Error(error.message);
+      }
     }
-    const rows = (msgs ?? []).slice().reverse();
+    const rows = (finalMsgs ?? []).slice().reverse();
 
     // All members + their last_read_at (for read receipts)
     const { data: memberRows } = await supa
