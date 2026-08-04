@@ -87,6 +87,8 @@ function ThreadView() {
   const sendMsg = useServerFn(sendMessageFn);
   const markRead = useServerFn(markReadFn);
   const toggleReaction = useServerFn(toggleReactionFn);
+  const pinMessage = useServerFn(pinMessageFn);
+  const editMessage = useServerFn(editMessageFn);
   const qc = useQueryClient();
   const router = useRouter();
 
