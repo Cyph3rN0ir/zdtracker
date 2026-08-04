@@ -29,6 +29,11 @@ import {
   X,
   Smile,
   Reply,
+  Search,
+  Pin,
+  MoreVertical,
+  Pencil,
+  History,
 } from "lucide-react";
 import {
   Sheet,
