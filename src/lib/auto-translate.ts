@@ -316,7 +316,7 @@ const MAP: Record<string, string> = {
   "No messages yet": "এখনো কোনো বার্তা নেই",
   "No messages yet. Say hi!": "এখনো কোনো বার্তা নেই। হাই বলুন!",
   "No messages yet · Say hi!": "এখনো কোনো বার্তা নেই · হাই বলুন!",
-  "Send the first message to start the conversation.": "কথোপকথন শুরু করতে প্রথম বার্তাটি পাঠান।",
+
 
   "Select a conversation to start chatting.": "চ্যাট শুরু করতে একটি কথোপকথন বেছে নিন।",
   "Select a conversation": "একটি কথোপকথন বেছে নিন",
