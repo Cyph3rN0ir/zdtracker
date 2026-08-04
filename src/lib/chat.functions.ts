@@ -357,6 +357,7 @@ export const listMessagesFn = createServerFn({ method: "GET" })
     const me = await requireSession();
     const supa = await requireMember(data.conversationId, me.userId!);
 
+    // Query messages. We fetch in descending order of creation to get the latest.
     const { data: msgs, error } = await supa
       .from("messages")
       .select("id, sender_id, body, reply_to_id, created_at, is_pinned, edited_at, edit_history, reactions:message_reactions(emoji, user_id)")
