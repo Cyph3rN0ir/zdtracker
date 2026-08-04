@@ -291,6 +291,9 @@ function ThreadView() {
         readByAll: false,
         otherMembersCount: Math.max((conv?.members.length ?? 1) - 1, 0),
         reactions: [],
+        isPinned: false,
+        editedAt: null,
+        editHistory: [],
         pending: true,
       };
       qc.setQueryData<Msg[]>(["chat", "messages", conversationId], [...prev, optimistic]);
