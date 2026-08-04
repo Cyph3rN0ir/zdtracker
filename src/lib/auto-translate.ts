@@ -20,7 +20,7 @@ const MAP: Record<string, string> = {
   "Navigation": "নেভিগেশন",
   "Open menu": "মেনু খুলুন",
   "Language": "ভাষা",
-  "language selector": "i want you inprove the chat features more. i want you to add more chat features that a actual chat app has. and fix inconsistensies foro mobile versions.\nadd features like giving emoji reacts like facebook.\nissues: the mobile version doesnt shows the option to reply to a chat, shows invisible, but the faeture exists and shows in web browser desktop version\n\nadditionally add chat features that enhance the quality of life for the users\n\nhttps://jprczeqjuhgnaauvsugu.supabase.co\n\naccess token-\n\nsbp_223d1eef5c8e173831e95c3148916e72fccb844e\n\nso perform sql queries at your own, if needed , so perform sql queries at your own, if needed.",
+  "language selector": "add more enhancecment like \"Refactor the mobile chat action bar so reply, reactions, and context actions are always visible and consistent with desktop.\n\nImplement real-time typing indicators and read previews for each participant.\n\nCreate conversation and message search with fast filtering and highlighting.\n\nAdd the ability to pin important messages per conversation for quick access.\n\nImplement message editing with version history and proper permissions.\"",
 
   // Common
   "Save": "সংরক্ষণ",
