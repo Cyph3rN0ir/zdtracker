@@ -681,15 +681,36 @@ const MessageBubble = memo(function MessageBubble({
             <button
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground"
+              title="React"
             >
               <Smile className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={handleReply}
               className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground"
+              title="Reply"
             >
               <Reply className="h-3.5 w-3.5" />
             </button>
+            <button
+              onClick={() => onPin(m)}
+              className={`p-1 hover:bg-accent rounded-full ${m.isPinned ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              title={m.isPinned ? "Unpin" : "Pin"}
+            >
+              <Pin className={`h-3.5 w-3.5 ${m.isPinned ? "fill-current" : ""}`} />
+            </button>
+            {m.mine && (
+              <button
+                onClick={() => {
+                  setIsEditing(true);
+                  setEditBody(m.body);
+                }}
+                className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground"
+                title="Edit"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Emoji Picker Popover */}
