@@ -57,7 +57,11 @@ export default {
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
-      console.error(error);
+      // Log the actual error to the Cloudflare console before returning the UI error
+      console.error("Catastrophic Worker Error:", error);
+      if (error instanceof Error) {
+        console.error("Stack:", error.stack);
+      }
       return new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
