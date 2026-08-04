@@ -24,8 +24,13 @@ export async function broadcast(channelName: string, payload: Record<string, unk
   const supa = getSupabaseAdmin();
   const ch = supa.channel(channelName, { config: { broadcast: { ack: false } } });
   try {
+    // Note: In some serverless environments like Workers, .send() might be buffered 
+    // or need an await to ensure the network request completes before the worker exits.
     await ch.send({ type: "broadcast", event: "ping", payload });
   } finally {
+    // Wait a tiny bit for the broadcast to actually leave the outbound buffer
+    // if using a standard Supabase client in a non-long-running process.
+    await new Promise(r => setTimeout(r, 50));
     await supa.removeChannel(ch);
   }
 }
