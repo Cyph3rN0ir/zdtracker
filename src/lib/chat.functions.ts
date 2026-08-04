@@ -357,10 +357,13 @@ export const listMessagesFn = createServerFn({ method: "GET" })
     const me = await requireSession();
     const supa = await requireMember(data.conversationId, me.userId!);
 
-    // Query messages. We fetch in descending order of creation to get the latest.
+    // Keep the core message read independent from optional feature tables.
+    // A missing message_reactions table/relationship previously made both the
+    // primary and "legacy" queries fail, after which the code returned [] and
+    // falsely rendered "No messages yet" even though messages existed.
     const { data: msgs, error } = await supa
       .from("messages")
-      .select("id, sender_id, body, reply_to_id, created_at, is_pinned, edited_at, edit_history, reactions:message_reactions(emoji, user_id)")
+      .select("id, sender_id, body, reply_to_id, created_at, is_pinned, edited_at, edit_history")
       .eq("conversation_id", data.conversationId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
@@ -370,13 +373,12 @@ export const listMessagesFn = createServerFn({ method: "GET" })
       if (isMissingSchema(error)) {
         const { data: legacyMsgs, error: legacyError } = await supa
           .from("messages")
-          .select("id, sender_id, body, reply_to_id, created_at, reactions:message_reactions(emoji, user_id)")
+          .select("id, sender_id, body, reply_to_id, created_at")
           .eq("conversation_id", data.conversationId)
           .order("created_at", { ascending: false })
           .limit(data.limit);
         
         if (legacyError) {
-          if (isMissingSchema(legacyError)) return [];
           throw new Error(legacyError.message);
         }
         finalMsgs = (legacyMsgs ?? []).map(m => ({
@@ -390,6 +392,26 @@ export const listMessagesFn = createServerFn({ method: "GET" })
       }
     }
     const rows = finalMsgs.slice().reverse();
+
+    // Reactions are an enhancement, not a prerequisite for loading chat.
+    // Fetch them separately so older databases continue to show messages.
+    const reactionMap = new Map<string, Array<{ emoji: string; user_id: string }>>();
+    const messageIds = rows.map((m) => m.id as string);
+    if (messageIds.length > 0) {
+      const { data: reactionRows, error: reactionError } = await supa
+        .from("message_reactions")
+        .select("message_id, emoji, user_id")
+        .in("message_id", messageIds);
+      if (!reactionError) {
+        for (const reaction of reactionRows ?? []) {
+          const current = reactionMap.get(reaction.message_id) ?? [];
+          current.push({ emoji: reaction.emoji, user_id: reaction.user_id });
+          reactionMap.set(reaction.message_id, current);
+        }
+      } else if (!isMissingSchema(reactionError)) {
+        console.warn("[chat] reactions unavailable:", reactionError.message);
+      }
+    }
 
     // All members + their last_read_at (for read receipts)
     const { data: memberRows } = await supa
@@ -444,7 +466,7 @@ export const listMessagesFn = createServerFn({ method: "GET" })
               name: nameMap.get(mem.user_id) ?? "User",
             }))
         : [];
-      const reactions = (m as any).reactions ?? [];
+      const reactions = reactionMap.get(m.id) ?? [];
       return {
         id: m.id,
         senderId: m.sender_id,
