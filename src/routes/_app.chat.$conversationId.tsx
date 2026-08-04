@@ -56,6 +56,9 @@ type Msg = {
   createdAt: string;
   replyTo: { id: string; body: string; senderName: string } | null;
   reactions: Array<{ emoji: string; userId: string; mine: boolean }>;
+  isPinned: boolean;
+  editedAt: string | null;
+  editHistory: Array<{ body: string; edited_at: string }>;
   mine: boolean;
   readers: Array<{ id: string; name: string }>;
   readByAll: boolean;
