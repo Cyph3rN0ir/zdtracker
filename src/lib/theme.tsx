@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type Theme = "light" | "dark" | "midnight" | "forest" | "ember" | "noir" | "ocean" | "sand" | "zerodesk" | "infrared" | "paper" | "porcelain" | "ivory";
+export type Theme = "light" | "dark" | "midnight" | "forest" | "ember" | "noir" | "ocean" | "sand" | "zerodesk" | "infrared" | "paper" | "porcelain" | "ivory" | "bkash";
 
 export const THEMES: { id: Theme; label: string; swatch: [string, string, string] }[] = [
   { id: "light",    label: "Light",            swatch: ["#ffffff", "#f4f4f5", "#18181b"] },
@@ -10,6 +10,7 @@ export const THEMES: { id: Theme; label: string; swatch: [string, string, string
   { id: "paper",    label: "Paper White",      swatch: ["#ffffff", "#f5f5f5", "#1c1c1c"] },
   { id: "porcelain",label: "Porcelain",        swatch: ["#fdfdff", "#f2f4f8", "#4a5b86"] },
   { id: "ivory",    label: "Ivory Warm",       swatch: ["#fefdfa", "#f6f2ea", "#a75a35"] },
+  { id: "bkash",    label: "Bkash",            swatch: ["#ffffff", "#fafafa", "#E3136F"] },
   { id: "midnight", label: "Midnight Indigo",  swatch: ["#141432", "#1e1e5a", "#7c7cff"] },
   { id: "forest",   label: "White × Green",    swatch: ["#ffffff", "#dff3e3", "#1f7a4d"] },
   { id: "ember",    label: "Black × Red",      swatch: ["#141414", "#2a1a1a", "#e23a3a"] },
