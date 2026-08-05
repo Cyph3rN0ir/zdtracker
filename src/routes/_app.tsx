@@ -297,7 +297,7 @@ function AppLayout() {
   ), [me, t, lang, setLang, theme, setTheme, activeTheme, closeDrawer, unreadTotal]);
 
   return (
-    <div className={`bg-muted/30 md:grid md:grid-cols-[240px_1fr] ${isChat ? "h-dvh overflow-hidden md:h-dvh" : "min-h-screen"}`}>
+    <div className={`bg-muted/30 md:grid md:grid-cols-[240px_1fr] ${isChat ? "h-dvh overflow-hidden md:h-dvh" : "min-h-screen"}`} style={{ '--sat': 'env(safe-area-inset-top, 0px)' } as React.CSSProperties}>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex border-r border-border bg-card flex-col">
         {nav}
@@ -311,7 +311,7 @@ function AppLayout() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="pwa-sheet p-0 w-[260px] flex flex-col">
+          <SheetContent side="left" className="pwa-sheet p-0 w-[260px] flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
             <SheetHeader className="sr-only"><SheetTitle>Navigation</SheetTitle></SheetHeader>
             {nav}
           </SheetContent>
@@ -330,7 +330,9 @@ function AppLayout() {
       </header>
 
       {isChat ? (
-        <main className="h-[calc(100dvh-3.25rem)] md:h-dvh min-h-0 w-full overflow-hidden">
+        /* Subtract both the header height (3.25rem) and the safe-area top inset
+           so the chat content (messages + input) always fits within the viewport */
+        <main className="md:h-dvh min-h-0 w-full overflow-hidden" style={{ height: 'calc(100dvh - 3.25rem - env(safe-area-inset-top, 0px))' }}>
           <Outlet />
         </main>
       ) : (
