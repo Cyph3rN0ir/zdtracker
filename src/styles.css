@@ -705,6 +705,10 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   /* Full-height helpers that respect the safe areas on both ends */
   .h-screen-safe  { height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
   .min-h-screen-safe { min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+
+  /* Hide the Sheet X close button inside the nav sidebar — users close by
+     tapping the overlay or swiping. The X overlaps the status bar on mobile. */
+  .pwa-sheet .pwa-sheet-close { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -944,14 +944,13 @@ const MessageBubble = memo(function MessageBubble({
             </div>
           )}
 
-          {/* Mobile actions button — always faintly visible (opacity-40) so users
-              know it exists. Tap to open the action sheet.
-              Hint: long-pressing the bubble itself also opens actions (onContextMenu). */}
+          {/* Mobile actions — faintly visible so it's discoverable but not noisy.
+              Long-pressing the bubble also triggers the action sheet. */}
           {!m.pending && (
             <button
               type="button"
               onClick={() => onOpenActions(m)}
-              className={`flex sm:hidden h-7 w-7 shrink-0 items-center justify-center self-end rounded-full opacity-40 hover:opacity-100 active:opacity-100 active:bg-accent text-muted-foreground transition-opacity ${m.mine ? "order-first" : "order-last"}`}
+              className={`flex sm:hidden h-7 w-7 shrink-0 items-center justify-center self-end rounded-full opacity-20 hover:opacity-70 active:opacity-100 active:bg-accent text-muted-foreground transition-opacity ${m.mine ? "order-first" : "order-last"}`}
               aria-label="Message actions"
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -1049,12 +1048,20 @@ const MessageBubble = memo(function MessageBubble({
                   <button
                     key={r.emoji}
                     onClick={() => onReaction(m, r.emoji)}
-                    className={`inline-flex items-center gap-1 rounded-full border shadow-sm transition-transform active:scale-95 ${
+                    className={`inline-flex items-center gap-1 rounded-full border shadow-md transition-transform active:scale-95 ${
                       r.mine
-                        ? "bg-primary/15 border-primary/40 text-primary"
-                        : "bg-card border-border text-foreground"
+                        ? "border-primary/50 text-primary"
+                        : "border-border/80 text-foreground"
                     }`}
-                    style={{ height: '26px', paddingInline: '8px' }}
+                    style={{
+                      height: '26px',
+                      paddingInline: '8px',
+                      /* Explicit solid colors so they always contrast:
+                         own = tinted primary, others = near-white in dark, white in light */
+                      background: r.mine
+                        ? 'color-mix(in oklab, var(--primary) 18%, var(--background))'
+                        : 'color-mix(in oklab, var(--foreground) 8%, var(--background))',
+                    }}
                   >
                     <span style={{ fontSize: '15px', lineHeight: 1 }}>{r.emoji}</span>
                     {r.count > 1 && (
@@ -1064,7 +1071,6 @@ const MessageBubble = memo(function MessageBubble({
                 ))}
               </div>
             )}
-            {/* Breathing room below reactions so the next message isn't jammed */}
             {reactions.length > 0 && <div className="h-1" />}
           </div>
 
