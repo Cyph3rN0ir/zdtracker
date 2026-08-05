@@ -854,6 +854,7 @@ const MessageBubble = memo(function MessageBubble({
   onJumpReply,
   onPin,
   onEdit,
+  onOpenActions,
 }: {
   m: Msg;
   isGroup: boolean;
@@ -862,6 +863,7 @@ const MessageBubble = memo(function MessageBubble({
   onJumpReply: (id: string) => void;
   onPin: (m: Msg) => void;
   onEdit: (m: Msg, body: string) => void;
+  onOpenActions: (m: Msg) => void;
 }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -877,7 +879,8 @@ const MessageBubble = memo(function MessageBubble({
     return Array.from(map.entries()).map(([emoji, data]) => ({ emoji, ...data }));
   }, [m.reactions]);
 
-  const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+  const EMOJIS = QUICK_EMOJIS;
+
 
   return (
     <div id={`msg-${m.id}`} className={`flex ${m.mine ? "justify-end" : "justify-start"} group relative`}>
