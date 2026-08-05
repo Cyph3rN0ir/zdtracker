@@ -10,11 +10,15 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-spa
 .output
 .vinxi
 .tanstack/**
 .nitro
 *.local
+
+# Capacitor generated Android project (build locally, not committed)
+android/
 
 # Wrangler / Cloudflare
 .wrangler/
