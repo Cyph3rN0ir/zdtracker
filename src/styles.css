@@ -695,8 +695,16 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     scroll-padding-inline: 0.5rem;
     & > * { scroll-snap-align: start; }
   }
-  /* Bottom breathing room so fixed composers / safe areas never clip content. */
-  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+  /* Safe-area spacing utilities — work on Android edge-to-edge and iOS notch.
+     All values fall back to 0 / sane defaults when env() returns 0. */
+  .pt-safe  { padding-top:    env(safe-area-inset-top,    0px); }
+  .pb-safe  { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem); }
+  .pl-safe  { padding-left:   env(safe-area-inset-left,   0px); }
+  .pr-safe  { padding-right:  env(safe-area-inset-right,  0px); }
+
+  /* Full-height helpers that respect the safe areas on both ends */
+  .h-screen-safe  { height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .min-h-screen-safe { min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

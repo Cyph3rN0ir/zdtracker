@@ -297,21 +297,39 @@ function AppLayout() {
   ), [me, t, lang, setLang, theme, setTheme, activeTheme, closeDrawer, unreadTotal]);
 
   return (
-    <div className={`bg-muted/30 md:grid md:grid-cols-[240px_1fr] ${isChat ? "h-dvh overflow-hidden md:h-dvh" : "min-h-screen"}`} style={{ '--sat': 'env(safe-area-inset-top, 0px)' } as React.CSSProperties}>
+    /*
+     * Outer wrapper uses flex-col on mobile so the header and content
+     * stack naturally. flex-1 + min-h-0 on the content fills whatever
+     * space remains — no hardcoded calc() needed, works on any device.
+     * On desktop it switches to a 2-col grid as before.
+     */
+    <div className={`bg-muted/30 flex flex-col md:grid md:grid-cols-[240px_1fr] ${
+      isChat ? "h-dvh overflow-hidden" : "min-h-dvh"
+    }`}>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex border-r border-border bg-card flex-col">
         {nav}
       </aside>
 
-      {/* Mobile top bar — pt uses safe-area-inset-top so content starts below the Android status bar */}
-      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-card/85 supports-[backdrop-filter]:bg-card/70 backdrop-blur-xl px-3 py-2" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
+      {/* Mobile top bar — shrinks to its natural height (includes safe-area-top padding).
+          The padding-top pushes it below the Android / iOS system status bar. */}
+      <header
+        className="md:hidden shrink-0 sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-card/85 supports-[backdrop-filter]:bg-card/70 backdrop-blur-xl px-3 py-2"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0.5rem)' }}
+      >
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Open menu" className="tap">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="pwa-sheet p-0 w-[260px] flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+          {/* Sheet content also gets safe-area top so the user card
+              doesn’t overlap the status bar when the drawer is open */}
+          <SheetContent
+            side="left"
+            className="pwa-sheet p-0 w-[260px] flex flex-col"
+            style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+          >
             <SheetHeader className="sr-only"><SheetTitle>Navigation</SheetTitle></SheetHeader>
             {nav}
           </SheetContent>
@@ -329,10 +347,12 @@ function AppLayout() {
         </div>
       </header>
 
+      {/* Main content area — flex-1 + min-h-0 fills exactly the remaining height
+          after the header, regardless of how tall the header is.
+          For chat: overflow-hidden keeps the inner scroll contained.
+          For other pages: normal scroll with pb-safe bottom breathing room. */}
       {isChat ? (
-        /* Subtract both the header height (3.25rem) and the safe-area top inset
-           so the chat content (messages + input) always fits within the viewport */
-        <main className="md:h-dvh min-h-0 w-full overflow-hidden" style={{ height: 'calc(100dvh - 3.25rem - env(safe-area-inset-top, 0px))' }}>
+        <main className="flex-1 min-h-0 w-full overflow-hidden md:h-dvh">
           <Outlet />
         </main>
       ) : (
