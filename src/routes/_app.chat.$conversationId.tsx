@@ -1033,29 +1033,30 @@ const MessageBubble = memo(function MessageBubble({
                   ) : null
                 )}
               </div>
-
-              {/* Reaction Pill Container (Overlapping bubble) */}
-              {reactions.length > 0 && (
-                <div className={`absolute -bottom-3.5 flex flex-wrap gap-0.5 ${m.mine ? "right-2 flex-row-reverse" : "left-2"}`}>
-                  {reactions.map(r => (
-                    <button
-                      key={r.emoji}
-                      onClick={() => onReaction(m, r.emoji)}
-                      className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] border shadow-md transition-colors ${
-                        r.mine
-                          ? "bg-primary border-primary/40 text-primary-foreground"
-                          : "bg-zinc-800 border-zinc-700 text-foreground"
-                      }`}
-                    >
-                      <span>{r.emoji}</span>
-                      {r.count > 1 && <span className="font-semibold text-[10px]">{r.count}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
-            {/* Reactions can add extra height, but since absolute positioned we might need margin */}
-            {reactions.length > 0 && <div className="h-2.5" />}
+
+            {/* Reaction pills — in normal flow below the bubble with -mt-2 overlap.
+                No absolute positioning = no clipping by scroll container.
+                bg-background is always solid opaque: white in light themes,
+                dark in dark themes — adapts automatically to the active theme. */}
+            {reactions.length > 0 && (
+              <div className={`flex flex-wrap gap-1 -mt-2 mb-1 ${m.mine ? "justify-end pr-2" : "justify-start pl-2"}`}>
+                {reactions.map(r => (
+                  <button
+                    key={r.emoji}
+                    onClick={() => onReaction(m, r.emoji)}
+                    className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[12px] border shadow-sm transition-colors ${
+                      r.mine
+                        ? "bg-primary border-primary/50 text-primary-foreground"
+                        : "bg-background border-border text-foreground"
+                    }`}
+                  >
+                    <span>{r.emoji}</span>
+                    {r.count > 1 && <span className="font-semibold text-[10px]">{r.count}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>
