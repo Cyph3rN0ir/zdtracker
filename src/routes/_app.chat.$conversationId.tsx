@@ -926,9 +926,9 @@ const MessageBubble = memo(function MessageBubble({
             )}
           </div>
 
-          {/* Emoji Picker Popover */}
+          {/* Emoji Picker Popover (desktop) */}
           {showEmojiPicker && (
-            <div className={`absolute -top-10 ${m.mine ? "right-0" : "left-0"} z-20 flex gap-1 bg-card border border-border p-1 rounded-full shadow-lg animate-in fade-in zoom-in duration-100`}>
+            <div className={`hidden sm:flex absolute -top-10 ${m.mine ? "right-0" : "left-0"} z-20 max-w-[calc(100vw-2rem)] flex-wrap gap-1 bg-popover text-popover-foreground border border-border p-1 rounded-full shadow-lg animate-in fade-in zoom-in duration-100`}>
               {EMOJIS.map(e => (
                 <button
                   key={e}
@@ -944,47 +944,18 @@ const MessageBubble = memo(function MessageBubble({
             </div>
           )}
 
+          {/* Mobile: single compact trigger that opens the action sheet */}
           {!m.pending && (
-            <div className={`flex sm:hidden flex-col gap-1 ${m.mine ? "pr-1" : "pl-1"} pb-1`}>
-              <button
-                type="button"
-                onClick={handleReply}
-                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
-                aria-label="Reply"
-              >
-                <Reply className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
-                aria-label="React"
-              >
-                <Smile className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onPin(m)}
-                className={`${m.isPinned ? "text-primary" : "text-muted-foreground"} active:text-foreground p-1.5 bg-muted/30 rounded-full`}
-                aria-label={m.isPinned ? "Unpin" : "Pin"}
-              >
-                <Pin className={`h-4 w-4 ${m.isPinned ? "fill-current" : ""}`} />
-              </button>
-              {m.mine && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditing(true);
-                    setEditBody(m.body);
-                  }}
-                  className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
-                  aria-label="Edit"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => onOpenActions(m)}
+              className={`flex sm:hidden h-7 w-7 shrink-0 items-center justify-center self-end rounded-full text-muted-foreground active:bg-accent ${m.mine ? "order-first" : "order-last"}`}
+              aria-label="Message actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
           )}
+
           
           <div className="flex flex-col items-end">
             <div
