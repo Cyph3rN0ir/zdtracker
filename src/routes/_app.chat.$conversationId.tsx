@@ -34,7 +34,13 @@ import {
   MoreVertical,
   Pencil,
   History,
+  Copy,
+  MoreHorizontal,
+  ChevronDown,
 } from "lucide-react";
+
+const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+
 import {
   Sheet,
   SheetContent,
