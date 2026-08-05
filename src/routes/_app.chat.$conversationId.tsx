@@ -563,7 +563,9 @@ function ThreadView() {
                        onJumpReply={scrollToMessage}
                        onPin={handlePin}
                        onEdit={handleEdit}
+                       onOpenActions={openActions}
                      />
+
                   </div>
                 ))}
               </div>
