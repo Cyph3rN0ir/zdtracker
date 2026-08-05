@@ -658,7 +658,112 @@ function ThreadView() {
           </div>
         )}
       </div>
+
+      {/* Mobile message action sheet */}
+      {actionMsg && (
+        <div className="fixed inset-0 z-50 sm:hidden" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={closeActions}
+            className="absolute inset-0 bg-black/40 animate-in fade-in duration-150"
+          />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/30" />
+            <div className="mb-3 line-clamp-2 text-xs text-muted-foreground">
+              {actionMsg.body}
+            </div>
+
+            {sheetEditBody === null ? (
+              <>
+                <div className="mb-3 flex items-center justify-between gap-1 rounded-2xl bg-muted/50 px-2 py-2">
+                  {QUICK_EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => {
+                        handleReaction(actionMsg, e);
+                        closeActions();
+                      }}
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-2xl leading-none active:scale-90 transition"
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleReply(actionMsg);
+                      closeActions();
+                    }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm active:bg-accent"
+                  >
+                    <Reply className="h-4 w-4 text-muted-foreground" /> Reply
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handlePin(actionMsg);
+                      closeActions();
+                    }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm active:bg-accent"
+                  >
+                    <Pin className="h-4 w-4 text-muted-foreground" />
+                    {actionMsg.isPinned ? "Unpin message" : "Pin message"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(actionMsg.body);
+                      closeActions();
+                    }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm active:bg-accent"
+                  >
+                    <Copy className="h-4 w-4 text-muted-foreground" /> Copy text
+                  </button>
+                  {actionMsg.mine && (
+                    <button
+                      type="button"
+                      onClick={() => setSheetEditBody(actionMsg.body)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm active:bg-accent"
+                    >
+                      <Pencil className="h-4 w-4 text-muted-foreground" /> Edit message
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Textarea
+                  autoFocus
+                  value={sheetEditBody}
+                  onChange={(e) => setSheetEditBody(e.target.value)}
+                  className="min-h-24 resize-none text-base"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setSheetEditBody(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={!sheetEditBody.trim()}
+                    onClick={() => {
+                      handleEdit(actionMsg, sheetEditBody.trim());
+                      closeActions();
+                    }}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 
