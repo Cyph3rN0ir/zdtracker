@@ -34,7 +34,13 @@ import {
   MoreVertical,
   Pencil,
   History,
+  Copy,
+  MoreHorizontal,
+  ChevronDown,
 } from "lucide-react";
+
+const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+
 import {
   Sheet,
   SheetContent,
@@ -418,6 +424,24 @@ function ThreadView() {
     });
   }, [conversationId, qc, editMessage]);
 
+  // ----- Mobile action sheet + pinned messages -----
+  const [actionMsg, setActionMsg] = useState<Msg | null>(null);
+  const [sheetEditBody, setSheetEditBody] = useState<string | null>(null);
+  const [showPinned, setShowPinned] = useState(false);
+  const pinnedMessages = useMemo(
+    () => (msgsQ.data ?? []).filter((m) => m.isPinned),
+    [msgsQ.data],
+  );
+  const openActions = useCallback((m: Msg) => {
+    setSheetEditBody(null);
+    setActionMsg(m);
+  }, []);
+  const closeActions = useCallback(() => {
+    setActionMsg(null);
+    setSheetEditBody(null);
+  }, []);
+
+
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
     else router.navigate({ to: "/chat" });
@@ -486,6 +510,63 @@ function ThreadView() {
         </div>
       )}
 
+      {pinnedMessages.length > 0 && (
+        <div className="border-b border-border bg-muted/30">
+          <button
+            type="button"
+            onClick={() => setShowPinned((v) => !v)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left"
+          >
+            <Pin className="h-3.5 w-3.5 shrink-0 fill-current text-primary" />
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {pinnedMessages.length} pinned
+              </span>
+              {" · "}
+              {pinnedMessages[pinnedMessages.length - 1]!.body}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${showPinned ? "rotate-180" : ""}`}
+            />
+          </button>
+          {showPinned && (
+            <div className="max-h-44 overflow-y-auto border-t border-border/60 px-2 py-1.5 space-y-1">
+              {pinnedMessages.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-start gap-2 rounded-lg bg-card px-2 py-1.5"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPinned(false);
+                      scrollToMessage(p.id);
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <div className="text-[11px] font-medium text-primary truncate">
+                      {p.senderName}
+                    </div>
+                    <div className="text-xs text-muted-foreground line-clamp-2">
+                      {p.body}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePin(p)}
+                    className="shrink-0 rounded-full p-1.5 text-muted-foreground active:bg-accent"
+                    aria-label="Unpin"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+
       <div className="relative flex-1 min-h-0">
         <div
           ref={scrollRef}
@@ -539,7 +620,9 @@ function ThreadView() {
                        onJumpReply={scrollToMessage}
                        onPin={handlePin}
                        onEdit={handleEdit}
+                       onOpenActions={openActions}
                      />
+
                   </div>
                 ))}
               </div>
@@ -640,7 +723,112 @@ function ThreadView() {
           </div>
         )}
       </div>
+
+      {/* Mobile message action sheet */}
+      {actionMsg && (
+        <div className="fixed inset-0 z-50 sm:hidden" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={closeActions}
+            className="absolute inset-0 bg-black/40 animate-in fade-in duration-150"
+          />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/30" />
+            <div className="mb-3 line-clamp-2 text-xs text-muted-foreground">
+              {actionMsg.body}
+            </div>
+
+            {sheetEditBody === null ? (
+              <>
+                <div className="mb-3 flex items-center justify-between gap-1 rounded-2xl bg-muted/50 px-2 py-2">
+                  {QUICK_EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => {
+                        handleReaction(actionMsg, e);
+                        closeActions();
+                      }}
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-2xl leading-none active:scale-90 transition"
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleReply(actionMsg);
+                      closeActions();
+                    }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm active:bg-accent"
+                  >
+                    <Reply className="h-4 w-4 text-muted-foreground" /> Reply
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handlePin(actionMsg);
+                      closeActions();
+                    }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm active:bg-accent"
+                  >
+                    <Pin className="h-4 w-4 text-muted-foreground" />
+                    {actionMsg.isPinned ? "Unpin message" : "Pin message"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(actionMsg.body);
+                      closeActions();
+                    }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm active:bg-accent"
+                  >
+                    <Copy className="h-4 w-4 text-muted-foreground" /> Copy text
+                  </button>
+                  {actionMsg.mine && (
+                    <button
+                      type="button"
+                      onClick={() => setSheetEditBody(actionMsg.body)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm active:bg-accent"
+                    >
+                      <Pencil className="h-4 w-4 text-muted-foreground" /> Edit message
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Textarea
+                  autoFocus
+                  value={sheetEditBody}
+                  onChange={(e) => setSheetEditBody(e.target.value)}
+                  className="min-h-24 resize-none text-base"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setSheetEditBody(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={!sheetEditBody.trim()}
+                    onClick={() => {
+                      handleEdit(actionMsg, sheetEditBody.trim());
+                      closeActions();
+                    }}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 
@@ -666,6 +854,7 @@ const MessageBubble = memo(function MessageBubble({
   onJumpReply,
   onPin,
   onEdit,
+  onOpenActions,
 }: {
   m: Msg;
   isGroup: boolean;
@@ -674,6 +863,7 @@ const MessageBubble = memo(function MessageBubble({
   onJumpReply: (id: string) => void;
   onPin: (m: Msg) => void;
   onEdit: (m: Msg, body: string) => void;
+  onOpenActions: (m: Msg) => void;
 }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -689,11 +879,12 @@ const MessageBubble = memo(function MessageBubble({
     return Array.from(map.entries()).map(([emoji, data]) => ({ emoji, ...data }));
   }, [m.reactions]);
 
-  const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+  const EMOJIS = QUICK_EMOJIS;
+
 
   return (
     <div id={`msg-${m.id}`} className={`flex ${m.mine ? "justify-end" : "justify-start"} group relative`}>
-      <div className={`max-w-[85%] sm:max-w-[70%] ${m.mine ? "items-end" : "items-start"} flex flex-col`}>
+      <div className={`max-w-[80%] sm:max-w-[70%] ${m.mine ? "items-end" : "items-start"} flex flex-col`}>
         {isGroup && !m.mine && (
           <div className="text-[11px] font-medium text-primary mb-0.5 px-1">{m.senderName}</div>
         )}
@@ -735,9 +926,9 @@ const MessageBubble = memo(function MessageBubble({
             )}
           </div>
 
-          {/* Emoji Picker Popover */}
+          {/* Emoji Picker Popover (desktop) */}
           {showEmojiPicker && (
-            <div className={`absolute -top-10 ${m.mine ? "right-0" : "left-0"} z-20 flex gap-1 bg-card border border-border p-1 rounded-full shadow-lg animate-in fade-in zoom-in duration-100`}>
+            <div className={`hidden sm:flex absolute -top-10 ${m.mine ? "right-0" : "left-0"} z-20 max-w-[calc(100vw-2rem)] flex-wrap gap-1 bg-popover text-popover-foreground border border-border p-1 rounded-full shadow-lg animate-in fade-in zoom-in duration-100`}>
               {EMOJIS.map(e => (
                 <button
                   key={e}
@@ -753,47 +944,18 @@ const MessageBubble = memo(function MessageBubble({
             </div>
           )}
 
+          {/* Mobile: single compact trigger that opens the action sheet */}
           {!m.pending && (
-            <div className={`flex sm:hidden flex-col gap-1 ${m.mine ? "pr-1" : "pl-1"} pb-1`}>
-              <button
-                type="button"
-                onClick={handleReply}
-                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
-                aria-label="Reply"
-              >
-                <Reply className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
-                aria-label="React"
-              >
-                <Smile className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onPin(m)}
-                className={`${m.isPinned ? "text-primary" : "text-muted-foreground"} active:text-foreground p-1.5 bg-muted/30 rounded-full`}
-                aria-label={m.isPinned ? "Unpin" : "Pin"}
-              >
-                <Pin className={`h-4 w-4 ${m.isPinned ? "fill-current" : ""}`} />
-              </button>
-              {m.mine && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditing(true);
-                    setEditBody(m.body);
-                  }}
-                  className="text-muted-foreground active:text-foreground p-1.5 bg-muted/30 rounded-full"
-                  aria-label="Edit"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => onOpenActions(m)}
+              className={`flex sm:hidden h-7 w-7 shrink-0 items-center justify-center self-end rounded-full text-muted-foreground active:bg-accent ${m.mine ? "order-first" : "order-last"}`}
+              aria-label="Message actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
           )}
+
           
           <div className="flex flex-col items-end">
             <div
