@@ -510,6 +510,63 @@ function ThreadView() {
         </div>
       )}
 
+      {pinnedMessages.length > 0 && (
+        <div className="border-b border-border bg-muted/30">
+          <button
+            type="button"
+            onClick={() => setShowPinned((v) => !v)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left"
+          >
+            <Pin className="h-3.5 w-3.5 shrink-0 fill-current text-primary" />
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {pinnedMessages.length} pinned
+              </span>
+              {" · "}
+              {pinnedMessages[pinnedMessages.length - 1]!.body}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${showPinned ? "rotate-180" : ""}`}
+            />
+          </button>
+          {showPinned && (
+            <div className="max-h-44 overflow-y-auto border-t border-border/60 px-2 py-1.5 space-y-1">
+              {pinnedMessages.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-start gap-2 rounded-lg bg-card px-2 py-1.5"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPinned(false);
+                      scrollToMessage(p.id);
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <div className="text-[11px] font-medium text-primary truncate">
+                      {p.senderName}
+                    </div>
+                    <div className="text-xs text-muted-foreground line-clamp-2">
+                      {p.body}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePin(p)}
+                    className="shrink-0 rounded-full p-1.5 text-muted-foreground active:bg-accent"
+                    aria-label="Unpin"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+
       <div className="relative flex-1 min-h-0">
         <div
           ref={scrollRef}
