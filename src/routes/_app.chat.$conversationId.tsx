@@ -418,6 +418,24 @@ function ThreadView() {
     });
   }, [conversationId, qc, editMessage]);
 
+  // ----- Mobile action sheet + pinned messages -----
+  const [actionMsg, setActionMsg] = useState<Msg | null>(null);
+  const [sheetEditBody, setSheetEditBody] = useState<string | null>(null);
+  const [showPinned, setShowPinned] = useState(false);
+  const pinnedMessages = useMemo(
+    () => (msgsQ.data ?? []).filter((m) => m.isPinned),
+    [msgsQ.data],
+  );
+  const openActions = useCallback((m: Msg) => {
+    setSheetEditBody(null);
+    setActionMsg(m);
+  }, []);
+  const closeActions = useCallback(() => {
+    setActionMsg(null);
+    setSheetEditBody(null);
+  }, []);
+
+
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
     else router.navigate({ to: "/chat" });
