@@ -958,39 +958,38 @@ const MessageBubble = memo(function MessageBubble({
           )}
 
 
-          {/* ── Bubble + reactions ───────────────────────────────────────────
-               The wrapper is a plain flex-col. The bubble sits first.
-               Reactions live BELOW the bubble in normal flow, pulled up
-               with -mt-3 so they half-overlap the bottom edge — exactly
-               like Telegram / WhatsApp in the reference screenshot.
-               onContextMenu fires on right-click (desktop) AND long-press
-               on Android Chrome / WebView (~600 ms hold), giving us the
-               message-actions sheet on all platforms without a custom timer.
-          ─────────────────────────────────────────────────────────────── */}
+          {/* ── Bubble + reactions ─────────────────────────────────────────── */}
           <div className="flex flex-col">
-            {/* Bubble */}
+
+            {/* Bubble — rounded-xl (not 2xl) keeps a sleek modern shape.
+                When reactions exist, pb-5 creates room so the timestamp
+                is never covered by the reaction pills below. */}
             <div
               onContextMenu={(e) => { e.preventDefault(); onOpenActions(m); }}
-              className={`rounded-2xl px-3 py-2 text-sm break-words transition-opacity select-none ${
+              className={`rounded-xl px-3 text-sm break-words transition-opacity select-none ${
+                reactions.length > 0 ? "pt-2 pb-5" : "py-2"
+              } ${
                 m.mine
-                  ? "bg-primary text-primary-foreground rounded-br-sm"
-                  : "bg-muted text-foreground rounded-bl-sm"
-              } ${m.pending ? "opacity-70" : ""}`}
+                  ? "bg-primary text-primary-foreground rounded-br-[4px]"
+                  : "bg-muted text-foreground rounded-bl-[4px]"
+              } ${m.pending ? "opacity-60" : ""}`}
             >
+              {/* Reply-to preview — slim left-border style */}
               {m.replyTo && (
                 <button
                   type="button"
                   onClick={() => onJumpReply(m.replyTo!.id)}
-                  className={`block w-full text-left mb-1.5 rounded border-l-2 px-2 py-1 text-xs ${
+                  className={`block w-full text-left mb-2 rounded-r-md border-l-[3px] px-2 py-1 text-xs ${
                     m.mine
-                      ? "border-primary-foreground/50 bg-primary-foreground/10"
-                      : "border-primary/60 bg-background/60"
+                      ? "border-primary-foreground/60 bg-primary-foreground/10"
+                      : "border-primary bg-background/40"
                   }`}
                 >
-                  <div className="font-medium opacity-90 truncate">{m.replyTo.senderName}</div>
-                  <div className="opacity-80 truncate line-clamp-2">{m.replyTo.body}</div>
+                  <div className="font-semibold opacity-90 truncate">{m.replyTo.senderName}</div>
+                  <div className="opacity-70 truncate line-clamp-1 mt-0.5">{m.replyTo.body}</div>
                 </button>
               )}
+
               {isEditing ? (
                 <div className="flex flex-col gap-2 min-w-[200px]">
                   <Textarea
@@ -1010,17 +1009,19 @@ const MessageBubble = memo(function MessageBubble({
                 </div>
               ) : (
                 <>
-                  <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</div>
+                  <div className="whitespace-pre-wrap [overflow-wrap:anywhere] leading-[1.45]">{m.body}</div>
                   {m.editedAt && (
-                    <div className="flex items-center gap-1 mt-0.5 opacity-60 text-[9px] font-medium">
+                    <div className="flex items-center gap-1 mt-0.5 opacity-50 text-[9px]">
                       <Pencil className="h-2.5 w-2.5" />
                       <span>edited</span>
                     </div>
                   )}
                 </>
               )}
-              <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-0.5 ${
-                m.mine ? "text-primary-foreground/70" : "text-muted-foreground"
+
+              {/* Timestamp + read receipt — always at bubble bottom */}
+              <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-1 ${
+                m.mine ? "text-primary-foreground/60" : "text-muted-foreground"
               }`}>
                 {m.isPinned && <Pin className="h-2.5 w-2.5 fill-current" />}
                 <span>{formatTime(m.createdAt)}</span>
@@ -1037,41 +1038,42 @@ const MessageBubble = memo(function MessageBubble({
               </div>
             </div>
 
-            {/* Reaction pills — BELOW the bubble, pulled up by -mt-3 to overlap
-                the bottom edge by ~12 px (same pattern as Telegram screenshot).
-                z-10 keeps them above the bubble. Normal flow means no clipping. */}
+            {/* Reaction pills — sit just below the bubble with -mt-2 (8px overlap
+                at the bubble border only — never reaches the timestamp which is
+                now protected by pb-5).
+                Pills always show a count so they're elongated pills not circles.
+                min-width ensures even single-emoji pills are wide enough. */}
             {reactions.length > 0 && (
-              <div className={`flex flex-wrap gap-1 -mt-3 z-10 relative ${
-                m.mine ? "justify-end pr-3" : "justify-start pl-3"
+              <div className={`flex flex-wrap gap-1 -mt-2 z-10 relative ${
+                m.mine ? "justify-end pr-2" : "justify-start pl-2"
               }`}>
                 {reactions.map(r => (
                   <button
                     key={r.emoji}
                     onClick={() => onReaction(m, r.emoji)}
-                    className={`inline-flex items-center gap-1 rounded-full border shadow-md transition-transform active:scale-95 ${
+                    className={`inline-flex items-center justify-center gap-1 rounded-full border shadow-sm transition-all active:scale-95 hover:shadow-md ${
                       r.mine
-                        ? "border-primary/50 text-primary"
-                        : "border-border/80 text-foreground"
+                        ? "border-primary/40 text-primary"
+                        : "border-border/60 text-foreground"
                     }`}
                     style={{
-                      height: '26px',
+                      height: '24px',
+                      minWidth: '44px',
                       paddingInline: '8px',
-                      /* Explicit solid colors so they always contrast:
-                         own = tinted primary, others = near-white in dark, white in light */
                       background: r.mine
-                        ? 'color-mix(in oklab, var(--primary) 18%, var(--background))'
-                        : 'color-mix(in oklab, var(--foreground) 8%, var(--background))',
+                        ? 'color-mix(in oklab, var(--primary) 20%, var(--background))'
+                        : 'color-mix(in oklab, var(--foreground) 10%, var(--background))',
                     }}
                   >
-                    <span style={{ fontSize: '15px', lineHeight: 1 }}>{r.emoji}</span>
-                    {r.count > 1 && (
-                      <span style={{ fontSize: '12px', fontWeight: 700, lineHeight: 1 }}>{r.count}</span>
-                    )}
+                    <span style={{ fontSize: '14px', lineHeight: 1 }}>{r.emoji}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, lineHeight: 1 }}>
+                      {r.count}
+                    </span>
                   </button>
                 ))}
               </div>
             )}
-            {reactions.length > 0 && <div className="h-1" />}
+            {reactions.length > 0 && <div className="h-1.5" />}
           </div>
 
         </div>
