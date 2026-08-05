@@ -944,27 +944,35 @@ const MessageBubble = memo(function MessageBubble({
             </div>
           )}
 
-          {/* Mobile: single compact trigger — visible only on tap/press, not always */}
+          {/* Mobile actions button — always faintly visible (opacity-40) so users
+              know it exists. Tap to open the action sheet.
+              Hint: long-pressing the bubble itself also opens actions (onContextMenu). */}
           {!m.pending && (
             <button
               type="button"
               onClick={() => onOpenActions(m)}
-              className={`flex sm:hidden h-7 w-7 shrink-0 items-center justify-center self-end rounded-full text-muted-foreground/40 opacity-0 group-active:opacity-100 active:bg-accent active:text-muted-foreground ${m.mine ? "order-first" : "order-last"}`}
+              className={`flex sm:hidden h-7 w-7 shrink-0 items-center justify-center self-end rounded-full opacity-40 hover:opacity-100 active:opacity-100 active:bg-accent text-muted-foreground transition-opacity ${m.mine ? "order-first" : "order-last"}`}
               aria-label="Message actions"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
           )}
 
-          
-          {/* Bubble + reaction pills wrapper — relative here so pills can be
-              absolutely positioned to the bubble's bottom corner without
-              being clipped by the scroll container above */}
-          <div className="relative">
+
+          {/* ── Bubble + reactions ───────────────────────────────────────────
+               The wrapper is a plain flex-col. The bubble sits first.
+               Reactions live BELOW the bubble in normal flow, pulled up
+               with -mt-3 so they half-overlap the bottom edge — exactly
+               like Telegram / WhatsApp in the reference screenshot.
+               onContextMenu fires on right-click (desktop) AND long-press
+               on Android Chrome / WebView (~600 ms hold), giving us the
+               message-actions sheet on all platforms without a custom timer.
+          ─────────────────────────────────────────────────────────────── */}
+          <div className="flex flex-col">
+            {/* Bubble */}
             <div
-              className={`rounded-2xl px-3 text-sm break-words transition-opacity ${
-                reactions.length > 0 ? "pt-2 pb-6" : "py-2"
-              } ${
+              onContextMenu={(e) => { e.preventDefault(); onOpenActions(m); }}
+              className={`rounded-2xl px-3 py-2 text-sm break-words transition-opacity select-none ${
                 m.mine
                   ? "bg-primary text-primary-foreground rounded-br-sm"
                   : "bg-muted text-foreground rounded-bl-sm"
@@ -993,24 +1001,12 @@ const MessageBubble = memo(function MessageBubble({
                     className="text-sm bg-background/50 border-none min-h-[60px] resize-none focus:ring-1 focus:ring-primary-foreground/30"
                   />
                   <div className="flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <Button variant="ghost" size="sm"
                       className="h-7 px-2 text-[10px] text-primary-foreground/80 hover:bg-primary-foreground/10"
-                      onClick={() => setIsEditing(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
+                      onClick={() => setIsEditing(false)}>Cancel</Button>
+                    <Button size="sm"
                       className="h-7 px-2 text-[10px] bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                      onClick={() => {
-                        onEdit(m, editBody);
-                        setIsEditing(false);
-                      }}
-                    >
-                      Save
-                    </Button>
+                      onClick={() => { onEdit(m, editBody); setIsEditing(false); }}>Save</Button>
                   </div>
                 </div>
               ) : (
@@ -1024,50 +1020,52 @@ const MessageBubble = memo(function MessageBubble({
                   )}
                 </>
               )}
-              <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-0.5 ${m.mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+              <div className={`flex items-center justify-end gap-1 text-[10px] tabular-nums mt-0.5 ${
+                m.mine ? "text-primary-foreground/70" : "text-muted-foreground"
+              }`}>
                 {m.isPinned && <Pin className="h-2.5 w-2.5 fill-current" />}
                 <span>{formatTime(m.createdAt)}</span>
                 {m.mine && (
-                  m.pending ? (
-                    <Clock className="h-3 w-3 opacity-70" aria-label="Sending" />
-                  ) : m.otherMembersCount > 0 ? (
-                    <span className="inline-flex items-center" aria-label={m.readByAll ? "Seen" : "Sent"}>
-                      {m.readByAll ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5 opacity-70" />}
-                      {isGroup && m.readers.length > 0 && !m.readByAll && <span className="ml-0.5">{m.readers.length}</span>}
-                    </span>
-                  ) : null
+                  m.pending
+                    ? <Clock className="h-3 w-3 opacity-70" aria-label="Sending" />
+                    : m.otherMembersCount > 0
+                      ? <span className="inline-flex items-center" aria-label={m.readByAll ? "Seen" : "Sent"}>
+                          {m.readByAll ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5 opacity-70" />}
+                          {isGroup && m.readers.length > 0 && !m.readByAll && <span className="ml-0.5">{m.readers.length}</span>}
+                        </span>
+                      : null
                 )}
               </div>
             </div>
 
-            {/* Reaction pills — Telegram/WhatsApp style:
-                - Absolutely pinned to bottom corner of the bubble
-                - Small compact 22px-tall pills with emoji + count
-                - Shadow lifts them visually above the bubble edge
-                - bg-card = opaque surface color (white/dark per theme) */}
+            {/* Reaction pills — BELOW the bubble, pulled up by -mt-3 to overlap
+                the bottom edge by ~12 px (same pattern as Telegram screenshot).
+                z-10 keeps them above the bubble. Normal flow means no clipping. */}
             {reactions.length > 0 && (
-              <div className={`absolute bottom-1.5 flex gap-1 ${
-                m.mine ? "right-2" : "left-2"
+              <div className={`flex flex-wrap gap-1 -mt-3 z-10 relative ${
+                m.mine ? "justify-end pr-3" : "justify-start pl-3"
               }`}>
                 {reactions.map(r => (
                   <button
                     key={r.emoji}
                     onClick={() => onReaction(m, r.emoji)}
-                    className={`inline-flex items-center gap-0.5 rounded-full border shadow-md transition-transform active:scale-95 ${
+                    className={`inline-flex items-center gap-1 rounded-full border shadow-sm transition-transform active:scale-95 ${
                       r.mine
-                        ? "bg-primary/20 border-primary/40 text-primary dark:bg-primary/30"
-                        : "bg-card border-border/60 text-foreground"
+                        ? "bg-primary/15 border-primary/40 text-primary"
+                        : "bg-card border-border text-foreground"
                     }`}
-                    style={{ height: '22px', paddingInline: '6px', fontSize: '13px', lineHeight: 1 }}
+                    style={{ height: '26px', paddingInline: '8px' }}
                   >
-                    <span style={{ fontSize: '14px', lineHeight: 1 }}>{r.emoji}</span>
+                    <span style={{ fontSize: '15px', lineHeight: 1 }}>{r.emoji}</span>
                     {r.count > 1 && (
-                      <span style={{ fontSize: '11px', fontWeight: 600, lineHeight: 1 }}>{r.count}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, lineHeight: 1 }}>{r.count}</span>
                     )}
                   </button>
                 ))}
               </div>
             )}
+            {/* Breathing room below reactions so the next message isn't jammed */}
+            {reactions.length > 0 && <div className="h-1" />}
           </div>
 
         </div>
