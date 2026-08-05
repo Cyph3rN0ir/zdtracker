@@ -884,7 +884,7 @@ const MessageBubble = memo(function MessageBubble({
 
   return (
     <div id={`msg-${m.id}`} className={`flex ${m.mine ? "justify-end" : "justify-start"} group relative`}>
-      <div className={`max-w-[85%] sm:max-w-[70%] ${m.mine ? "items-end" : "items-start"} flex flex-col`}>
+      <div className={`max-w-[80%] sm:max-w-[70%] ${m.mine ? "items-end" : "items-start"} flex flex-col`}>
         {isGroup && !m.mine && (
           <div className="text-[11px] font-medium text-primary mb-0.5 px-1">{m.senderName}</div>
         )}
