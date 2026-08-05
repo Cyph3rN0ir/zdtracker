@@ -944,12 +944,12 @@ const MessageBubble = memo(function MessageBubble({
             </div>
           )}
 
-          {/* Mobile: single compact trigger that opens the action sheet */}
+          {/* Mobile: single compact trigger — visible only on tap/press, not always */}
           {!m.pending && (
             <button
               type="button"
               onClick={() => onOpenActions(m)}
-              className={`flex sm:hidden h-7 w-7 shrink-0 items-center justify-center self-end rounded-full text-muted-foreground active:bg-accent ${m.mine ? "order-first" : "order-last"}`}
+              className={`flex sm:hidden h-7 w-7 shrink-0 items-center justify-center self-end rounded-full text-muted-foreground/40 opacity-0 group-active:opacity-100 active:bg-accent active:text-muted-foreground ${m.mine ? "order-first" : "order-last"}`}
               aria-label="Message actions"
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -1036,19 +1036,19 @@ const MessageBubble = memo(function MessageBubble({
 
               {/* Reaction Pill Container (Overlapping bubble) */}
               {reactions.length > 0 && (
-                <div className={`absolute -bottom-2.5 flex flex-wrap gap-1 ${m.mine ? "right-2 flex-row-reverse" : "left-2"}`}>
+                <div className={`absolute -bottom-3.5 flex flex-wrap gap-0.5 ${m.mine ? "right-2 flex-row-reverse" : "left-2"}`}>
                   {reactions.map(r => (
                     <button
                       key={r.emoji}
                       onClick={() => onReaction(m, r.emoji)}
-                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border shadow-sm transition-colors ${
-                        r.mine 
-                          ? "bg-primary-tint border-primary/20 text-primary" 
-                          : "bg-card border-border text-muted-foreground"
+                      className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] border shadow-md transition-colors ${
+                        r.mine
+                          ? "bg-primary border-primary/40 text-primary-foreground"
+                          : "bg-zinc-800 border-zinc-700 text-foreground"
                       }`}
                     >
                       <span>{r.emoji}</span>
-                      {r.count > 1 && <span className="font-semibold">{r.count}</span>}
+                      {r.count > 1 && <span className="font-semibold text-[10px]">{r.count}</span>}
                     </button>
                   ))}
                 </div>
