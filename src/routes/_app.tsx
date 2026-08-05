@@ -303,8 +303,8 @@ function AppLayout() {
         {nav}
       </aside>
 
-      {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-card/85 supports-[backdrop-filter]:bg-card/70 backdrop-blur-xl px-3 py-2">
+      {/* Mobile top bar — pt uses safe-area-inset-top so content starts below the Android status bar */}
+      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-card/85 supports-[backdrop-filter]:bg-card/70 backdrop-blur-xl px-3 py-2" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Open menu" className="tap">
