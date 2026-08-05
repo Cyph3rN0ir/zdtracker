@@ -1,29 +1,36 @@
 // Lightweight skeleton shown during route transitions when a loader is
-// still resolving and there's no cached data yet. Kept generic so it works
-// for every page without looking obviously wrong on any.
+// still resolving and there's no cached data yet.
 export function RouteSkeleton() {
   return (
-    <div className="flex flex-col min-h-dvh bg-background" aria-hidden="true">
-      {/* Simulated mobile header — matches the real header height + safe-area
-          so the skeleton never bleeds into the Android / iOS status bar */}
-      <div
-        className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border/40 bg-card/80 animate-pulse"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0.5rem)' }}
-      >
-        <div className="h-6 w-6 rounded bg-muted" />
-        <div className="h-4 w-24 rounded bg-muted" />
-        <div className="h-8 w-8 rounded-md bg-muted" />
-      </div>
+    <div
+      aria-hidden="true"
+      className="flex flex-col min-h-dvh animate-pulse"
+      style={{ background: '#0F0F0F' }}
+    >
+      {/* Safe-area spacer — pushes content below the status bar.
+          No fake header: just a clean dark screen with skeleton cards. */}
+      <div style={{ height: 'max(env(safe-area-inset-top, 0px), 1rem)' }} />
 
-      {/* Page content skeleton */}
-      <div className="flex-1 space-y-4 p-4 animate-pulse">
-        <div className="h-7 w-40 max-w-[60%] rounded-md bg-muted" />
-        <div className="h-4 w-64 max-w-[80%] rounded bg-muted/70" />
-        <div className="mt-4 space-y-2">
-          <div className="h-16 w-full rounded-xl bg-muted/60" />
-          <div className="h-16 w-full rounded-xl bg-muted/60" />
-          <div className="h-16 w-full rounded-xl bg-muted/60" />
+      {/* Skeleton content */}
+      <div className="flex-1 px-4 pt-4 space-y-3">
+        {/* Title bar placeholder */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="h-5 w-32 rounded-full" style={{ background: '#1e1e1e' }} />
+          <div className="h-8 w-8 rounded-lg" style={{ background: '#1e1e1e' }} />
         </div>
+
+        {/* Card skeletons */}
+        {[1, 2, 3].map(i => (
+          <div
+            key={i}
+            className="w-full rounded-xl"
+            style={{
+              height: '68px',
+              background: '#161616',
+              opacity: 1 - (i - 1) * 0.15,
+            }}
+          />
+        ))}
       </div>
     </div>
   );
