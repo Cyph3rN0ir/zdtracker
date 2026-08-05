@@ -957,9 +957,14 @@ const MessageBubble = memo(function MessageBubble({
           )}
 
           
-          <div className="flex flex-col items-end">
+          {/* Bubble + reaction pills wrapper — relative here so pills can be
+              absolutely positioned to the bubble's bottom corner without
+              being clipped by the scroll container above */}
+          <div className="relative">
             <div
-              className={`rounded-2xl px-3 py-2 text-sm break-words transition-opacity relative ${
+              className={`rounded-2xl px-3 text-sm break-words transition-opacity ${
+                reactions.length > 0 ? "pt-2 pb-6" : "py-2"
+              } ${
                 m.mine
                   ? "bg-primary text-primary-foreground rounded-br-sm"
                   : "bg-muted text-foreground rounded-bl-sm"
@@ -1035,24 +1040,30 @@ const MessageBubble = memo(function MessageBubble({
               </div>
             </div>
 
-            {/* Reaction pills — in normal flow below the bubble with -mt-2 overlap.
-                No absolute positioning = no clipping by scroll container.
-                bg-background is always solid opaque: white in light themes,
-                dark in dark themes — adapts automatically to the active theme. */}
+            {/* Reaction pills — Telegram/WhatsApp style:
+                - Absolutely pinned to bottom corner of the bubble
+                - Small compact 22px-tall pills with emoji + count
+                - Shadow lifts them visually above the bubble edge
+                - bg-card = opaque surface color (white/dark per theme) */}
             {reactions.length > 0 && (
-              <div className={`flex flex-wrap gap-1 -mt-2 mb-1 ${m.mine ? "justify-end pr-2" : "justify-start pl-2"}`}>
+              <div className={`absolute bottom-1.5 flex gap-1 ${
+                m.mine ? "right-2" : "left-2"
+              }`}>
                 {reactions.map(r => (
                   <button
                     key={r.emoji}
                     onClick={() => onReaction(m, r.emoji)}
-                    className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[12px] border shadow-sm transition-colors ${
+                    className={`inline-flex items-center gap-0.5 rounded-full border shadow-md transition-transform active:scale-95 ${
                       r.mine
-                        ? "bg-primary border-primary/50 text-primary-foreground"
-                        : "bg-background border-border text-foreground"
+                        ? "bg-primary/20 border-primary/40 text-primary dark:bg-primary/30"
+                        : "bg-card border-border/60 text-foreground"
                     }`}
+                    style={{ height: '22px', paddingInline: '6px', fontSize: '13px', lineHeight: 1 }}
                   >
-                    <span>{r.emoji}</span>
-                    {r.count > 1 && <span className="font-semibold text-[10px]">{r.count}</span>}
+                    <span style={{ fontSize: '14px', lineHeight: 1 }}>{r.emoji}</span>
+                    {r.count > 1 && (
+                      <span style={{ fontSize: '11px', fontWeight: 600, lineHeight: 1 }}>{r.count}</span>
+                    )}
                   </button>
                 ))}
               </div>
