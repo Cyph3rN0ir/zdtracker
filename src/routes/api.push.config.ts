@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/push/config")({
           process.env.ZEROSYNC_VAPID_SUBJECT ??
           process.env.VAPID_SUBJECT ??
           process.env.WEB_PUSH_SUBJECT ??
-          "https://zerosync.pages.dev/";
+          "mailto:admin@zerosync.app";
 
         // The public key is safe to ship — fall back to the bundled constant
         // so clients can still subscribe even if only the private signing key

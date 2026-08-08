@@ -43,9 +43,8 @@ export const Route = createFileRoute("/_app/")({
   head: () => ({
     meta: [
       { title: "Dashboard — ZeroSync" },
-      { property: "og:url", content: "https://zerosync.pages.dev/" },
     ],
-    links: [{ rel: "canonical", href: "https://zerosync.pages.dev/" }],
+    links: [],
   }),
 });
 

@@ -196,7 +196,7 @@ function Accounts() {
         <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">
           {t(
             "bacct.pending",
-            "Accounts setup is pending — run SUPABASE_BUSINESS_ACCOUNTS.sql in Supabase to enable this tab.",
+            "Accounts setup is not complete yet. Please contact your administrator to finish configuration.",
           )}
         </p>
       )}
