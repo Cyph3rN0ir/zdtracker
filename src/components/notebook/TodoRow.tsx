@@ -1,7 +1,9 @@
 import { memo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toggleTodoFn, deleteTodoFn, updateTodoFn } from "@/lib/notebook.functions";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -31,27 +33,40 @@ export const TodoRow = memo(function TodoRow({
   showListBadge?: boolean;
   listTitle?: string;
 }) {
-  const qc = useQueryClient();
   const toggle = useServerFn(toggleTodoFn);
   const remove = useServerFn(deleteTodoFn);
   const update = useServerFn(updateTodoFn);
   const [editing, setEditing] = useState(false);
 
-  const refetch = () => invalidateKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+  const updateEveryCache = (client: QueryClient, update: (rows: Todo[] | undefined) => Todo[]) => {
+    invalidateKeys.forEach((key) => client.setQueryData<Todo[]>(key, update));
+  };
 
-  const mToggle = useMutation({
-    mutationFn: (done: boolean) => toggle({ data: { id: t.id, done } }),
-    onSuccess: refetch,
+  const mToggle = useOfflineMutation<{ id: string; done: boolean }>({
+    operation: OFFLINE_OPS.TODO_TOGGLE,
+    mutationFn: (data) => toggle({ data }),
+    affectedKeys: invalidateKeys,
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) => updateEveryCache(client, (rows) =>
+      updateRows(rows, data.id, (row) => ({ ...row, done_at: data.done ? new Date().toISOString() : null })),
+    ),
   });
-  const mDelete = useMutation({
-    mutationFn: () => remove({ data: { id: t.id } }),
-    onSuccess: refetch,
+  const mDelete = useOfflineMutation<{ id: string }>({
+    operation: OFFLINE_OPS.TODO_DELETE,
+    mutationFn: (data) => remove({ data }),
+    affectedKeys: invalidateKeys,
+    optimisticUpdate: (client, data) => updateEveryCache(client, (rows) => removeRow(rows, data.id)),
   });
-  const mRename = useMutation({
-    mutationFn: (newTitle: string) => update({ data: { id: t.id, title: newTitle } }),
+  const mRename = useOfflineMutation<{ id: string; title: string }>({
+    operation: OFFLINE_OPS.TODO_UPDATE,
+    mutationFn: (data) => update({ data }),
+    affectedKeys: invalidateKeys,
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) => updateEveryCache(client, (rows) =>
+      updateRows(rows, data.id, (row) => ({ ...row, title: data.title })),
+    ),
     onSuccess: () => {
       setEditing(false);
-      refetch();
     },
   });
 
@@ -61,7 +76,7 @@ export const TodoRow = memo(function TodoRow({
     <li className="group flex items-start gap-3 px-1 py-2 min-h-[40px]">
       <Checkbox
         checked={done}
-        onCheckedChange={(c) => mToggle.mutate(!!c)}
+        onCheckedChange={(c) => mToggle.mutate({ id: t.id, done: !!c })}
         className="mt-[3px] h-4 w-4 rounded-[4px]"
       />
       <div className="flex-1 min-w-0">
@@ -71,7 +86,7 @@ export const TodoRow = memo(function TodoRow({
             defaultValue={t.title}
             onBlur={(e) => {
               const v = e.target.value.trim();
-              if (v && v !== t.title) mRename.mutate(v);
+              if (v && v !== t.title) mRename.mutate({ id: t.id, title: v });
               else setEditing(false);
             }}
             onKeyDown={(e) => {
@@ -121,7 +136,7 @@ export const TodoRow = memo(function TodoRow({
           type="button"
           aria-label="Delete"
           onClick={() => {
-            if (confirm("Delete this todo?")) mDelete.mutate();
+            if (confirm("Delete this todo?")) mDelete.mutate({ id: t.id });
           }}
           className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >

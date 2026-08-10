@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   listListsFn,
@@ -11,6 +11,9 @@ import {
   deleteListFn,
   togglePinNoteFn,
 } from "@/lib/notebook.functions";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 import { Input } from "@/components/ui/input";
 import { TodoRow, type Todo } from "@/components/notebook/TodoRow";
 import { QuickAdd } from "@/components/notebook/QuickAdd";
@@ -24,7 +27,6 @@ export const Route = createFileRoute("/_app/notebook/lists/$listId")({
 function ListPage() {
   const { listId } = Route.useParams();
   const nav = useNavigate();
-  const qc = useQueryClient();
 
   const listLists = useServerFn(listListsFn);
   const listNotes = useServerFn(listNotesFn);
@@ -49,32 +51,57 @@ function ListPage() {
   const invalidateTodos = [["notebook", "list-todos", listId]];
 
   const [renaming, setRenaming] = useState(false);
-  const mRename = useMutation({
-    mutationFn: (title: string) => updateList({ data: { id: listId, title } }),
+  const mRename = useOfflineMutation<{ id: string; title: string }>({
+    operation: OFFLINE_OPS.LIST_UPDATE,
+    mutationFn: (data) => updateList({ data }),
+    affectedKeys: [["notebook", "lists"]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<any[]>(["notebook", "lists"], (rows) =>
+        updateRows(rows, data.id, (row) => ({ ...row, title: data.title })),
+      ),
     onSuccess: () => {
       setRenaming(false);
-      qc.invalidateQueries({ queryKey: ["notebook", "lists"] });
     },
   });
-  const mDeleteList = useMutation({
-    mutationFn: () => deleteList({ data: { id: listId } }),
+  const mDeleteList = useOfflineMutation<{ id: string }>({
+    operation: OFFLINE_OPS.LIST_DELETE,
+    mutationFn: (data) => deleteList({ data }),
+    affectedKeys: [["notebook", "lists"]],
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<any[]>(["notebook", "lists"], (rows) => removeRow(rows, data.id)),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notebook", "lists"] });
       nav({ to: "/notebook/lists" });
     },
   });
 
-  const mNewNote = useMutation({
-    mutationFn: () => upsertNote({ data: { listId, title: "Untitled", body_md: "" } }),
-    onSuccess: (row: any) => {
-      qc.invalidateQueries({ queryKey: ["notebook", "notes", listId] });
-      nav({ to: "/notebook/notes/$noteId", params: { noteId: row.id } });
+  const mNewNote = useOfflineMutation<{ clientId: string; listId: string; title: string; body_md: string }>({
+    operation: OFFLINE_OPS.NOTE_UPSERT,
+    mutationFn: (data) => upsertNote({ data }),
+    affectedKeys: [["notebook", "notes", listId]],
+    optimisticUpdate: (client, data) => {
+      const now = new Date().toISOString();
+      const row = {
+        id: data.clientId, list_id: data.listId, title: data.title,
+        body_md: data.body_md, pinned: false, updated_at: now, created_at: now,
+      };
+      client.setQueryData<any[]>(["notebook", "notes", listId], (rows) => [row, ...(rows ?? [])]);
+      client.setQueryData(["notebook", "note", data.clientId], row);
+    },
+    onSuccess: (_result, data) => {
+      nav({ to: "/notebook/notes/$noteId", params: { noteId: data.clientId } });
     },
   });
 
-  const mTogglePin = useMutation({
-    mutationFn: (v: { id: string; pinned: boolean }) => togglePin({ data: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["notebook", "notes", listId] }),
+  const mTogglePin = useOfflineMutation<{ id: string; pinned: boolean }>({
+    operation: OFFLINE_OPS.NOTE_PIN,
+    mutationFn: (data) => togglePin({ data }),
+    affectedKeys: [["notebook", "notes", listId]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<any[]>(["notebook", "notes", listId], (rows) =>
+        updateRows(rows, data.id, (row) => ({ ...row, pinned: data.pinned })),
+      ),
   });
 
   const allTodos = (todos.data ?? []) as Todo[];
@@ -99,7 +126,7 @@ function ListPage() {
             defaultValue={list?.title || ""}
             onBlur={(e) => {
               const v = e.target.value.trim();
-              if (v && v !== list?.title) mRename.mutate(v);
+              if (v && v !== list?.title) mRename.mutate({ id: listId, title: v });
               else setRenaming(false);
             }}
             onKeyDown={(e) => {
@@ -121,7 +148,7 @@ function ListPage() {
           type="button"
           aria-label="Delete list"
           onClick={() => {
-            if (confirm("Delete this list? Notes and todos inside will be unlinked but kept.")) mDeleteList.mutate();
+            if (confirm("Delete this list? Notes and todos inside will be unlinked but kept.")) mDeleteList.mutate({ id: listId });
           }}
           className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
         >
@@ -136,7 +163,7 @@ function ListPage() {
             Notes
           </h2>
           <button
-            onClick={() => mNewNote.mutate()}
+            onClick={() => mNewNote.mutate({ clientId: createOfflineId(), listId, title: "Untitled", body_md: "" })}
             disabled={mNewNote.isPending}
             className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
           >

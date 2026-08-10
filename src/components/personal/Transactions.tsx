@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   addPersonalTxExFn, deletePersonalTxFn, updatePersonalTxFn,
 } from "@/lib/zt.functions";
-import { runOrQueue } from "@/lib/offline-queue";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +24,20 @@ type Cat = { id: string; name: string; kind: "income" | "expense" };
 type Account = { id: string; name: string; type: string };
 type Cp = { id: string; name: string };
 type Loan = { id: string; direction: "i_owe" | "owed_to_me"; principal: number | string };
+type TxInput = {
+  clientId?: string;
+  id?: string;
+  profileId: string;
+  kind: TxKind;
+  amount: number;
+  note: string;
+  occurredOn: string;
+  accountId: string | null;
+  categoryId: string | null;
+  counterpartyId: string | null;
+  transferAccountId: string | null;
+  linkedLoanId: string | null;
+};
 
 const ALL = "__all__";
 const NONE = "__none__";
@@ -42,10 +58,6 @@ export function PersonalTransactions({
   const upd = useServerFn(updatePersonalTxFn);
   const del = useServerFn(deletePersonalTxFn);
 
-  // Offline runner for addPersonalTxEx is registered once at the route
-  // layout level (see _app.personal.$id.tsx) so queued writes still replay
-  // even when the user is on a different tab when connectivity returns.
-
   const [form, setForm] = useState({
     kind: "expense" as TxKind,
     amount: "",
@@ -58,37 +70,39 @@ export function PersonalTransactions({
     linkedLoanId: "",
   });
 
+  const add = useOfflineMutation<TxInput>({
+    operation: OFFLINE_OPS.PERSONAL_TX_ADD,
+    mutationFn: (data) => addEx({ data }),
+    affectedKeys: [["personal-tx", profileId], ["personal-loans", profileId]],
+    optimisticUpdate: (client, data) => {
+      const row: TxRow = {
+        id: data.clientId!, kind: data.kind, amount: data.amount, note: data.note,
+        occurred_on: data.occurredOn, account_id: data.accountId,
+        category_id: data.categoryId, counterparty_id: data.counterpartyId,
+        transfer_account_id: data.transferAccountId, linked_loan_id: data.linkedLoanId,
+      };
+      client.setQueryData<TxRow[]>(["personal-tx", profileId], (rows) => [row, ...(rows ?? [])]);
+    },
+    onSuccess: (res) => {
+      if (res.queued) toast.success("Saved offline — will sync when back online");
+      else toast.success("Transaction added");
+      setForm({ ...form, amount: "", note: "" });
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to add"),
+  });
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["personal-tx", profileId] });
     qc.invalidateQueries({ queryKey: ["personal-loans", profileId] });
   };
 
-  const add = useMutation({
-    mutationFn: () =>
-      runOrQueue("addPersonalTxEx", {
-        profileId,
-        kind: form.kind,
-        amount: Number(form.amount),
-        note: form.note,
-        occurredOn: form.occurredOn,
-        accountId: form.accountId || null,
-        categoryId: form.categoryId || null,
-        counterpartyId: form.counterpartyId || null,
-        transferAccountId: form.transferAccountId || null,
-        linkedLoanId: form.linkedLoanId || null,
-      }),
-    onSuccess: (res: any) => {
-      if (res?.queued) toast.success("Saved offline — will sync when back online");
-      else toast.success("Transaction added");
-      setForm({ ...form, amount: "", note: "" });
-      invalidate();
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to add"),
-  });
-
-  const dm = useMutation({
-    mutationFn: (id: string) => del({ data: { id, profileId } }),
-    onSuccess: () => { toast.success("Deleted"); invalidate(); },
+  const dm = useOfflineMutation<{ id: string; profileId: string }>({
+    operation: OFFLINE_OPS.PERSONAL_TX_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["personal-tx", profileId], ["personal-loans", profileId]],
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<TxRow[]>(["personal-tx", profileId], (rows) => removeRow(rows, data.id)),
+    onSuccess: (res) => toast.success(res.queued ? "Deletion saved offline" : "Deleted"),
   });
 
   // Filters
@@ -115,17 +129,19 @@ export function PersonalTransactions({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editNote, setEditNote] = useState("");
-  const updMut = useMutation({
-    mutationFn: (t: TxRow) =>
-      upd({
-        data: {
-          id: t.id, profileId, kind: t.kind,
-          amount: Number(editAmount), note: editNote, occurredOn: t.occurred_on,
-          accountId: t.account_id, categoryId: t.category_id, counterpartyId: t.counterparty_id,
-          transferAccountId: t.transfer_account_id, linkedLoanId: t.linked_loan_id,
-        },
-      }),
-    onSuccess: () => { setEditingId(null); invalidate(); toast.success("Updated"); },
+  const updMut = useOfflineMutation<TxInput & { id: string }>({
+    operation: OFFLINE_OPS.PERSONAL_TX_UPDATE,
+    mutationFn: (data) => upd({ data }),
+    affectedKeys: [["personal-tx", profileId], ["personal-loans", profileId]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<TxRow[]>(["personal-tx", profileId], (rows) =>
+        updateRows(rows, data.id, (row) => ({ ...row, amount: data.amount, note: data.note })),
+      ),
+    onSuccess: (res) => {
+      setEditingId(null);
+      toast.success(res.queued ? "Update saved offline" : "Updated");
+    },
   });
 
   return (
@@ -137,7 +153,18 @@ export function PersonalTransactions({
         </CardHeader>
         <CardContent>
           <form
-            onSubmit={(e) => { e.preventDefault(); if (Number(form.amount) > 0) add.mutate(); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (Number(form.amount) <= 0) return;
+              add.mutate({
+                clientId: createOfflineId(), profileId, kind: form.kind,
+                amount: Number(form.amount), note: form.note, occurredOn: form.occurredOn,
+                accountId: form.accountId || null, categoryId: form.categoryId || null,
+                counterpartyId: form.counterpartyId || null,
+                transferAccountId: form.transferAccountId || null,
+                linkedLoanId: form.linkedLoanId || null,
+              });
+            }}
             className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
           >
             <Field label="Kind" className="md:col-span-1">
@@ -296,7 +323,12 @@ export function PersonalTransactions({
                     <div className="flex justify-end gap-1 sm:col-span-2">
                       {editing ? (
                         <>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate(t)}><Check className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate({
+                            id: t.id, profileId, kind: t.kind, amount: Number(editAmount), note: editNote,
+                            occurredOn: t.occurred_on, accountId: t.account_id,
+                            categoryId: t.category_id, counterpartyId: t.counterparty_id,
+                            transferAccountId: t.transfer_account_id, linkedLoanId: t.linked_loan_id,
+                          })}><Check className="h-3.5 w-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-3.5 w-3.5" /></Button>
                         </>
                       ) : (
@@ -312,7 +344,7 @@ export function PersonalTransactions({
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => dm.mutate(t.id)}>
+                            onClick={() => dm.mutate({ id: t.id, profileId })}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </>

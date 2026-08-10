@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   createPersonalProfileFn,
@@ -41,6 +41,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { ArrowRight, Plus, User, MoreVertical, Trash2, Pencil } from "lucide-react";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 
 export const Route = createFileRoute("/_app/personal/")({
   component: PersonalList,
@@ -52,31 +55,49 @@ function PersonalList() {
   const create = useServerFn(createPersonalProfileFn);
   const del = useServerFn(deletePersonalProfileFn);
   const rename = useServerFn(renamePersonalProfileFn);
-  const qc = useQueryClient();
   const q = useQuery({ queryKey: ["personal"], queryFn: () => list() });
   const [name, setName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const m = useMutation({
-    mutationFn: () => create({ data: { name: name.trim() } }),
-    onSuccess: () => { setName(""); qc.invalidateQueries({ queryKey: ["personal"] }); },
-  });
-  const delM = useMutation({
-    mutationFn: (id: string) => del({ data: { id } }),
-    onSuccess: () => {
-      toast.success("Profile deleted");
-      qc.invalidateQueries({ queryKey: ["personal"] });
+  const m = useOfflineMutation<{ clientId: string; name: string }>({
+    operation: OFFLINE_OPS.PERSONAL_PROFILE_CREATE,
+    mutationFn: (data) => create({ data }),
+    affectedKeys: [["personal"]],
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<any[]>(["personal"], (rows) => [
+        { id: data.clientId, name: data.name, created_at: new Date().toISOString() },
+        ...(rows ?? []),
+      ]),
+    onSuccess: (result) => {
+      setName("");
+      toast.success(result.queued ? "Profile saved offline" : "Profile created");
     },
+  });
+  const delM = useOfflineMutation<{ id: string }>({
+    operation: OFFLINE_OPS.PERSONAL_PROFILE_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["personal"]],
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<any[]>(["personal"], (rows) => removeRow(rows, data.id)),
+    onSuccess: (result) =>
+      toast.success(result.queued ? "Deletion saved offline" : "Profile deleted"),
     onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
-  const renameM = useMutation({
+  const renameM = useOfflineMutation<{ id: string; name: string }>({
+    operation: OFFLINE_OPS.PERSONAL_PROFILE_RENAME,
     mutationFn: (input: { id: string; name: string }) => rename({ data: input }),
-    onSuccess: () => {
-      toast.success("Profile renamed");
+    affectedKeys: [["personal"]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) => {
+      client.setQueriesData<any[]>({ queryKey: ["personal"] }, (rows) =>
+        updateRows(rows, data.id, (row) => ({ ...row, name: data.name })),
+      );
+      client.setQueryData<any>(["personal", data.id], (row: any) => ({ ...row, name: data.name }));
+    },
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Rename saved offline" : "Profile renamed");
       setRenameTarget(null);
-      qc.invalidateQueries({ queryKey: ["personal"] });
-      qc.invalidateQueries({ queryKey: ["personal-profile"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to rename"),
   });
@@ -90,7 +111,7 @@ function PersonalList() {
             <CardDescription>One per ledger you want to keep.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) m.mutate(); }} className="flex flex-col gap-2">
+            <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) m.mutate({ clientId: createOfflineId(), name: name.trim() }); }} className="flex flex-col gap-2">
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Profile name" />
               <Button type="submit" disabled={m.isPending || !name.trim()}>
                 <Plus className="h-4 w-4" /> Create
@@ -175,7 +196,7 @@ function PersonalList() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deleteTarget) delM.mutate(deleteTarget.id);
+                if (deleteTarget) delM.mutate({ id: deleteTarget.id });
                 setDeleteTarget(null);
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

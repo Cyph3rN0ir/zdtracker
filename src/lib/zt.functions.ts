@@ -14,6 +14,18 @@ async function requireAdmin() {
   return me;
 }
 
+// Offline creates carry a stable UUID. If the database committed a request but
+// the response was lost, replaying that same UUID raises a primary-key conflict.
+// Treat that conflict as an acknowledged replay instead of leaving the item
+// permanently stuck in the device queue.
+function isAcknowledgedReplay(
+  error: { code?: string; message?: string; details?: string } | null,
+  clientId?: string,
+) {
+  const context = `${error?.message ?? ""} ${error?.details ?? ""}`;
+  return !!clientId && error?.code === "23505" && context.includes(clientId);
+}
+
 // ---------- Businesses ----------
 export const listBusinessesFn = createServerFn({ method: "GET" }).handler(async () => {
   const me = await requireSession();
@@ -285,6 +297,7 @@ export const addTransactionFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
       .object({
+        clientId: z.string().uuid().optional(),
         businessId: z.string().uuid(),
         kind: z.enum(["investment", "earning", "expense", "profit_distribution"]),
         amount: z.number().nonnegative(),
@@ -301,6 +314,7 @@ export const addTransactionFn = createServerFn({ method: "POST" })
     const { getSupabaseAdmin, isMissingSchema } = await import("@/lib/supabase.server");
     const supa = getSupabaseAdmin();
     const row: Record<string, unknown> = {
+      id: data.clientId,
       business_id: data.businessId,
       kind: data.kind,
       amount: data.amount,
@@ -315,7 +329,7 @@ export const addTransactionFn = createServerFn({ method: "POST" })
       // Accounts migration not applied yet — still record the entry.
       ({ error } = await supa.from("business_transactions").insert(row));
     }
-    if (error) throw new Error(error.message);
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -345,17 +359,21 @@ export const listPersonalProfilesFn = createServerFn({ method: "GET" }).handler(
 });
 
 export const createPersonalProfileFn = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ name: z.string().trim().min(1).max(120) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({ clientId: z.string().uuid().optional(), name: z.string().trim().min(1).max(120) })
+      .parse(d),
+  )
   .handler(async ({ data }) => {
     const me = await requireSession();
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { data: row, error } = await getSupabaseAdmin()
       .from("personal_profiles")
-      .insert({ owner_user_id: me.userId, name: data.name })
+      .insert({ id: data.clientId, owner_user_id: me.userId, name: data.name })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
-    return row;
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
+    return row ?? { id: data.clientId! };
   });
 
 export const renamePersonalProfileFn = createServerFn({ method: "POST" })
@@ -545,6 +563,7 @@ export const createTaskFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
       .object({
+        clientId: z.string().uuid().optional(),
         businessId: z.string().uuid(),
         assigneeUserId: z.string().uuid(),
         title: z.string().trim().min(1).max(200),
@@ -560,6 +579,7 @@ export const createTaskFn = createServerFn({ method: "POST" })
     const assignee = canAssignOthers ? data.assigneeUserId : me.userId!;
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { error } = await getSupabaseAdmin().from("tasks").insert({
+      id: data.clientId,
       business_id: data.businessId,
       assignee_user_id: assignee,
       title: data.title,
@@ -567,7 +587,7 @@ export const createTaskFn = createServerFn({ method: "POST" })
       due_date: data.dueDate,
       created_by: me.userId,
     });
-    if (error) throw new Error(error.message);
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -688,6 +708,7 @@ export const upsertPersonalAccountFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid().optional(),
+      clientId: z.string().uuid().optional(),
       profileId: z.string().uuid(),
       name: z.string().trim().min(1).max(80),
       type: z.enum(["cash", "bank", "wallet", "card", "investment", "savings", "other"]),
@@ -709,9 +730,9 @@ export const upsertPersonalAccountFn = createServerFn({ method: "POST" })
     };
     const q = data.id
       ? supa.from("personal_accounts").update(payload).eq("id", data.id).eq("owner_user_id", me.userId!)
-      : supa.from("personal_accounts").insert(payload);
+      : supa.from("personal_accounts").insert({ ...payload, id: data.clientId });
     const { error } = await q;
-    if (error) throw new Error(error.message);
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -779,6 +800,7 @@ export const upsertPersonalCategoryFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid().optional(),
+      clientId: z.string().uuid().optional(),
       profileId: z.string().uuid(),
       name: z.string().trim().min(1).max(60),
       kind: z.enum(["income", "expense"]),
@@ -800,9 +822,9 @@ export const upsertPersonalCategoryFn = createServerFn({ method: "POST" })
     };
     const q = data.id
       ? supa.from("personal_categories").update(payload).eq("id", data.id).eq("owner_user_id", me.userId!)
-      : supa.from("personal_categories").insert(payload);
+      : supa.from("personal_categories").insert({ ...payload, id: data.clientId });
     const { error } = await q;
-    if (error) throw new Error(error.message);
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -833,6 +855,7 @@ export const upsertPersonalCounterpartyFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid().optional(),
+      clientId: z.string().uuid().optional(),
       profileId: z.string().uuid(),
       name: z.string().trim().min(1).max(80),
       kind: z.enum(["person", "vendor", "employer", "other"]).default("person"),
@@ -850,9 +873,9 @@ export const upsertPersonalCounterpartyFn = createServerFn({ method: "POST" })
     };
     const q = data.id
       ? supa.from("personal_counterparties").update(payload).eq("id", data.id).eq("owner_user_id", me.userId!)
-      : supa.from("personal_counterparties").insert(payload);
+      : supa.from("personal_counterparties").insert({ ...payload, id: data.clientId });
     const { error } = await q;
-    if (error) throw new Error(error.message);
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -884,6 +907,7 @@ export const upsertPersonalLoanFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid().optional(),
+      clientId: z.string().uuid().optional(),
       profileId: z.string().uuid(),
       direction: z.enum(["i_owe", "owed_to_me"]),
       counterpartyId: z.string().uuid().nullable().optional(),
@@ -911,9 +935,9 @@ export const upsertPersonalLoanFn = createServerFn({ method: "POST" })
     };
     const q = data.id
       ? supa.from("personal_loans").update(payload).eq("id", data.id).eq("owner_user_id", me.userId!)
-      : supa.from("personal_loans").insert(payload);
+      : supa.from("personal_loans").insert({ ...payload, id: data.clientId });
     const { error } = await q;
-    if (error) throw new Error(error.message);
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -1044,6 +1068,7 @@ export const upsertPersonalBudgetFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid().optional(),
+      clientId: z.string().uuid().optional(),
       profileId: z.string().uuid(),
       name: z.string().trim().min(1).max(80),
       period: z.enum(["week", "month"]),
@@ -1067,9 +1092,9 @@ export const upsertPersonalBudgetFn = createServerFn({ method: "POST" })
     };
     const q = data.id
       ? supa.from("personal_budgets").update(payload).eq("id", data.id).eq("owner_user_id", me.userId!)
-      : supa.from("personal_budgets").insert(payload);
+      : supa.from("personal_budgets").insert({ ...payload, id: data.clientId });
     const { error } = await q;
-    if (error) throw new Error(error.message);
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -1119,6 +1144,7 @@ export const listPersonalTxExFn = createServerFn({ method: "GET" })
 export const addPersonalTxExFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
+      clientId: z.string().uuid().optional(),
       profileId: z.string().uuid(),
       kind: z.enum(TX_KINDS),
       amount: z.number().nonnegative(),
@@ -1134,6 +1160,7 @@ export const addPersonalTxExFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { me, supa } = await assertProfileOwner(data.profileId);
     const { error } = await supa.from("personal_transactions").insert({
+      id: data.clientId,
       owner_user_id: me.userId,
       profile_id: data.profileId,
       kind: data.kind,
@@ -1146,7 +1173,7 @@ export const addPersonalTxExFn = createServerFn({ method: "POST" })
       transfer_account_id: data.transferAccountId ?? null,
       linked_loan_id: data.linkedLoanId ?? null,
     });
-    if (error) throw new Error(error.message);
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -1292,6 +1319,7 @@ export const upsertBusinessAccountFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid().optional(),
+      clientId: z.string().uuid().optional(),
       businessId: z.string().uuid(),
       name: z.string().trim().min(1).max(80),
       type: z.enum(["cash", "bank", "wallet", "card", "investment", "savings", "other"]),
@@ -1315,13 +1343,15 @@ export const upsertBusinessAccountFn = createServerFn({ method: "POST" })
     };
     const q = data.id
       ? supa.from("business_accounts").update(payload).eq("id", data.id).eq("business_id", data.businessId)
-      : supa.from("business_accounts").insert({ ...payload, created_by: me.userId });
+      : supa
+          .from("business_accounts")
+          .insert({ ...payload, id: data.clientId, created_by: me.userId });
     const { error } = await q;
     if (error) {
       const { isMissingSchema } = await import("@/lib/supabase.server");
       if (isMissingSchema(error))
         throw new Error("Accounts setup is pending: run SUPABASE_BUSINESS_ACCOUNTS.sql in Supabase first.");
-      throw new Error(error.message);
+      if (!isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     }
     return { ok: true };
   });
@@ -1347,6 +1377,7 @@ export const deleteBusinessAccountFn = createServerFn({ method: "POST" })
 export const transferBusinessFundsFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
+      clientId: z.string().uuid().optional(),
       businessId: z.string().uuid(),
       fromAccountId: z.string().uuid(),
       toAccountId: z.string().uuid(),
@@ -1361,6 +1392,7 @@ export const transferBusinessFundsFn = createServerFn({ method: "POST" })
     if (me.role !== "admin") throw new Error("Forbidden");
     const { getSupabaseAdmin } = await import("@/lib/supabase.server");
     const { error } = await getSupabaseAdmin().from("business_transactions").insert({
+      id: data.clientId,
       business_id: data.businessId,
       kind: "transfer",
       amount: data.amount,
@@ -1373,7 +1405,7 @@ export const transferBusinessFundsFn = createServerFn({ method: "POST" })
       const { isMissingSchema } = await import("@/lib/supabase.server");
       if (isMissingSchema(error))
         throw new Error("Accounts setup is pending: run SUPABASE_BUSINESS_ACCOUNTS.sql in Supabase first.");
-      throw new Error(error.message);
+      if (!isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
     }
     return { ok: true };
   });

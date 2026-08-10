@@ -2,11 +2,14 @@
 // Registered only in production from src/lib/pwa-register.ts.
 
 const OFFLINE_URL = "/offline.html";
-const SHELL_CACHE = "zs-shell-v1";
+const SHELL_CACHE = "zs-shell-v3";
+const ASSET_CACHE = "zs-assets-v3";
+const APP_SHELL_KEY = "/__zerosync_app_shell__";
+const OWNED_CACHES = [SHELL_CACHE, ASSET_CACHE];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(SHELL_CACHE).then((c) => c.addAll([OFFLINE_URL]).catch(() => {})),
+    caches.open(SHELL_CACHE).then((cache) => cache.addAll([OFFLINE_URL]).catch(() => {})),
   );
   self.skipWaiting();
 });
@@ -15,23 +18,110 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.filter((k) => k !== SHELL_CACHE).map((k) => caches.delete(k)));
+      await Promise.all(
+        keys
+          .filter((key) => key.startsWith("zs-shell-") || key.startsWith("zs-assets-"))
+          .filter((key) => !OWNED_CACHES.includes(key))
+          .map((key) => caches.delete(key)),
+      );
       await self.clients.claim();
     })(),
   );
 });
 
-// Network-first navigations with offline fallback. Never cache HTML aggressively.
+// Keep a complete authenticated app shell available after the first online sync.
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.mode !== "navigate") return;
-  event.respondWith(
-    fetch(req).catch(async () => {
-      const cache = await caches.open(SHELL_CACHE);
-      return (await cache.match(OFFLINE_URL)) || new Response("Offline", { status: 503 });
+  const url = new URL(req.url);
+  if (req.method !== "GET" || url.origin !== self.location.origin) return;
+
+  // Connectivity probes and RPC calls must never receive cached responses.
+  if (url.searchParams.has("_probe") || url.pathname.startsWith("/_serverFn/")) return;
+
+  if (req.mode === "navigate") {
+    event.respondWith(networkFirstNavigation(req));
+    return;
+  }
+
+  if (["script", "style", "font", "image", "manifest"].includes(req.destination)) {
+    event.respondWith(cacheFirstAsset(req));
+  }
+});
+
+async function networkFirstNavigation(req) {
+  const cache = await caches.open(SHELL_CACHE);
+  try {
+    const response = await fetch(req);
+    if (response.ok) {
+      await Promise.all([
+        cache.put(req, response.clone()),
+        cache.put(APP_SHELL_KEY, response.clone()),
+      ]);
+    }
+    return response;
+  } catch {
+    return (
+      (await cache.match(req, { ignoreSearch: true })) ||
+      (await cache.match(APP_SHELL_KEY)) ||
+      (await cache.match(OFFLINE_URL)) ||
+      new Response("Offline", { status: 503 })
+    );
+  }
+}
+
+async function cacheFirstAsset(req) {
+  const cache = await caches.open(ASSET_CACHE);
+  const cached = await cache.match(req, { ignoreSearch: true });
+  if (cached) return cached;
+  const response = await fetch(req);
+  if (response.ok) await cache.put(req, response.clone());
+  return response;
+}
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "CACHE_APP_SHELL") {
+    const urls = Array.isArray(event.data.urls) ? event.data.urls : [];
+    event.waitUntil(cacheShellUrls(urls));
+  }
+  if (event.data?.type === "CLEAR_APP_CACHE") {
+    event.waitUntil(Promise.all(OWNED_CACHES.map((key) => caches.delete(key))));
+  }
+});
+
+async function cacheShellUrls(urls) {
+  const sameOrigin = urls.filter((value) => {
+    try {
+      const url = new URL(value, self.location.origin);
+      return (
+        url.origin === self.location.origin &&
+        !url.pathname.startsWith("/_serverFn/") &&
+        !url.pathname.startsWith("/api/") &&
+        !url.pathname.startsWith("/~oauth")
+      );
+    } catch {
+      return false;
+    }
+  });
+  const cache = await caches.open(ASSET_CACHE);
+  await Promise.allSettled(
+    sameOrigin.map(async (value) => {
+      const request = new Request(value, { credentials: "include", cache: "reload" });
+      const response = await fetch(request);
+      if (response.ok) await cache.put(request, response);
     }),
   );
-});
+
+  try {
+    const documentUrl = sameOrigin[0];
+    if (documentUrl) {
+      const response = await fetch(documentUrl, { credentials: "include", cache: "reload" });
+      if (response.ok) {
+        const shell = await caches.open(SHELL_CACHE);
+        await shell.put(APP_SHELL_KEY, response);
+      }
+    }
+  } catch {}
+}
 
 // ---------------- Push ----------------
 self.addEventListener("push", (event) => {

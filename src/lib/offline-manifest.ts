@@ -45,6 +45,7 @@ export const OFFLINE_ROUTES: ReadonlyArray<OfflineRoute> = [
   { route: "/businesses/$id/people",     keyPrefix: ["members"],                     bounded: `first ${OFFLINE_BOUNDS.MAX_BUSINESSES}`, fallback: "must visit while online once" },
   { route: "/businesses/$id/tasks",      keyPrefix: ["tasks"],                       bounded: "current week",                    fallback: "must visit while online once" },
   { route: "/businesses/$id/money",      keyPrefix: ["btx"],                         bounded: `first ${OFFLINE_BOUNDS.MAX_BUSINESSES}`, fallback: "must visit while online once" },
+  { route: "/businesses/$id/accounts",   keyPrefix: ["baccounts", "baccountsList"], bounded: `first ${OFFLINE_BOUNDS.MAX_BUSINESSES}`, fallback: "must visit while online once" },
   { route: "/businesses/$id/profit",     keyPrefix: ["btx"],                         bounded: `first ${OFFLINE_BOUNDS.MAX_BUSINESSES}`, fallback: "must visit while online once" },
   { route: "/personal",                  keyPrefix: ["personal"],                    bounded: "all profiles",                    fallback: "empty state" },
   { route: "/personal/$id",              keyPrefix: ["personal-tx", "personal-accts", "personal-cats", "personal-cps", "personal-loans", "personal-budgets"], bounded: `first ${OFFLINE_BOUNDS.MAX_PERSONAL_PROFILES}`, fallback: "must visit while online once" },

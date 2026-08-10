@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createTaskFn, deleteTaskFn, listBusinessTasksFn, listMembersFn, toggleTaskFn } from "@/lib/zt.functions";
@@ -15,6 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays, CheckCircle2, Circle, UserPlus } from "lucide-react";
 import { useI18n, roleLabel, type Lang } from "@/lib/i18n";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 
 export const Route = createFileRoute("/_app/businesses/$id/tasks")({
   component: Tasks,
@@ -43,7 +46,6 @@ function Tasks() {
   const create = useServerFn(createTaskFn);
   const toggle = useServerFn(toggleTaskFn);
   const del = useServerFn(deleteTaskFn);
-  const qc = useQueryClient();
 
   const [weekStart, setWeekStart] = useState(() => toISO(startOfWeek()));
   const today = toISO(new Date());
@@ -85,32 +87,61 @@ function Tasks() {
   const [form, setForm] = useState({ title: "", details: "", assigneeUserId: "" });
   const [formErr, setFormErr] = useState<string | null>(null);
 
-  const addM = useMutation({
-    mutationFn: () => create({
-      data: {
-        businessId: id,
-        assigneeUserId: canAssign ? form.assigneeUserId : me.userId,
-        title: form.title.trim(),
-        details: form.details,
-        dueDate: adding!.date,
-      },
-    }),
-    onSuccess: () => {
-      toast.success(t("tasks.toast.created"));
+  type TaskInput = {
+    clientId: string;
+    businessId: string;
+    assigneeUserId: string;
+    title: string;
+    details: string;
+    dueDate: string;
+  };
+  const addM = useOfflineMutation<TaskInput>({
+    operation: OFFLINE_OPS.TASK_CREATE,
+    mutationFn: (data) => create({ data }),
+    affectedKeys: [["tasks", id], ["my-tasks"]],
+    optimisticUpdate: (client, data) => {
+      const row = {
+        id: data.clientId, business_id: data.businessId,
+        assignee_user_id: data.assigneeUserId, title: data.title,
+        details: data.details, due_date: data.dueDate, status: "pending",
+        created_by: me.userId, remark: null, remark_at: null,
+      };
+      client.setQueryData<any[]>(["tasks", id, weekStart], (rows) => [...(rows ?? []), row]);
+      if (data.assigneeUserId === me.userId) {
+        client.setQueryData<any[]>(["my-tasks"], (rows) => [...(rows ?? []), row]);
+      }
+    },
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Task saved offline" : t("tasks.toast.created"));
       setAdding(null); setForm({ title: "", details: "", assigneeUserId: "" }); setFormErr(null);
-      qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] });
     },
     onError: (e: any) => toast.error(e?.message ?? t("tasks.toast.createFailed")),
   });
 
-  const tg = useMutation({
-    mutationFn: (v: { id: string; done: boolean }) => toggle({ data: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] }),
+  const tg = useOfflineMutation<{ id: string; done: boolean }>({
+    operation: OFFLINE_OPS.TASK_TOGGLE,
+    mutationFn: (data) => toggle({ data }),
+    affectedKeys: [["tasks", id], ["my-tasks"]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) => {
+      client.setQueriesData<any[]>({ queryKey: ["tasks", id] }, (rows) =>
+        updateRows(rows, data.id, (row) => ({ ...row, status: data.done ? "done" : "pending" })),
+      );
+      client.setQueryData<any[]>(["my-tasks"], (rows) =>
+        updateRows(rows, data.id, (row) => ({ ...row, status: data.done ? "done" : "pending" })),
+      );
+    },
     onError: (e: any) => toast.error(e?.message ?? t("tasks.toast.updateFailed")),
   });
-  const dm = useMutation({
-    mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => { toast.success(t("tasks.toast.deleted")); qc.invalidateQueries({ queryKey: ["tasks", id, weekStart] }); },
+  const dm = useOfflineMutation<{ id: string }>({
+    operation: OFFLINE_OPS.TASK_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["tasks", id], ["my-tasks"]],
+    optimisticUpdate: (client, data) => {
+      client.setQueriesData<any[]>({ queryKey: ["tasks", id] }, (rows) => removeRow(rows, data.id));
+      client.setQueryData<any[]>(["my-tasks"], (rows) => removeRow(rows, data.id));
+    },
+    onSuccess: (result) => toast.success(result.queued ? "Deletion saved offline" : t("tasks.toast.deleted")),
     onError: (e: any) => toast.error(e?.message ?? t("money.toast.deleteFailed")),
   });
 
@@ -124,7 +155,11 @@ function Tasks() {
     if (form.title.trim().length > 200) return setFormErr(t("tasks.err.titleLong"));
     if (canAssign && !form.assigneeUserId) return setFormErr(t("tasks.err.assignee"));
     setFormErr(null);
-    addM.mutate();
+    addM.mutate({
+      clientId: createOfflineId(), businessId: id,
+      assigneeUserId: canAssign ? form.assigneeUserId : me.userId,
+      title: form.title.trim(), details: form.details, dueDate: adding!.date,
+    });
   }
 
   const dayTasks = byDay[activeDay] ?? [];
@@ -255,7 +290,7 @@ function Tasks() {
                     </div>
                     {canDelete && (
                       <Button variant="ghost" size="icon" className="h-7 w-7 mt-0.5 shrink-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => dm.mutate(task.id)}>
+                        onClick={() => dm.mutate({ id: task.id })}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}

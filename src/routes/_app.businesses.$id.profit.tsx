@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { addTransactionFn, deleteTransactionFn, listMembersFn, listTransactionsFn } from "@/lib/zt.functions";
 import { fmt } from "@/lib/personal-finance";
@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Plus, TrendingUp, TrendingDown, Wallet, Coins } from "lucide-react";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, useOfflineMutation } from "@/lib/use-offline-mutation";
 
 export const Route = createFileRoute("/_app/businesses/$id/profit")({
   component: Profit,
@@ -23,7 +26,6 @@ function Profit() {
   const add = useServerFn(addTransactionFn);
   const del = useServerFn(deleteTransactionFn);
   const listMembers = useServerFn(listMembersFn);
-  const qc = useQueryClient();
   const canManage = me?.role === "admin";
   const q = useQuery({ queryKey: ["btx", id], queryFn: () => list({ data: { businessId: id } }) });
   const members = useQuery({ queryKey: ["members", id], queryFn: () => listMembers({ data: { businessId: id } }) });
@@ -45,22 +47,29 @@ function Profit() {
 
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({ amount: "", partyUserId: "", note: "", occurredOn: today });
-  const m = useMutation({
-    mutationFn: () =>
-      add({
-        data: {
-          businessId: id, kind: "profit_distribution", amount: Number(form.amount),
-          partyUserId: form.partyUserId || null, note: form.note, occurredOn: form.occurredOn,
-        },
-      }),
+  type DistributionInput = { clientId: string; businessId: string; kind: "profit_distribution"; amount: number; partyUserId: string | null; accountId: null; note: string; occurredOn: string };
+  const m = useOfflineMutation<DistributionInput>({
+    operation: OFFLINE_OPS.BUSINESS_TX_ADD,
+    mutationFn: (data) => add({ data }),
+    affectedKeys: [["btx", id], ["baccounts", id]],
+    optimisticUpdate: (client, data) => {
+      const member = (members.data ?? []).find((row: any) => row.user_id === data.partyUserId);
+      client.setQueryData<any[]>(["btx", id], (rows) => [{
+        id: data.clientId, kind: data.kind, amount: data.amount,
+        party_user_id: data.partyUserId, account_id: null, transfer_account_id: null,
+        note: data.note, occurred_on: data.occurredOn,
+        created_at: new Date().toISOString(), party: member?.user ?? null,
+      }, ...(rows ?? [])]);
+    },
     onSuccess: () => {
       setForm({ amount: "", partyUserId: "", note: "", occurredOn: today });
-      qc.invalidateQueries({ queryKey: ["btx", id] });
     },
   });
-  const dm = useMutation({
-    mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["btx", id] }),
+  const dm = useOfflineMutation<{ id: string }>({
+    operation: OFFLINE_OPS.BUSINESS_TX_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["btx", id], ["baccounts", id]],
+    optimisticUpdate: (client, data) => client.setQueryData<any[]>(["btx", id], (rows) => removeRow(rows, data.id)),
   });
 
   return (
@@ -80,7 +89,7 @@ function Profit() {
           </CardHeader>
           <CardContent>
             <form
-              onSubmit={(e) => { e.preventDefault(); if (Number(form.amount) > 0) m.mutate(); }}
+              onSubmit={(e) => { e.preventDefault(); if (Number(form.amount) > 0) m.mutate({ clientId: createOfflineId(), businessId: id, kind: "profit_distribution", amount: Number(form.amount), partyUserId: form.partyUserId || null, accountId: null, note: form.note, occurredOn: form.occurredOn }); }}
               className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end"
             >
               <div className="space-y-1.5">
@@ -144,7 +153,7 @@ function Profit() {
                     <div className="flex items-center gap-1 shrink-0">
                       <div className="font-mono tabular-nums text-sm">{fmt(t.amount)}</div>
                       {canManage && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(t.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate({ id: t.id })}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -173,7 +182,7 @@ function Profit() {
                         <TableCell className="text-right font-mono tabular-nums">{fmt(t.amount)}</TableCell>
                         {canManage && (
                           <TableCell className="text-right pr-6">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(t.id)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate({ id: t.id })}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>

@@ -25,9 +25,11 @@ import {
   listPersonalCounterpartiesFn,
   listPersonalLoansFn,
   listPersonalBudgetsFn,
-  listPersonalTxFn,
+  listPersonalTxExFn,
   getBusinessFn,
   getPersonalProfileFn,
+  listBusinessAccountsFn,
+  businessAccountBalancesFn,
 } from "@/lib/zt.functions";
 import { listListsFn, listNotesFn, listTodosFn } from "@/lib/notebook.functions";
 import { unreadTotalFn } from "@/lib/chat.functions";
@@ -88,13 +90,20 @@ async function doWarmup(qc: QueryClient): Promise<void> {
   // Notebook: prefetch notes per list (component key: ["notebook","notes",listId]).
   const lists = (qc.getQueryData(["notebook", "lists"]) as Array<{ id: string }> | undefined) ?? [];
   await Promise.all(
-    lists.slice(0, OFFLINE_BOUNDS.MAX_LISTS).map((l) =>
-      safe(qc.prefetchQuery({
+    lists.slice(0, OFFLINE_BOUNDS.MAX_LISTS).map(async (l) => {
+      await safe(qc.prefetchQuery({
         queryKey: ["notebook", "notes", l.id],
         queryFn: () => listNotesFn({ data: { listId: l.id } }),
         staleTime: FIVE_MIN,
-      })),
-    ),
+      }));
+      await safe(qc.prefetchQuery({
+        queryKey: ["notebook", "list-todos", l.id],
+        queryFn: () => listTodosFn({ data: { listId: l.id, includeUnscheduled: true } }),
+        staleTime: FIVE_MIN,
+      }));
+      const notes = (qc.getQueryData(["notebook", "notes", l.id]) as Array<{ id: string }> | undefined) ?? [];
+      notes.forEach((note) => qc.setQueryData(["notebook", "note", note.id], note));
+    }),
   );
 
   // Businesses: detail + members + this week's tasks + transactions per business.
@@ -126,6 +135,16 @@ async function doWarmup(qc: QueryClient): Promise<void> {
         queryFn: () => listTransactionsFn({ data: { businessId: b.id } }),
         staleTime: FIVE_MIN,
       })),
+      safe(qc.prefetchQuery({
+        queryKey: ["baccountsList", b.id],
+        queryFn: () => listBusinessAccountsFn({ data: { businessId: b.id } }),
+        staleTime: FIVE_MIN,
+      })),
+      safe(qc.prefetchQuery({
+        queryKey: ["baccounts", b.id],
+        queryFn: () => businessAccountBalancesFn({ data: { businessId: b.id } }),
+        staleTime: FIVE_MIN,
+      })),
     ]),
   );
 
@@ -142,7 +161,7 @@ async function doWarmup(qc: QueryClient): Promise<void> {
   await Promise.all(
     profs.slice(0, OFFLINE_BOUNDS.MAX_PERSONAL_PROFILES).flatMap((p) => [
       safe(qc.prefetchQuery({ queryKey: ["personal", p.id], queryFn: () => getPersonalProfileFn({ data: { id: p.id } }), staleTime: FIVE_MIN })),
-      safe(qc.prefetchQuery({ queryKey: ["personal-tx", p.id], queryFn: () => listPersonalTxFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
+      safe(qc.prefetchQuery({ queryKey: ["personal-tx", p.id], queryFn: () => listPersonalTxExFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
       safe(qc.prefetchQuery({ queryKey: ["personal-accts", p.id], queryFn: () => listPersonalAccountsFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
       safe(qc.prefetchQuery({ queryKey: ["personal-cats", p.id], queryFn: () => listPersonalCategoriesFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
       safe(qc.prefetchQuery({ queryKey: ["personal-cps", p.id], queryFn: () => listPersonalCounterpartiesFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),

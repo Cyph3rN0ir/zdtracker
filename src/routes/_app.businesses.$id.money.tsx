@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { addTransactionFn, deleteTransactionFn, listBusinessAccountsFn, listMembersFn, listTransactionsFn } from "@/lib/zt.functions";
@@ -14,6 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Plus, Wallet, UserPlus } from "lucide-react";
 import { useI18n, roleLabel } from "@/lib/i18n";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, useOfflineMutation } from "@/lib/use-offline-mutation";
 
 export const Route = createFileRoute("/_app/businesses/$id/money")({
   component: Money,
@@ -31,7 +34,6 @@ function Money() {
   const del = useServerFn(deleteTransactionFn);
   const listMembers = useServerFn(listMembersFn);
   const listAccounts = useServerFn(listBusinessAccountsFn);
-  const qc = useQueryClient();
   const canManage = me?.role === "admin";
   const q = useQuery({ queryKey: ["btx", id], queryFn: () => list({ data: { businessId: id } }) });
   const members = useQuery({ queryKey: ["members", id], queryFn: () => listMembers({ data: { businessId: id } }) });
@@ -43,22 +45,34 @@ function Money() {
   });
 
   const [formErr, setFormErr] = useState<string | null>(null);
-  const m = useMutation({
-    mutationFn: () =>
-      add({
-        data: {
-          businessId: id, kind: form.kind, amount: Number(form.amount),
-          partyUserId: form.partyUserId || null, accountId: form.accountId || null,
-          note: form.note, occurredOn: form.occurredOn,
-        },
-      }),
-    onSuccess: () => {
-      toast.success(t("money.toast.added"));
+  type TxInput = {
+    clientId: string;
+    businessId: string;
+    kind: Kind;
+    amount: number;
+    partyUserId: string | null;
+    accountId: string | null;
+    note: string;
+    occurredOn: string;
+  };
+  const m = useOfflineMutation<TxInput>({
+    operation: OFFLINE_OPS.BUSINESS_TX_ADD,
+    mutationFn: (data) => add({ data }),
+    affectedKeys: [["btx", id], ["baccounts", id]],
+    optimisticUpdate: (client, data) => {
+      const member = (members.data ?? []).find((row: any) => row.user_id === data.partyUserId);
+      const row = {
+        id: data.clientId, kind: data.kind, amount: data.amount,
+        party_user_id: data.partyUserId, account_id: data.accountId,
+        transfer_account_id: null, note: data.note, occurred_on: data.occurredOn,
+        created_at: new Date().toISOString(), party: member?.user ?? null,
+      };
+      client.setQueryData<any[]>(["btx", id], (rows) => [row, ...(rows ?? [])]);
+    },
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Entry saved offline" : t("money.toast.added"));
       setForm({ ...form, amount: "", note: "" });
       setFormErr(null);
-      qc.invalidateQueries({ queryKey: ["btx", id] });
-      qc.invalidateQueries({ queryKey: ["baccounts", id] });
-
     },
     onError: (e: any) => {
       const msg = e?.message ?? t("money.toast.failed");
@@ -66,9 +80,13 @@ function Money() {
       toast.error(msg);
     },
   });
-  const dm = useMutation({
-    mutationFn: (tid: string) => del({ data: { id: tid } }),
-    onSuccess: () => { toast.success(t("money.toast.deleted")); qc.invalidateQueries({ queryKey: ["btx", id] }); qc.invalidateQueries({ queryKey: ["baccounts", id] }); },
+  const dm = useOfflineMutation<{ id: string }>({
+    operation: OFFLINE_OPS.BUSINESS_TX_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["btx", id], ["baccounts", id]],
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<any[]>(["btx", id], (rows) => removeRow(rows, data.id)),
+    onSuccess: (result) => toast.success(result.queued ? "Deletion saved offline" : t("money.toast.deleted")),
     onError: (e: any) => toast.error(e?.message ?? t("money.toast.deleteFailed")),
   });
 
@@ -80,7 +98,11 @@ function Money() {
     if (form.kind !== "expense" && !form.partyUserId) return setFormErr(t("money.err.party"));
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurredOn)) return setFormErr(t("money.err.date"));
     setFormErr(null);
-    m.mutate();
+    m.mutate({
+      clientId: createOfflineId(), businessId: id, kind: form.kind,
+      amount: amt, partyUserId: form.partyUserId || null,
+      accountId: form.accountId || null, note: form.note, occurredOn: form.occurredOn,
+    });
   }
 
   const byKind = useMemo(() => {
@@ -173,7 +195,7 @@ function Money() {
 
       <div className="grid grid-cols-1 gap-4">
         {KINDS.map((k) => (
-          <Section key={k} title={t(`money.section.${k}`)} rows={byKind[k]} onDelete={canManage ? (tid) => dm.mutate(tid) : undefined} />
+          <Section key={k} title={t(`money.section.${k}`)} rows={byKind[k]} onDelete={canManage ? (tid) => dm.mutate({ id: tid }) : undefined} />
         ))}
       </div>
     </div>

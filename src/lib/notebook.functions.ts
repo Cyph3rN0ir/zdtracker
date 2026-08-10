@@ -13,6 +13,14 @@ async function db() {
   return getSupabaseAdmin();
 }
 
+function isAcknowledgedReplay(
+  error: { code?: string; message?: string; details?: string } | null,
+  clientId?: string,
+) {
+  const context = `${error?.message ?? ""} ${error?.details ?? ""}`;
+  return !!clientId && error?.code === "23505" && context.includes(clientId);
+}
+
 // ---------- Lists ----------
 
 export const listListsFn = createServerFn({ method: "GET" }).handler(async () => {
@@ -45,6 +53,7 @@ export const createListFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
       .object({
+        clientId: z.string().uuid().optional(),
         title: z.string().trim().min(1).max(80),
         color: z.string().max(20).optional(),
         icon: z.string().max(40).optional(),
@@ -57,6 +66,7 @@ export const createListFn = createServerFn({ method: "POST" })
     const { data: row, error } = await supa
       .from("note_lists")
       .insert({
+        id: data.clientId,
         user_id: me.userId,
         title: data.title,
         color: data.color ?? "#6366f1",
@@ -64,8 +74,8 @@ export const createListFn = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
-    return row;
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
+    return row ?? { id: data.clientId! };
   });
 
 export const updateListFn = createServerFn({ method: "POST" })
@@ -151,6 +161,7 @@ export const upsertNoteFn = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid().optional(),
+        clientId: z.string().uuid().optional(),
         listId: z.string().uuid().nullable().optional(),
         title: z.string().max(200).default(""),
         body_md: z.string().max(50000).default(""),
@@ -181,6 +192,7 @@ export const upsertNoteFn = createServerFn({ method: "POST" })
     const { data: row, error } = await supa
       .from("notes")
       .insert({
+        id: data.clientId,
         user_id: me.userId,
         list_id: data.listId ?? null,
         title: data.title,
@@ -188,8 +200,8 @@ export const upsertNoteFn = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
-    return row;
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
+    return row ?? { id: data.clientId! };
   });
 
 export const togglePinNoteFn = createServerFn({ method: "POST" })
@@ -293,6 +305,7 @@ export const createTodoFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
       .object({
+        clientId: z.string().uuid().optional(),
         title: z.string().trim().min(1).max(200),
         details: z.string().max(2000).default(""),
         dueDate: z.string().regex(DATE_RX).nullable().optional(),
@@ -308,6 +321,7 @@ export const createTodoFn = createServerFn({ method: "POST" })
     const { data: row, error } = await supa
       .from("todos")
       .insert({
+        id: data.clientId,
         user_id: me.userId,
         title: data.title,
         details: data.details,
@@ -318,8 +332,8 @@ export const createTodoFn = createServerFn({ method: "POST" })
       })
       .select("id, list_id, note_id, title, details, due_date, done_at, priority, sort_order, updated_at, created_at")
       .single();
-    if (error) throw new Error(error.message);
-    return row;
+    if (error && !isAcknowledgedReplay(error, data.clientId)) throw new Error(error.message);
+    return row ?? { id: data.clientId! };
   });
 
 export const updateTodoFn = createServerFn({ method: "POST" })

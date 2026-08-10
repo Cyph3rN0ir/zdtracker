@@ -1,10 +1,8 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { registerOfflineRunner } from "@/lib/offline-queue";
-import { addPersonalTxExFn as addTxFnImport } from "@/lib/zt.functions";
 import {
   getPersonalProfileFn, listPersonalTxExFn,
   listPersonalAccountsFn, upsertPersonalAccountFn, deletePersonalAccountFn,
@@ -47,6 +45,9 @@ import { PersonalLoans } from "@/components/personal/Loans";
 import { PersonalCategories } from "@/components/personal/Categories";
 import { computeBudgetStatus, fmtMoney, todayISO, BudgetRow, TxRow } from "@/lib/personal-finance";
 import { Progress } from "@/components/ui/progress";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 
 export const Route = createFileRoute("/_app/personal/$id")({
   component: PersonalDetail,
@@ -83,12 +84,6 @@ function PersonalDetail() {
   const listCps = useServerFn(listPersonalCounterpartiesFn);
   const listLoans = useServerFn(listPersonalLoansFn);
   const listBudgets = useServerFn(listPersonalBudgetsFn);
-  const addTxFn = useServerFn(addTxFnImport);
-
-  // Register the offline runner at the route layout level so queued
-  // transactions still flush even if the user is not on the Transactions tab
-  // when connectivity returns.
-  useEffect(() => registerOfflineRunner("addPersonalTxEx", (d: any) => addTxFn({ data: d })), [addTxFn]);
 
   const prof = useQuery({ queryKey: ["personal", id], queryFn: () => getProf({ data: { id } }) });
   const tx = useQuery({ queryKey: ["personal-tx", id], queryFn: () => listTx({ data: { profileId: id } }) });
@@ -244,29 +239,34 @@ function PersonalDetail() {
 // ---------- Lightweight tabs (full CRUD comes in Phase 3) ----------
 
 function AccountsTab({ profileId, accounts, currency }: { profileId: string; accounts: any[]; currency: string }) {
-  const qc = useQueryClient();
   const upsert = useServerFn(upsertPersonalAccountFn);
   const del = useServerFn(deletePersonalAccountFn);
   const [name, setName] = useState("");
   const [type, setType] = useState("bank");
   const [opening, setOpening] = useState("");
-  const add = useMutation({
-    mutationFn: () => upsert({ data: { profileId, name, type: type as any, openingBalance: Number(opening || 0), currency, archived: false } }),
-    onSuccess: () => { setName(""); setOpening(""); toast.success("Account added"); qc.invalidateQueries({ queryKey: ["personal-accts", profileId] }); },
+  type AccountInput = { clientId?: string; id?: string; profileId: string; name: string; type: any; openingBalance: number; currency: string; archived: boolean };
+  const add = useOfflineMutation<AccountInput>({
+    operation: OFFLINE_OPS.PERSONAL_ACCOUNT_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-accts", profileId], ["personal-tx", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<any[]>(["personal-accts", profileId], (rows) => [
+      ...(rows ?? []),
+      { id: data.clientId, name: data.name, type: data.type, opening_balance: data.openingBalance, currency: data.currency, archived: false, created_at: new Date().toISOString() },
+    ]),
+    onSuccess: (result) => { setName(""); setOpening(""); toast.success(result.queued ? "Account saved offline" : "Account added"); },
   });
-  const dm = useMutation({
-    mutationFn: (id: string) => del({ data: { id, profileId } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["personal-accts", profileId] });
-      qc.invalidateQueries({ queryKey: ["personal-tx", profileId] });
-    },
+  const dm = useOfflineMutation<{ id: string; profileId: string }>({
+    operation: OFFLINE_OPS.PERSONAL_ACCOUNT_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["personal-accts", profileId], ["personal-tx", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<any[]>(["personal-accts", profileId], (rows) => removeRow(rows, data.id)),
   });
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader><CardTitle className="text-base">Add account</CardTitle><CardDescription>Cash, bank, card, wallet, savings, investment…</CardDescription></CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) add.mutate(); }} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+          <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) add.mutate({ clientId: createOfflineId(), profileId, name, type, openingBalance: Number(opening || 0), currency, archived: false }); }} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div className="space-y-1.5"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
             <div className="space-y-1.5">
               <Label>Type</Label>
@@ -296,7 +296,7 @@ function AccountsTab({ profileId, accounts, currency }: { profileId: string; acc
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="font-mono text-muted-foreground text-xs sm:text-sm whitespace-nowrap">{fmtMoney(a.opening_balance, currency)}</span>
                   <EditAccountDialog account={a} profileId={profileId} currency={currency} />
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(a.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate({ id: a.id, profileId })}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
@@ -308,27 +308,35 @@ function AccountsTab({ profileId, accounts, currency }: { profileId: string; acc
 }
 
 function BudgetsTab({ profileId, budgets, categories, tx, currency }: { profileId: string; budgets: BudgetRow[]; categories: any[]; tx: TxRow[]; currency: string }) {
-  const qc = useQueryClient();
   const upsert = useServerFn(upsertPersonalBudgetFn);
   const del = useServerFn(deletePersonalBudgetFn);
   const [name, setName] = useState("");
   const [period, setPeriod] = useState<"week" | "month">("month");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const add = useMutation({
-    mutationFn: () => upsert({ data: { profileId, name, period, amount: Number(amount), categoryId: categoryId || null, startDate: todayISO(), active: true } }),
-    onSuccess: () => { setName(""); setAmount(""); setCategoryId(""); toast.success("Budget added"); qc.invalidateQueries({ queryKey: ["personal-budgets", profileId] }); },
+  type BudgetInput = { clientId?: string; id?: string; profileId: string; name: string; period: "week" | "month"; amount: number; categoryId: string | null; startDate: string; active: boolean };
+  const add = useOfflineMutation<BudgetInput>({
+    operation: OFFLINE_OPS.PERSONAL_BUDGET_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-budgets", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<BudgetRow[]>(["personal-budgets", profileId], (rows) => [
+      { id: data.clientId!, name: data.name, period: data.period, amount: data.amount, category_id: data.categoryId, start_date: data.startDate, active: data.active },
+      ...(rows ?? []),
+    ]),
+    onSuccess: (result) => { setName(""); setAmount(""); setCategoryId(""); toast.success(result.queued ? "Budget saved offline" : "Budget added"); },
   });
-  const dm = useMutation({
-    mutationFn: (id: string) => del({ data: { id, profileId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personal-budgets", profileId] }),
+  const dm = useOfflineMutation<{ id: string; profileId: string }>({
+    operation: OFFLINE_OPS.PERSONAL_BUDGET_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["personal-budgets", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<BudgetRow[]>(["personal-budgets", profileId], (rows) => removeRow(rows, data.id)),
   });
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader><CardTitle className="text-base">Add budget</CardTitle><CardDescription>Weekly or monthly cap. Leave category empty to track overall expenses.</CardDescription></CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); if (name && Number(amount) > 0) add.mutate(); }} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          <form onSubmit={(e) => { e.preventDefault(); if (name && Number(amount) > 0) add.mutate({ clientId: createOfflineId(), profileId, name, period, amount: Number(amount), categoryId: categoryId || null, startDate: todayISO(), active: true }); }} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
             <div className="space-y-1.5"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
             <div className="space-y-1.5">
               <Label>Period</Label>
@@ -366,7 +374,7 @@ function BudgetsTab({ profileId, budgets, categories, tx, currency }: { profileI
                 </div>
                 <div className="flex items-center gap-0.5 shrink-0">
                   <EditBudgetDialog budget={b} categories={categories} profileId={profileId} />
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate({ id: b.id, profileId })}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </CardHeader>
               <CardContent className="min-w-0">
@@ -386,34 +394,48 @@ function BudgetsTab({ profileId, budgets, categories, tx, currency }: { profileI
 }
 
 function CounterpartiesTab({ profileId, counterparties }: { profileId: string; counterparties: any[] }) {
-  const qc = useQueryClient();
   const upsert = useServerFn(upsertPersonalCounterpartyFn);
   const del = useServerFn(deletePersonalCounterpartyFn);
   const [name, setName] = useState("");
   const [kind, setKind] = useState("person");
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["personal-cps", profileId] });
-  const add = useMutation({
-    mutationFn: () => upsert({ data: { profileId, name, kind: kind as any, note: "" } }),
-    onSuccess: () => { setName(""); toast.success("Added"); invalidate(); },
+  type CounterpartyInput = { clientId?: string; id?: string; profileId: string; name: string; kind: any; note: string };
+  const add = useOfflineMutation<CounterpartyInput>({
+    operation: OFFLINE_OPS.PERSONAL_COUNTERPARTY_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-cps", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<any[]>(["personal-cps", profileId], (rows) => [
+      ...(rows ?? []),
+      { id: data.clientId, name: data.name, kind: data.kind, note: data.note, created_at: new Date().toISOString() },
+    ]),
+    onSuccess: (result) => { setName(""); toast.success(result.queued ? "Saved offline" : "Added"); },
   });
-  const dm = useMutation({
-    mutationFn: (id: string) => del({ data: { id, profileId } }),
-    onSuccess: () => { toast.success("Deleted"); invalidate(); },
+  const dm = useOfflineMutation<{ id: string; profileId: string }>({
+    operation: OFFLINE_OPS.PERSONAL_COUNTERPARTY_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["personal-cps", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<any[]>(["personal-cps", profileId], (rows) => removeRow(rows, data.id)),
+    onSuccess: (result) => toast.success(result.queued ? "Deletion saved offline" : "Deleted"),
     onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editKind, setEditKind] = useState("person");
-  const updMut = useMutation({
-    mutationFn: (c: any) => upsert({ data: { id: c.id, profileId, name: editName.trim() || c.name, kind: editKind as any, note: c.note ?? "" } }),
-    onSuccess: () => { setEditingId(null); invalidate(); toast.success("Updated"); },
+  const updMut = useOfflineMutation<CounterpartyInput & { id: string }>({
+    operation: OFFLINE_OPS.PERSONAL_COUNTERPARTY_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-cps", profileId]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) => client.setQueryData<any[]>(["personal-cps", profileId], (rows) =>
+      updateRows(rows, data.id, (row) => ({ ...row, name: data.name, kind: data.kind, note: data.note })),
+    ),
+    onSuccess: (result) => { setEditingId(null); toast.success(result.queued ? "Update saved offline" : "Updated"); },
   });
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader><CardTitle className="text-base">Add person / vendor</CardTitle><CardDescription>Who you pay, who pays you, who owes you.</CardDescription></CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) add.mutate(); }} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+          <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) add.mutate({ clientId: createOfflineId(), profileId, name, kind, note: "" }); }} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
             <div className="space-y-1.5"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
             <div className="space-y-1.5">
               <Label>Type</Label>
@@ -458,7 +480,7 @@ function CounterpartiesTab({ profileId, counterparties }: { profileId: string; c
                   <div className="flex items-center gap-0.5 shrink-0">
                     {editing ? (
                       <>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate(c)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate({ id: c.id, profileId, name: editName.trim() || c.name, kind: editKind, note: c.note ?? "" })}><Pencil className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}>×</Button>
                       </>
                     ) : (
@@ -467,7 +489,7 @@ function CounterpartiesTab({ profileId, counterparties }: { profileId: string; c
                           onClick={() => { setEditingId(c.id); setEditName(c.name); setEditKind(c.kind); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate({ id: c.id, profileId })}><Trash2 className="h-3.5 w-3.5" /></Button>
                       </>
                     )}
                   </div>
@@ -482,25 +504,38 @@ function CounterpartiesTab({ profileId, counterparties }: { profileId: string; c
 }
 
 function EditAccountDialog({ account, profileId, currency }: { account: any; profileId: string; currency: string }) {
-  const qc = useQueryClient();
   const upsert = useServerFn(upsertPersonalAccountFn);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(account.name);
   const [type, setType] = useState(account.type);
   const [opening, setOpening] = useState(String(account.opening_balance ?? 0));
   const [archived, setArchived] = useState(!!account.archived);
-  const [busy, setBusy] = useState(false);
-  const save = async () => {
-    if (!name.trim()) return;
-    setBusy(true);
-    try {
-      await upsert({ data: { id: account.id, profileId, name: name.trim(), type, openingBalance: Number(opening || 0), currency, archived } });
-      toast.success("Account updated");
-      qc.invalidateQueries({ queryKey: ["personal-accts", profileId] });
-      qc.invalidateQueries({ queryKey: ["personal-tx", profileId] });
+  type Input = { id: string; profileId: string; name: string; type: any; openingBalance: number; currency: string; archived: boolean };
+  const saveM = useOfflineMutation<Input>({
+    operation: OFFLINE_OPS.PERSONAL_ACCOUNT_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-accts", profileId], ["personal-tx", profileId]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<any[]>(["personal-accts", profileId], (rows) =>
+        updateRows(rows, data.id, (row) => ({
+          ...row,
+          name: data.name,
+          type: data.type,
+          opening_balance: data.openingBalance,
+          currency: data.currency,
+          archived: data.archived,
+        })),
+      ),
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Update saved offline" : "Account updated");
       setOpen(false);
-    } catch (e: any) { toast.error(e?.message ?? "Failed to update"); }
-    finally { setBusy(false); }
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to update"),
+  });
+  const save = () => {
+    if (!name.trim()) return;
+    saveM.mutate({ id: account.id, profileId, name: name.trim(), type, openingBalance: Number(opening || 0), currency, archived });
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -531,7 +566,7 @@ function EditAccountDialog({ account, profileId, currency }: { account: any; pro
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={busy} onClick={save}>Save</Button>
+          <Button disabled={saveM.isPending} onClick={save}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -539,7 +574,6 @@ function EditAccountDialog({ account, profileId, currency }: { account: any; pro
 }
 
 function EditBudgetDialog({ budget, categories, profileId }: { budget: BudgetRow; categories: any[]; profileId: string }) {
-  const qc = useQueryClient();
   const upsert = useServerFn(upsertPersonalBudgetFn);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(budget.name);
@@ -547,17 +581,33 @@ function EditBudgetDialog({ budget, categories, profileId }: { budget: BudgetRow
   const [amount, setAmount] = useState(String(budget.amount));
   const [categoryId, setCategoryId] = useState(budget.category_id ?? "");
   const [active, setActive] = useState(!!budget.active);
-  const [busy, setBusy] = useState(false);
-  const save = async () => {
-    if (!name.trim() || !(Number(amount) > 0)) return;
-    setBusy(true);
-    try {
-      await upsert({ data: { id: budget.id, profileId, name: name.trim(), period, amount: Number(amount), categoryId: categoryId || null, startDate: (budget as any).start_date ?? todayISO(), active } });
-      toast.success("Budget updated");
-      qc.invalidateQueries({ queryKey: ["personal-budgets", profileId] });
+  type Input = { id: string; profileId: string; name: string; period: "week" | "month"; amount: number; categoryId: string | null; startDate: string; active: boolean };
+  const saveM = useOfflineMutation<Input>({
+    operation: OFFLINE_OPS.PERSONAL_BUDGET_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-budgets", profileId]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<BudgetRow[]>(["personal-budgets", profileId], (rows) =>
+        updateRows(rows, data.id, (row) => ({
+          ...row,
+          name: data.name,
+          period: data.period,
+          amount: data.amount,
+          category_id: data.categoryId,
+          start_date: data.startDate,
+          active: data.active,
+        })),
+      ),
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Update saved offline" : "Budget updated");
       setOpen(false);
-    } catch (e: any) { toast.error(e?.message ?? "Failed to update"); }
-    finally { setBusy(false); }
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to update"),
+  });
+  const save = () => {
+    if (!name.trim() || !(Number(amount) > 0)) return;
+    saveM.mutate({ id: budget.id, profileId, name: name.trim(), period, amount: Number(amount), categoryId: categoryId || null, startDate: (budget as any).start_date ?? todayISO(), active });
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -596,7 +646,7 @@ function EditBudgetDialog({ budget, categories, profileId }: { budget: BudgetRow
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={busy} onClick={save}>Save</Button>
+          <Button disabled={saveM.isPending} onClick={save}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

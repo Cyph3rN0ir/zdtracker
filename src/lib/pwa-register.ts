@@ -7,6 +7,28 @@ import { shouldDisablePwaFeatures } from "@/lib/pwa-host-guard";
 
 type UpdateCallback = () => void;
 
+function collectShellUrls(): string[] {
+  const urls = new Set<string>([window.location.href]);
+  document.querySelectorAll<HTMLScriptElement | HTMLLinkElement>("script[src], link[href]").forEach((node) => {
+    const value = node instanceof HTMLScriptElement ? node.src : node.href;
+    if (value) urls.add(value);
+  });
+  performance
+    .getEntriesByType("resource")
+    .filter((entry) =>
+      ["script", "link", "img", "css"].includes(
+        (entry as PerformanceResourceTiming).initiatorType,
+      ),
+    )
+    .forEach((entry) => urls.add(entry.name));
+  return Array.from(urls);
+}
+
+async function warmAppShell(registration: ServiceWorkerRegistration) {
+  const worker = registration.active ?? registration.waiting ?? registration.installing;
+  worker?.postMessage({ type: "CACHE_APP_SHELL", urls: collectShellUrls() });
+}
+
 async function unregisterAllAppWorkers() {
   if (!("serviceWorker" in navigator)) return;
   try {
@@ -33,8 +55,13 @@ export async function registerPWA(onUpdate?: UpdateCallback): Promise<(() => Pro
   }
 
   try {
-    await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-    navigator.serviceWorker.addEventListener("controllerchange", () => onUpdate?.());
+    const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    await navigator.serviceWorker.ready;
+    await warmAppShell(registration);
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      warmAppShell(registration).catch(() => {});
+      onUpdate?.();
+    });
     return null;
   } catch (err) {
     console.warn("[pwa] registration failed", err);

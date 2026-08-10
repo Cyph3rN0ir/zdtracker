@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { createListFn, listListsFn } from "@/lib/notebook.functions";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { useOfflineMutation } from "@/lib/use-offline-mutation";
 import { Input } from "@/components/ui/input";
 import { Plus, ChevronRight } from "lucide-react";
 
@@ -14,17 +17,27 @@ export const Route = createFileRoute("/_app/notebook/lists/")({
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#a855f7"];
 
 function ListsPage() {
-  const qc = useQueryClient();
   const list = useServerFn(listListsFn);
   const create = useServerFn(createListFn);
   const q = useQuery({ queryKey: ["notebook", "lists"], queryFn: () => list() });
   const [title, setTitle] = useState("");
   const [color, setColor] = useState(COLORS[0]);
-  const m = useMutation({
-    mutationFn: (t: string) => create({ data: { title: t, color } }),
+  const m = useOfflineMutation<{ clientId: string; title: string; color: string }>({
+    operation: OFFLINE_OPS.LIST_CREATE,
+    mutationFn: (data) => create({ data }),
+    affectedKeys: [["notebook", "lists"]],
+    optimisticUpdate: (client, data) => {
+      const now = new Date().toISOString();
+      client.setQueryData<Array<Record<string, unknown>>>(["notebook", "lists"], (rows) => [
+        ...(rows ?? []),
+        {
+          id: data.clientId, title: data.title, color: data.color, icon: "notebook",
+          sort_order: 0, archived_at: null, created_at: now, updated_at: now, open_count: 0,
+        },
+      ]);
+    },
     onSuccess: () => {
       setTitle("");
-      qc.invalidateQueries({ queryKey: ["notebook", "lists"] });
     },
   });
 
@@ -35,7 +48,7 @@ function ListsPage() {
         onSubmit={(e) => {
           e.preventDefault();
           const v = title.trim();
-          if (v) m.mutate(v);
+          if (v) m.mutate({ clientId: createOfflineId(), title: v, color });
         }}
         className="space-y-2"
       >

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -56,6 +56,9 @@ import {
   Circle,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 
 export const Route = createFileRoute("/_app/businesses/$id/accounts")({
   component: Accounts,
@@ -95,7 +98,6 @@ function Accounts() {
   const upsert = useServerFn(upsertBusinessAccountFn);
   const del = useServerFn(deleteBusinessAccountFn);
   const transfer = useServerFn(transferBusinessFundsFn);
-  const qc = useQueryClient();
 
   const q = useQuery({
     queryKey: ["baccounts", id],
@@ -108,29 +110,66 @@ function Accounts() {
   const [delId, setDelId] = useState<string | null>(null);
   const [xferOpen, setXferOpen] = useState(false);
 
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["baccounts", id] });
-    qc.invalidateQueries({ queryKey: ["btx", id] });
+  type AccountInput = {
+    id?: string;
+    clientId?: string;
+    businessId: string;
+    name: string;
+    type: AcctType;
+    openingBalance: number;
+    currency: string;
+    archived: boolean;
   };
-
-  const saveM = useMutation({
-    mutationFn: () =>
-      upsert({
-        data: {
-          id: form.id,
-          businessId: id,
-          name: form.name.trim(),
-          type: form.type,
-          openingBalance: Number(form.openingBalance || 0),
-          currency: form.currency.trim() || "BDT",
-          archived: false,
-        },
-      }),
-    onSuccess: () => {
-      toast.success(t("bacct.toast.saved", "Account saved"));
+  const saveM = useOfflineMutation<AccountInput>({
+    operation: OFFLINE_OPS.BUSINESS_ACCOUNT_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["baccounts", id], ["baccountsList", id], ["btx", id]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) => {
+      const accountId = data.id ?? data.clientId!;
+      client.setQueryData<any>(["baccounts", id], (current: any) => {
+        const existing = current?.accounts?.find((row: any) => row.id === accountId);
+        const balance = existing
+          ? Number(existing.balance ?? 0) - Number(existing.opening_balance ?? 0) + data.openingBalance
+          : data.openingBalance;
+        const row = {
+          ...existing,
+          id: accountId,
+          name: data.name,
+          type: data.type,
+          opening_balance: data.openingBalance,
+          currency: data.currency,
+          archived: data.archived,
+          balance,
+          created_at: existing?.created_at ?? new Date().toISOString(),
+        };
+        const accounts = existing
+          ? updateRows<any>(current?.accounts, accountId, () => row)
+          : [...(current?.accounts ?? []), row];
+        const total = accounts
+          .filter((account: any) => !account.archived)
+          .reduce((sum: number, account: any) => sum + Number(account.balance ?? 0), 0);
+        return { accounts, total, unassigned: current?.unassigned ?? 0, schemaPending: false };
+      });
+      client.setQueryData<any[]>(["baccountsList", id], (rows) => {
+        const row = {
+          id: accountId,
+          name: data.name,
+          type: data.type,
+          opening_balance: data.openingBalance,
+          currency: data.currency,
+          archived: data.archived,
+          created_at: new Date().toISOString(),
+        };
+        return (rows ?? []).some((account) => account.id === accountId)
+          ? updateRows(rows, accountId, (account) => ({ ...account, ...row }))
+          : [...(rows ?? []), row];
+      });
+    },
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Account saved offline" : t("bacct.toast.saved", "Account saved"));
       setOpen(false);
       setForm(emptyForm);
-      invalidate();
     },
     onError: (e: any) => {
       const msg = e?.message ?? t("bacct.toast.failed", "Failed to save account");
@@ -139,14 +178,71 @@ function Accounts() {
     },
   });
 
-  const delM = useMutation({
-    mutationFn: (aid: string) => del({ data: { id: aid, businessId: id } }),
-    onSuccess: () => {
-      toast.success(t("bacct.toast.deleted", "Account deleted"));
+  const delM = useOfflineMutation<{ id: string; businessId: string }>({
+    operation: OFFLINE_OPS.BUSINESS_ACCOUNT_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["baccounts", id], ["baccountsList", id], ["btx", id]],
+    optimisticUpdate: (client, data) => {
+      client.setQueryData<any>(["baccounts", id], (current: any) => {
+        const accounts = removeRow<any>(current?.accounts, data.id);
+        const total = accounts
+          .filter((account: any) => !account.archived)
+          .reduce((sum: number, account: any) => sum + Number(account.balance ?? 0), 0);
+        return { ...current, accounts, total };
+      });
+      client.setQueryData<any[]>(["baccountsList", id], (rows) => removeRow(rows, data.id));
+    },
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Deletion saved offline" : t("bacct.toast.deleted", "Account deleted"));
       setDelId(null);
-      invalidate();
     },
     onError: (e: any) => toast.error(e?.message ?? t("common.error", "Something went wrong")),
+  });
+
+  type TransferInput = {
+    clientId: string;
+    businessId: string;
+    fromAccountId: string;
+    toAccountId: string;
+    amount: number;
+    note: string;
+    occurredOn: string;
+  };
+  const transferM = useOfflineMutation<TransferInput>({
+    operation: OFFLINE_OPS.BUSINESS_ACCOUNT_TRANSFER,
+    mutationFn: (data) => transfer({ data }),
+    affectedKeys: [["baccounts", id], ["btx", id]],
+    optimisticUpdate: (client, data) => {
+      client.setQueryData<any>(["baccounts", id], (current: any) => ({
+        ...current,
+        accounts: (current?.accounts ?? []).map((account: any) =>
+          account.id === data.fromAccountId
+            ? { ...account, balance: Number(account.balance ?? 0) - data.amount }
+            : account.id === data.toAccountId
+              ? { ...account, balance: Number(account.balance ?? 0) + data.amount }
+              : account,
+        ),
+      }));
+      client.setQueryData<any[]>(["btx", id], (rows) => [
+        {
+          id: data.clientId,
+          kind: "transfer",
+          amount: data.amount,
+          note: data.note,
+          occurred_on: data.occurredOn,
+          account_id: data.fromAccountId,
+          transfer_account_id: data.toAccountId,
+          party_user_id: null,
+          created_at: new Date().toISOString(),
+        },
+        ...(rows ?? []),
+      ]);
+    },
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Transfer saved offline" : t("bacct.toast.transferred", "Transfer recorded"));
+      setXferOpen(false);
+    },
+    onError: (e: any) => toast.error(e?.message ?? t("bacct.toast.transferFailed", "Transfer failed")),
   });
 
   const accounts = q.data?.accounts ?? [];
@@ -300,7 +396,16 @@ function Accounts() {
               if (Number.isNaN(Number(form.openingBalance || 0)))
                 return setFormErr(t("bacct.err.opening", "Enter a valid opening balance"));
               setFormErr(null);
-              saveM.mutate();
+              saveM.mutate({
+                id: form.id,
+                clientId: form.id ? undefined : createOfflineId(),
+                businessId: id,
+                name: form.name.trim(),
+                type: form.type,
+                openingBalance: Number(form.openingBalance || 0),
+                currency: form.currency.trim() || "BDT",
+                archived: false,
+              });
             }}
           >
             <div className="space-y-1.5">
@@ -351,13 +456,7 @@ function Accounts() {
         onOpenChange={setXferOpen}
         accounts={active}
         onSubmit={(payload) =>
-          transfer({ data: { businessId: id, ...payload } })
-            .then(() => {
-              toast.success(t("bacct.toast.transferred", "Transfer recorded"));
-              setXferOpen(false);
-              invalidate();
-            })
-            .catch((e: any) => toast.error(e?.message ?? t("bacct.toast.transferFailed", "Transfer failed")))
+          transferM.mutate({ clientId: createOfflineId(), businessId: id, ...payload })
         }
       />
 
@@ -373,7 +472,7 @@ function Accounts() {
             <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => delId && delM.mutate(delId)}
+              onClick={() => delId && delM.mutate({ id: delId, businessId: id })}
             >
               {t("common.delete")}
             </AlertDialogAction>

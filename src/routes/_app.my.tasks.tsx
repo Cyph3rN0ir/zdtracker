@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { myTasksFn, toggleTaskFn, deleteTaskFn, setTaskRemarkFn } from "@/lib/zt.functions";
 import { PageHeader } from "@/components/PageHeader";
@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { MoreHorizontal, MessageSquarePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 
 type Task = {
   id: string;
@@ -60,24 +62,48 @@ function MyTasks() {
   const toggle = useServerFn(toggleTaskFn);
   const del = useServerFn(deleteTaskFn);
   const setRemark = useServerFn(setTaskRemarkFn);
-  const qc = useQueryClient();
 
   const q = useQuery({ queryKey: ["my-tasks"], queryFn: () => list() });
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["my-tasks"] });
 
-  const toggleM = useMutation({
-    mutationFn: (v: { id: string; done: boolean }) => toggle({ data: v }),
-    onSuccess: invalidate,
+  const toggleM = useOfflineMutation<{ id: string; done: boolean }>({
+    operation: OFFLINE_OPS.TASK_TOGGLE,
+    mutationFn: (data) => toggle({ data }),
+    affectedKeys: [["my-tasks"], ["tasks"]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) => {
+      const update = (rows: Task[] | undefined) =>
+        updateRows(rows, data.id, (row) => ({ ...row, status: data.done ? "done" : "pending" }));
+      client.setQueryData<Task[]>(["my-tasks"], update);
+      client.setQueriesData<Task[]>({ queryKey: ["tasks"] }, update);
+    },
     onError: (e: any) => toast.error(e?.message ?? "Failed to update task"),
   });
-  const deleteM = useMutation({
-    mutationFn: (id: string) => del({ data: { id } }),
-    onSuccess: () => { toast.success("Task deleted"); invalidate(); },
+  const deleteM = useOfflineMutation<{ id: string }>({
+    operation: OFFLINE_OPS.TASK_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["my-tasks"], ["tasks"]],
+    optimisticUpdate: (client, data) => {
+      client.setQueryData<Task[]>(["my-tasks"], (rows) => removeRow(rows, data.id));
+      client.setQueriesData<Task[]>({ queryKey: ["tasks"] }, (rows) => removeRow(rows, data.id));
+    },
+    onSuccess: (result) => toast.success(result.queued ? "Deletion saved offline" : "Task deleted"),
     onError: (e: any) => toast.error(e?.message ?? "Failed to delete task"),
   });
-  const remarkM = useMutation({
-    mutationFn: (v: { id: string; remark: string }) => setRemark({ data: v }),
-    onSuccess: () => { toast.success("Remark saved"); invalidate(); },
+  const remarkM = useOfflineMutation<{ id: string; remark: string }>({
+    operation: OFFLINE_OPS.TASK_REMARK,
+    mutationFn: (data) => setRemark({ data }),
+    affectedKeys: [["my-tasks"], ["tasks"]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) => {
+      const update = (rows: Task[] | undefined) =>
+        updateRows(rows, data.id, (row) => ({
+          ...row, remark: data.remark.trim() || null,
+          remark_at: data.remark.trim() ? new Date().toISOString() : null,
+        }));
+      client.setQueryData<Task[]>(["my-tasks"], update);
+      client.setQueriesData<Task[]>({ queryKey: ["tasks"] }, update);
+    },
+    onSuccess: (result) => toast.success(result.queued ? "Remark saved offline" : "Remark saved"),
     onError: (e: any) => toast.error(e?.message ?? "Failed to save remark"),
   });
 
@@ -200,7 +226,7 @@ function MyTasks() {
             <AlertDialogAction
               onClick={() => {
                 if (!confirmDelete) return;
-                deleteM.mutate(confirmDelete.id, {
+                deleteM.mutate({ id: confirmDelete.id }, {
                   onSuccess: () => setConfirmDelete(null),
                 });
               }}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   upsertPersonalLoanFn, deletePersonalLoanFn, addPersonalTxExFn, settlePersonalLoansFn,
@@ -14,6 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Trash2, HandCoins, Pencil, ChevronRight, Users } from "lucide-react";
 import { fmtMoney, todayISO, TxRow } from "@/lib/personal-finance";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 
 type Loan = {
   id: string;
@@ -61,54 +64,81 @@ export function PersonalLoans({
     note: "",
   });
 
-  const add = useMutation({
-    mutationFn: () => upsert({
-      data: {
-        profileId,
-        direction: form.direction,
-        counterpartyId: form.counterpartyId || null,
-        principal: Number(form.principal),
-        interestRate: 0,
-        startedOn: form.startedOn,
-        dueOn: form.dueOn || null,
-        status: "open",
-        note: form.note,
-      },
-    }),
-    onSuccess: () => {
-      toast.success("Loan added");
+  type LoanInput = {
+    clientId?: string; id?: string; profileId: string;
+    direction: "i_owe" | "owed_to_me"; counterpartyId: string | null;
+    principal: number; interestRate: number; startedOn: string;
+    dueOn: string | null; status: "open" | "closed"; note: string;
+  };
+  const add = useOfflineMutation<LoanInput>({
+    operation: OFFLINE_OPS.PERSONAL_LOAN_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-loans", profileId], ["personal-tx", profileId], ["personal-accts", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<Loan[]>(["personal-loans", profileId], (rows) => [
+      { id: data.clientId!, direction: data.direction, counterparty_id: data.counterpartyId, principal: data.principal, interest_rate: data.interestRate, started_on: data.startedOn, due_on: data.dueOn, status: data.status, note: data.note },
+      ...(rows ?? []),
+    ]),
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Loan saved offline" : "Loan added");
       setForm({ ...form, principal: "", dueOn: "", note: "" });
-      invalidate();
     },
   });
 
-  const dm = useMutation({
-    mutationFn: (id: string) => del({ data: { id, profileId } }),
-    onSuccess: () => { toast.success("Deleted"); invalidate(); },
+  const dm = useOfflineMutation<{ id: string; profileId: string }>({
+    operation: OFFLINE_OPS.PERSONAL_LOAN_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["personal-loans", profileId], ["personal-tx", profileId], ["personal-accts", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<Loan[]>(["personal-loans", profileId], (rows) => removeRow(rows, data.id)),
+    onSuccess: (result) => toast.success(result.queued ? "Deletion saved offline" : "Deleted"),
   });
 
-  const closeM = useMutation({
-    mutationFn: (l: Loan) => upsert({
-      data: {
-        id: l.id, profileId, direction: l.direction,
-        counterpartyId: l.counterparty_id, principal: Number(l.principal),
-        interestRate: Number(l.interest_rate), startedOn: l.started_on,
-        dueOn: l.due_on, status: "closed", note: l.note,
-      },
-    }),
-    onSuccess: () => { toast.success("Loan closed"); invalidate(); },
+  const statusM = useOfflineMutation<LoanInput & { id: string }>({
+    operation: OFFLINE_OPS.PERSONAL_LOAN_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-loans", profileId]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) => client.setQueryData<Loan[]>(["personal-loans", profileId], (rows) =>
+      updateRows(rows, data.id, (row) => ({ ...row, status: data.status })),
+    ),
+    onSuccess: (result, data) => toast.success(result.queued ? "Loan update saved offline" : data.status === "closed" ? "Loan closed" : "Loan reopened"),
   });
 
-  const reopenM = useMutation({
-    mutationFn: (l: Loan) => upsert({
-      data: {
-        id: l.id, profileId, direction: l.direction,
-        counterpartyId: l.counterparty_id, principal: Number(l.principal),
-        interestRate: Number(l.interest_rate), startedOn: l.started_on,
-        dueOn: l.due_on, status: "open", note: l.note,
-      },
-    }),
-    onSuccess: () => { toast.success("Loan reopened"); invalidate(); },
+  type RepaymentInput = {
+    clientId: string;
+    profileId: string;
+    kind: "repayment_in" | "repayment_out";
+    amount: number;
+    note: string;
+    occurredOn: string;
+    accountId: string | null;
+    categoryId: null;
+    counterpartyId: string | null;
+    transferAccountId: null;
+    linkedLoanId: string;
+  };
+  const repaymentM = useOfflineMutation<RepaymentInput>({
+    operation: OFFLINE_OPS.PERSONAL_TX_ADD,
+    mutationFn: (data) => addTx({ data }),
+    affectedKeys: [["personal-tx", profileId], ["personal-accts", profileId]],
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<TxRow[]>(["personal-tx", profileId], (rows) => [
+        {
+          id: data.clientId,
+          kind: data.kind,
+          amount: data.amount,
+          note: data.note,
+          occurred_on: data.occurredOn,
+          account_id: data.accountId,
+          category_id: null,
+          counterparty_id: data.counterpartyId,
+          transfer_account_id: null,
+          linked_loan_id: data.linkedLoanId,
+        },
+        ...(rows ?? []),
+      ]),
+    onSuccess: (result) =>
+      toast.success(result.queued ? "Repayment saved offline" : "Repayment recorded"),
+    onError: (e: any) => toast.error(e?.message ?? "Failed to record repayment"),
   });
 
   // Repayment totals per loan from linked transactions.
@@ -155,7 +185,7 @@ export function PersonalLoans({
           <CardDescription>Money you borrowed or money you lent.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); if (Number(form.principal) > 0) add.mutate(); }}
+          <form onSubmit={(e) => { e.preventDefault(); if (Number(form.principal) > 0) add.mutate({ clientId: createOfflineId(), profileId, direction: form.direction, counterpartyId: form.counterpartyId || null, principal: Number(form.principal), interestRate: 0, startedOn: form.startedOn, dueOn: form.dueOn || null, status: "open", note: form.note }); }}
             className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
             <div className="space-y-1.5 md:col-span-1">
               <Label>Direction</Label>
@@ -228,26 +258,19 @@ export function PersonalLoans({
                     <div className="flex justify-end gap-1.5 sm:col-span-3 flex-wrap">
                       <RepaymentDialog loan={l} accounts={accounts} currency={currency} outstanding={outstanding}
                         onAdd={async (amount, accountId, note, occurredOn) => {
-                          await addTx({
-                            data: {
-                              profileId,
-                              kind: l.direction === "i_owe" ? "repayment_out" : "repayment_in",
-                              amount, note: note || `Repayment for loan`,
-                              occurredOn,
-                              accountId: accountId || null,
-                              categoryId: null,
-                              counterpartyId: l.counterparty_id,
-                              transferAccountId: null,
-                              linkedLoanId: l.id,
-                            },
+                          await repaymentM.mutateAsync({
+                            clientId: createOfflineId(), profileId,
+                            kind: l.direction === "i_owe" ? "repayment_out" : "repayment_in",
+                            amount, note: note || "Repayment for loan", occurredOn,
+                            accountId: accountId || null, categoryId: null,
+                            counterpartyId: l.counterparty_id, transferAccountId: null,
+                            linkedLoanId: l.id,
                           });
-                          toast.success("Repayment recorded");
-                          invalidate();
                         }}
                       />
                       <EditLoanDialog loan={l} counterparties={counterparties} profileId={profileId} onSaved={invalidate} />
-                      <Button variant="ghost" size="sm" onClick={() => closeM.mutate(l)}>Close</Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => statusM.mutate({ id: l.id, profileId, direction: l.direction, counterpartyId: l.counterparty_id, principal: Number(l.principal), interestRate: Number(l.interest_rate), startedOn: l.started_on, dueOn: l.due_on, status: "closed", note: l.note })}>Close</Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate({ id: l.id, profileId })}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
                 );
@@ -281,27 +304,20 @@ export function PersonalLoans({
                         <>
                           <RepaymentDialog loan={l} accounts={accounts} currency={currency} outstanding={outstanding}
                             onAdd={async (amount, accountId, note, occurredOn) => {
-                              await addTx({
-                                data: {
-                                  profileId,
-                                  kind: l.direction === "i_owe" ? "repayment_out" : "repayment_in",
-                                  amount, note: note || `Repayment for loan`,
-                                  occurredOn,
-                                  accountId: accountId || null,
-                                  categoryId: null,
-                                  counterpartyId: l.counterparty_id,
-                                  transferAccountId: null,
-                                  linkedLoanId: l.id,
-                                },
+                              await repaymentM.mutateAsync({
+                                clientId: createOfflineId(), profileId,
+                                kind: l.direction === "i_owe" ? "repayment_out" : "repayment_in",
+                                amount, note: note || "Repayment for loan", occurredOn,
+                                accountId: accountId || null, categoryId: null,
+                                counterpartyId: l.counterparty_id, transferAccountId: null,
+                                linkedLoanId: l.id,
                               });
-                              toast.success("Repayment recorded");
-                              invalidate();
                             }}
                           />
-                          <Button variant="ghost" size="sm" onClick={() => reopenM.mutate(l)}>Reopen</Button>
+                          <Button variant="ghost" size="sm" onClick={() => statusM.mutate({ id: l.id, profileId, direction: l.direction, counterpartyId: l.counterparty_id, principal: Number(l.principal), interestRate: Number(l.interest_rate), startedOn: l.started_on, dueOn: l.due_on, status: "open", note: l.note })}>Reopen</Button>
                         </>
                       )}
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" onClick={() => dm.mutate(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" onClick={() => dm.mutate({ id: l.id, profileId })}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
                 );
@@ -394,28 +410,45 @@ function EditLoanDialog({
   const [startedOn, setStartedOn] = useState(loan.started_on);
   const [dueOn, setDueOn] = useState(loan.due_on ?? "");
   const [note, setNote] = useState(loan.note ?? "");
-  const [busy, setBusy] = useState(false);
-
-  const save = async () => {
-    if (!(Number(principal) >= 0)) return;
-    setBusy(true);
-    try {
-      await upsert({
-        data: {
-          id: loan.id, profileId, direction,
-          counterpartyId: counterpartyId || null,
-          principal: Number(principal),
-          interestRate: Number(loan.interest_rate) || 0,
-          startedOn, dueOn: dueOn || null,
-          status: loan.status, note,
-        },
-      });
-      toast.success("Loan updated");
+  type Input = {
+    id: string; profileId: string; direction: "i_owe" | "owed_to_me";
+    counterpartyId: string | null; principal: number; interestRate: number;
+    startedOn: string; dueOn: string | null; status: "open" | "closed"; note: string;
+  };
+  const saveM = useOfflineMutation<Input>({
+    operation: OFFLINE_OPS.PERSONAL_LOAN_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-loans", profileId]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: (client, data) =>
+      client.setQueryData<Loan[]>(["personal-loans", profileId], (rows) =>
+        updateRows(rows, data.id, (row) => ({
+          ...row,
+          direction: data.direction,
+          counterparty_id: data.counterpartyId,
+          principal: data.principal,
+          interest_rate: data.interestRate,
+          started_on: data.startedOn,
+          due_on: data.dueOn,
+          status: data.status,
+          note: data.note,
+        })),
+      ),
+    onSuccess: (result) => {
+      toast.success(result.queued ? "Loan update saved offline" : "Loan updated");
       onSaved();
       setOpen(false);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to update");
-    } finally { setBusy(false); }
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to update"),
+  });
+
+  const save = () => {
+    if (!(Number(principal) >= 0)) return;
+    saveM.mutate({
+      id: loan.id, profileId, direction, counterpartyId: counterpartyId || null,
+      principal: Number(principal), interestRate: Number(loan.interest_rate) || 0,
+      startedOn, dueOn: dueOn || null, status: loan.status, note,
+    });
   };
 
   return (
@@ -465,7 +498,7 @@ function EditLoanDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={busy} onClick={save}>Save</Button>
+          <Button disabled={saveM.isPending} onClick={save}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

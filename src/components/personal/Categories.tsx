@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   upsertPersonalCategoryFn, deletePersonalCategoryFn,
@@ -11,11 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { removeRow, updateRows, useOfflineMutation } from "@/lib/use-offline-mutation";
 
 type Cat = { id: string; name: string; kind: "income" | "expense"; color: string; icon: string; archived: boolean };
 
 export function PersonalCategories({ profileId, categories }: { profileId: string; categories: Cat[] }) {
-  const qc = useQueryClient();
   const upsert = useServerFn(upsertPersonalCategoryFn);
   const del = useServerFn(deletePersonalCategoryFn);
 
@@ -27,24 +29,44 @@ export function PersonalCategories({ profileId, categories }: { profileId: strin
   const [editName, setEditName] = useState("");
   const [editKind, setEditKind] = useState<"income" | "expense">("expense");
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["personal-cats", profileId] });
+  type CatInput = { clientId?: string; id?: string; profileId: string; name: string; kind: "income" | "expense"; color: string; icon: string; archived: boolean };
+  const updateCache = (client: QueryClient, data: CatInput & { id: string }) =>
+    client.setQueryData<Cat[]>(["personal-cats", profileId], (rows: Cat[] | undefined) =>
+      updateRows(rows, data.id, (row) => ({ ...row, name: data.name, kind: data.kind, color: data.color, icon: data.icon, archived: data.archived })),
+    );
 
-  const add = useMutation({
-    mutationFn: () => upsert({ data: { profileId, name, kind, color, icon: "circle", archived: false } }),
-    onSuccess: () => { setName(""); toast.success("Category added"); invalidate(); },
+  const add = useOfflineMutation<CatInput>({
+    operation: OFFLINE_OPS.PERSONAL_CATEGORY_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-cats", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<Cat[]>(["personal-cats", profileId], (rows) => [
+      ...(rows ?? []),
+      { id: data.clientId!, name: data.name, kind: data.kind, color: data.color, icon: data.icon, archived: data.archived },
+    ]),
+    onSuccess: (result) => { setName(""); toast.success(result.queued ? "Category saved offline" : "Category added"); },
   });
-  const dm = useMutation({
-    mutationFn: (id: string) => del({ data: { id, profileId } }),
-    onSuccess: () => { toast.success("Deleted"); invalidate(); },
+  const dm = useOfflineMutation<{ id: string; profileId: string }>({
+    operation: OFFLINE_OPS.PERSONAL_CATEGORY_DELETE,
+    mutationFn: (data) => del({ data }),
+    affectedKeys: [["personal-cats", profileId]],
+    optimisticUpdate: (client, data) => client.setQueryData<Cat[]>(["personal-cats", profileId], (rows) => removeRow(rows, data.id)),
+    onSuccess: (result) => toast.success(result.queued ? "Deletion saved offline" : "Deleted"),
     onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
-  const updMut = useMutation({
-    mutationFn: (c: Cat) => upsert({ data: { profileId, id: c.id, name: editName.trim() || c.name, kind: editKind, color: c.color, icon: c.icon, archived: c.archived } }),
-    onSuccess: () => { setEditingId(null); invalidate(); toast.success("Updated"); },
+  const updMut = useOfflineMutation<CatInput & { id: string }>({
+    operation: OFFLINE_OPS.PERSONAL_CATEGORY_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-cats", profileId]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: updateCache,
+    onSuccess: (result) => { setEditingId(null); toast.success(result.queued ? "Update saved offline" : "Updated"); },
   });
-  const updColor = useMutation({
-    mutationFn: (c: Cat) => upsert({ data: { profileId, id: c.id, name: c.name, kind: c.kind, color: c.color, icon: c.icon, archived: c.archived } }),
-    onSuccess: () => invalidate(),
+  const updColor = useOfflineMutation<CatInput & { id: string }>({
+    operation: OFFLINE_OPS.PERSONAL_CATEGORY_UPSERT,
+    mutationFn: (data) => upsert({ data }),
+    affectedKeys: [["personal-cats", profileId]],
+    coalesceKey: (data) => data.id,
+    optimisticUpdate: updateCache,
   });
 
   const groups = [
@@ -57,7 +79,7 @@ export function PersonalCategories({ profileId, categories }: { profileId: strin
       <Card>
         <CardHeader><CardTitle className="text-base">Add category</CardTitle><CardDescription>Used to tag transactions and budgets.</CardDescription></CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) add.mutate(); }} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+          <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) add.mutate({ clientId: createOfflineId(), profileId, name, kind, color, icon: "circle", archived: false }); }} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div className="space-y-1.5"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
             <div className="space-y-1.5">
               <Label>Kind</Label>
@@ -88,7 +110,7 @@ export function PersonalCategories({ profileId, categories }: { profileId: strin
                   return (
                     <div key={c.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <input type="color" value={c.color} onChange={(e) => updColor.mutate({ ...c, color: e.target.value })} className="h-5 w-5 rounded cursor-pointer border-0 bg-transparent p-0 shrink-0" />
+                        <input type="color" value={c.color} onChange={(e) => updColor.mutate({ ...c, profileId, color: e.target.value })} className="h-5 w-5 rounded cursor-pointer border-0 bg-transparent p-0 shrink-0" />
                         {editing ? (
                           <>
                             <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-7 flex-1 min-w-0" autoFocus />
@@ -107,7 +129,7 @@ export function PersonalCategories({ profileId, categories }: { profileId: strin
                       <div className="flex items-center gap-0.5 shrink-0">
                         {editing ? (
                           <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate(c)}><Check className="h-3.5 w-3.5" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updMut.mutate({ ...c, profileId, name: editName.trim() || c.name, kind: editKind })}><Check className="h-3.5 w-3.5" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-3.5 w-3.5" /></Button>
                           </>
                         ) : (
@@ -116,7 +138,7 @@ export function PersonalCategories({ profileId, categories }: { profileId: strin
                               onClick={() => { setEditingId(c.id); setEditName(c.name); setEditKind(c.kind); }}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dm.mutate({ id: c.id, profileId })}><Trash2 className="h-3.5 w-3.5" /></Button>
                           </>
                         )}
                       </div>

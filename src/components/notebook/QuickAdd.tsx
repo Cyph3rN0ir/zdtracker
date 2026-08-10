@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { createTodoFn } from "@/lib/notebook.functions";
+import { createOfflineId } from "@/lib/offline-queue";
+import { OFFLINE_OPS } from "@/lib/offline-operations";
+import { useOfflineMutation } from "@/lib/use-offline-mutation";
 import { Input } from "@/components/ui/input";
 import { ArrowUp } from "lucide-react";
 
@@ -19,25 +21,36 @@ export function QuickAdd({
   invalidateKeys: any[][];
   placeholder?: string;
 }) {
-  const qc = useQueryClient();
   const create = useServerFn(createTodoFn);
   const [value, setValue] = useState("");
 
-  const m = useMutation({
-    mutationFn: (title: string) =>
-      create({
-        data: {
-          title,
-          details: "",
-          dueDate: dueDate ?? null,
-          listId: listId ?? null,
-          noteId: noteId ?? null,
-          priority: 0,
-        },
-      }),
+  type Input = {
+    clientId: string;
+    title: string;
+    details: string;
+    dueDate: string | null;
+    listId: string | null;
+    noteId: string | null;
+    priority: number;
+  };
+  const m = useOfflineMutation<Input>({
+    operation: OFFLINE_OPS.TODO_CREATE,
+    mutationFn: (data) => create({ data }),
+    affectedKeys: invalidateKeys,
+    optimisticUpdate: (client, data) => {
+      const now = new Date().toISOString();
+      const row = {
+        id: data.clientId, list_id: data.listId, note_id: data.noteId,
+        title: data.title, details: data.details, due_date: data.dueDate,
+        done_at: null, priority: data.priority, sort_order: 0,
+        updated_at: now, created_at: now,
+      };
+      invalidateKeys.forEach((key) =>
+        client.setQueryData<Array<typeof row>>(key, (rows) => [...(rows ?? []), row]),
+      );
+    },
     onSuccess: () => {
       setValue("");
-      invalidateKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
     },
   });
 
@@ -47,7 +60,11 @@ export function QuickAdd({
         e.preventDefault();
         const v = value.trim();
         if (!v) return;
-        m.mutate(v);
+        m.mutate({
+          clientId: createOfflineId(), title: v, details: "",
+          dueDate: dueDate ?? null, listId: listId ?? null,
+          noteId: noteId ?? null, priority: 0,
+        });
       }}
       className="sticky bottom-0 z-10 -mx-4 sm:mx-0 sm:rounded-full border-t sm:border border-border/70 bg-background/90 backdrop-blur px-3 py-2"
       style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 0.5rem)` }}

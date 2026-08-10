@@ -16,6 +16,8 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { runOfflineWarmup } from "@/lib/offline-warmup";
 import { useOfflineStatus } from "@/lib/offline-status";
 import { flushQueue, getQueueSize, subscribeQueue } from "@/lib/offline-queue";
+import { registerCoreOfflineRunners } from "@/lib/offline-operations";
+import { purgePersistedQueryCache } from "@/lib/query-persister";
 import { toast } from "sonner";
 
 type CachedMe = {
@@ -119,6 +121,8 @@ function AppLayout() {
   useEffect(() => {
     if (!me?.userId) return;
 
+    const unregisterRunners = registerCoreOfflineRunners();
+
     const runWarmup = async () => {
       setSyncing(true);
       setSyncFailed(false);
@@ -152,7 +156,7 @@ function AppLayout() {
     const unsubQueue = subscribeQueue(() => {
       // queue changed; nothing to render here — banner reads sync status.
     });
-    return () => { unsubOnline(); unsubQueue(); };
+    return () => { unsubOnline(); unsubQueue(); unregisterRunners(); };
   }, [qc, me?.userId, setSyncing, setSyncFailed]);
 
   // Close drawer BEFORE navigating so the sheet and route transition don't
@@ -161,6 +165,12 @@ function AppLayout() {
 
   async function doLogout() {
     try { await logout(); } catch {}
+    try {
+      window.localStorage.removeItem(ME_CACHE_KEY);
+      qc.clear();
+      await purgePersistedQueryCache();
+      navigator.serviceWorker?.controller?.postMessage({ type: "CLEAR_APP_CACHE" });
+    } catch {}
     router.invalidate();
     navigate({ to: "/auth" });
   }

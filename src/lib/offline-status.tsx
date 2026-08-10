@@ -6,6 +6,8 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { onlineManager } from "@tanstack/react-query";
+import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
+import { Network } from "@capacitor/network";
 
 export type OfflineStatus =
   | "restoring" // hydrating persisted Query cache from IndexedDB
@@ -59,6 +61,10 @@ export function OfflineStatusProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsub = onlineManager.subscribe((next) => setOnline(next));
+    const onOnline = () => onlineManager.setOnline(true);
+    const onOffline = () => onlineManager.setOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
     if (typeof navigator !== "undefined" && navigator.onLine === false) probe();
     const onVisible = () => {
       if (document.visibilityState === "visible") probe();
@@ -67,8 +73,36 @@ export function OfflineStatusProvider({ children }: { children: ReactNode }) {
     window.addEventListener("focus", probe);
     return () => {
       unsub();
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", probe);
+    };
+  }, []);
+
+  // Android's native connectivity callback is more dependable than WebView's
+  // navigator.onLine, especially when the app resumes after a long sleep.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let listener: PluginListenerHandle | undefined;
+    let disposed = false;
+
+    Network.getStatus()
+      .then((status) => onlineManager.setOnline(status.connected))
+      .catch(() => {});
+    Network.addListener("networkStatusChange", (status) => {
+      onlineManager.setOnline(status.connected);
+      if (status.connected) probe();
+    })
+      .then((handle) => {
+        if (disposed) handle.remove();
+        else listener = handle;
+      })
+      .catch(() => {});
+
+    return () => {
+      disposed = true;
+      listener?.remove();
     };
   }, []);
 

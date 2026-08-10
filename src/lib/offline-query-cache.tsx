@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider, onlineManager } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { shouldDisablePwaFeatures } from "@/lib/pwa-host-guard";
 import {
@@ -13,6 +13,7 @@ import {
   OfflineStatusProvider,
   useOfflineStatus,
 } from "@/lib/offline-status";
+import { getFailedQueueSize, getQueueSize, subscribeQueue } from "@/lib/offline-queue";
 
 /**
  * Top-level offline provider:
@@ -128,23 +129,29 @@ declare function buildPersistOptionsType(): {
  */
 export function OfflineBanner() {
   const { status } = useOfflineStatus();
+  const pending = useSyncExternalStore(subscribeQueue, getQueueSize, () => 0);
+  const failed = useSyncExternalStore(subscribeQueue, getFailedQueueSize, () => 0);
 
-  if (status === "online" || status === "restoring") return null;
+  if ((status === "online" && pending === 0) || status === "restoring") return null;
 
   // Monochrome surface, accent comes only from a tiny status dot — keeps the
   // pill professional and unobtrusive while still readable on any background.
   const dot =
-    status === "offline"
+    failed > 0
+      ? "bg-rose-400"
+      : status === "offline"
       ? "bg-amber-400"
       : status === "sync-failed"
         ? "bg-rose-400"
         : "bg-emerald-400"; // syncing / back online
 
-  const pulse = status === "syncing" || status === "sync-failed" ? false : true;
+  const pulse = status === "syncing" || status === "sync-failed" || failed > 0 ? false : true;
   const spin = status === "syncing";
 
   const label =
-    status === "offline"
+    failed > 0
+      ? "Sync needs attention"
+      : status === "offline"
       ? "Offline"
       : status === "syncing"
         ? "Syncing…"
@@ -153,12 +160,14 @@ export function OfflineBanner() {
           : "Back online";
 
   const sub =
-    status === "offline"
+    failed > 0
+      ? "Will retry automatically"
+      : status === "offline"
       ? "Showing last synced data"
       : status === "syncing"
         ? "Updating in background"
         : status === "sync-failed"
-          ? "Tap retry when back online"
+          ? "Will retry automatically"
           : "Catching up";
 
   return (
@@ -185,6 +194,7 @@ export function OfflineBanner() {
         )}
       </span>
       <span className="font-medium text-foreground tracking-tight">{label}</span>
+      {pending > 0 && <span className="text-muted-foreground">{pending} pending</span>}
       <span className="hidden sm:inline text-muted-foreground">·</span>
       <span className="hidden sm:inline text-muted-foreground">{sub}</span>
     </div>
