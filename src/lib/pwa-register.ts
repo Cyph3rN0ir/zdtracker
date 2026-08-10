@@ -6,6 +6,8 @@
 import { shouldDisablePwaFeatures } from "@/lib/pwa-host-guard";
 
 type UpdateCallback = () => void;
+const SHELL_CACHE = "zs-shell-v4";
+const APP_SHELL_KEY = "/__zerosync_app_shell__";
 
 function collectShellUrls(): string[] {
   const urls = new Set<string>([window.location.href]);
@@ -25,6 +27,23 @@ function collectShellUrls(): string[] {
 }
 
 async function warmAppShell(registration: ServiceWorkerRegistration) {
+  // Write the authenticated document directly as well as asking the worker to
+  // warm it. This removes a message/activation race on Android WebView.
+  try {
+    const response = await fetch(window.location.href, {
+      credentials: "include",
+      cache: "reload",
+    });
+    if (response.ok) {
+      const cache = await caches.open(SHELL_CACHE);
+      await Promise.all([
+        cache.put(window.location.href, response.clone()),
+        cache.put(APP_SHELL_KEY, response.clone()),
+      ]);
+      localStorage.setItem("zs:offline-shell-ready:v1", String(Date.now()));
+    }
+  } catch {}
+
   const worker = registration.active ?? registration.waiting ?? registration.installing;
   worker?.postMessage({ type: "CACHE_APP_SHELL", urls: collectShellUrls() });
 }
