@@ -8,7 +8,9 @@ const APP_SHELL_KEY = "/__zerosync_app_shell__";
 const OWNED_CACHES = [SHELL_CACHE, ASSET_CACHE];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(precacheOfflineAssets());
+  event.waitUntil(
+    caches.open(SHELL_CACHE).then((cache) => cache.add(OFFLINE_URL).catch(() => {})),
+  );
   self.skipWaiting();
 });
 
@@ -64,30 +66,6 @@ async function networkFirstNavigation(req) {
       new Response("Offline", { status: 503 })
     );
   }
-}
-
-async function precacheOfflineAssets() {
-  const shell = await caches.open(SHELL_CACHE);
-  await shell.add(OFFLINE_URL).catch(() => {});
-
-  try {
-    const response = await fetch("/offline-assets.json", { cache: "no-store" });
-    if (!response.ok) return;
-    const manifest = await response.json();
-    const urls = Array.isArray(manifest.assets)
-      ? manifest.assets.map((asset) => asset?.url).filter(Boolean)
-      : [];
-    const assets = await caches.open(ASSET_CACHE);
-    // Do not fail service-worker installation because one optional chunk was
-    // unavailable during a deployment edge transition.
-    await Promise.allSettled(
-      urls.map(async (url) => {
-        const request = new Request(url, { credentials: "include", cache: "reload" });
-        const assetResponse = await fetch(request);
-        if (assetResponse.ok) await assets.put(request, assetResponse);
-      }),
-    );
-  } catch {}
 }
 
 async function cacheFirstAsset(req) {
