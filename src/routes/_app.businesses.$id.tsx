@@ -5,7 +5,12 @@ import { useState } from "react";
 import { deleteBusinessFn, getBusinessFn, renameBusinessFn } from "@/lib/zt.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
+import {
+  SectionTabBar,
+  SectionTabLabel,
+  SectionTabTrigger,
+} from "@/components/SectionTabBar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,21 +36,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { ChevronLeft, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  ChartNoAxesCombined,
+  ChevronLeft,
+  CircleDollarSign,
+  Landmark,
+  LayoutDashboard,
+  ListChecks,
+  MoreVertical,
+  Pencil,
+  PieChart,
+  Trash2,
+  Users,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_app/businesses/$id")({
   component: BusinessLayout,
 });
 
 const TABS = [
-  { key: "overview", label: "Overview", to: "/businesses/$id" },
-  { key: "people", label: "People", to: "/businesses/$id/people" },
-  { key: "equity", label: "Equity", to: "/businesses/$id/equity" },
-  { key: "money", label: "Money", to: "/businesses/$id/money" },
-  { key: "accounts", label: "Accounts", to: "/businesses/$id/accounts" },
-  { key: "profit", label: "Profit", to: "/businesses/$id/profit" },
-  { key: "tasks", label: "Tasks", to: "/businesses/$id/tasks" },
-
+  { key: "overview", label: "Overview", to: "/businesses/$id", icon: LayoutDashboard },
+  { key: "people", label: "People", to: "/businesses/$id/people", icon: Users },
+  { key: "equity", label: "Equity", to: "/businesses/$id/equity", icon: PieChart },
+  { key: "money", label: "Money", to: "/businesses/$id/money", icon: CircleDollarSign },
+  { key: "accounts", label: "Accounts", to: "/businesses/$id/accounts", icon: Landmark },
+  { key: "profit", label: "Profit", to: "/businesses/$id/profit", icon: ChartNoAxesCombined },
+  { key: "tasks", label: "Tasks", to: "/businesses/$id/tasks", icon: ListChecks },
 ] as const;
 
 function BusinessLayout() {
@@ -130,18 +146,25 @@ function BusinessLayout() {
           )}
         </div>
         <Tabs value={active}>
-          {/* Single-line horizontally scrollable strip (matches personal profiles). */}
-          <div className="-mx-4 px-4 overflow-x-auto overscroll-x-contain sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <TabsList className="inline-flex w-max flex-nowrap">
-              {TABS.map((t) => (
-                <TabsTrigger key={t.key} value={t.key} asChild className="shrink-0 whitespace-nowrap">
-                  <Link to={t.to} params={{ id }}>{t.label}</Link>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+          <SectionTabBar label="Business sections">
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <SectionTabTrigger
+                  key={t.key}
+                  value={t.key}
+                  asChild
+                >
+                  <Link to={t.to} params={{ id }} aria-label={t.label}>
+                    <SectionTabLabel icon={<Icon className="h-4 w-4" />}>
+                      {t.label}
+                    </SectionTabLabel>
+                  </Link>
+                </SectionTabTrigger>
+              );
+            })}
+          </SectionTabBar>
         </Tabs>
-
       </div>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>

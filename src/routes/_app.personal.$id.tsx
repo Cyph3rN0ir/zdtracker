@@ -19,11 +19,28 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import {
+  SectionTabBar,
+  SectionTabLabel,
+  SectionTabTrigger,
+} from "@/components/SectionTabBar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { ChevronLeft, Plus, Trash2, Pencil } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ChevronLeft,
+  ContactRound,
+  HandCoins,
+  LayoutDashboard,
+  Pencil,
+  Plus,
+  Tags,
+  Target,
+  Trash2,
+  WalletCards,
+} from "lucide-react";
 import { PersonalOverview } from "@/components/personal/Overview";
 import { PersonalTransactions } from "@/components/personal/Transactions";
 import { PersonalLoans } from "@/components/personal/Loans";
@@ -117,30 +134,58 @@ function PersonalDetail() {
 
   return (
     <div className="space-y-6">
+      <Button asChild variant="ghost" size="sm" className="-ml-2 h-7 text-muted-foreground">
+        <Link to="/personal">
+          <ChevronLeft className="h-3.5 w-3.5" />
+          All profiles
+        </Link>
+      </Button>
+
       <PageHeader
         title={prof.data?.name ?? "Profile"}
         subtitle="Personal ledger — fully separate from business accounts."
-        right={
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-            <Link to="/personal"><ChevronLeft className="h-3.5 w-3.5" /> All profiles</Link>
-          </Button>
-        }
       />
 
       {hardErr && <ErrorBox error={hardErr} />}
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <TabsList className="inline-flex w-max">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="tx">Transactions</TabsTrigger>
-            <TabsTrigger value="loans">Loans</TabsTrigger>
-            <TabsTrigger value="accounts">Accounts</TabsTrigger>
-            <TabsTrigger value="budgets">Budgets</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="people">People</TabsTrigger>
-          </TabsList>
-        </div>
+        <SectionTabBar label="Personal finance sections">
+          <SectionTabTrigger value="overview">
+            <SectionTabLabel icon={<LayoutDashboard className="h-4 w-4" />}>
+              Overview
+            </SectionTabLabel>
+          </SectionTabTrigger>
+          <SectionTabTrigger value="tx">
+            <SectionTabLabel icon={<ArrowLeftRight className="h-4 w-4" />}>
+              Transactions
+            </SectionTabLabel>
+          </SectionTabTrigger>
+          <SectionTabTrigger value="loans">
+            <SectionTabLabel icon={<HandCoins className="h-4 w-4" />}>
+              Loans
+            </SectionTabLabel>
+          </SectionTabTrigger>
+          <SectionTabTrigger value="accounts">
+            <SectionTabLabel icon={<WalletCards className="h-4 w-4" />}>
+              Accounts
+            </SectionTabLabel>
+          </SectionTabTrigger>
+          <SectionTabTrigger value="budgets">
+            <SectionTabLabel icon={<Target className="h-4 w-4" />}>
+              Budgets
+            </SectionTabLabel>
+          </SectionTabTrigger>
+          <SectionTabTrigger value="categories">
+            <SectionTabLabel icon={<Tags className="h-4 w-4" />}>
+              Categories
+            </SectionTabLabel>
+          </SectionTabTrigger>
+          <SectionTabTrigger value="people">
+            <SectionTabLabel icon={<ContactRound className="h-4 w-4" />}>
+              People
+            </SectionTabLabel>
+          </SectionTabTrigger>
+        </SectionTabBar>
 
         <TabsContent value="overview">
           <PersonalOverview
