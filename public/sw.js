@@ -51,7 +51,10 @@ self.addEventListener("fetch", (event) => {
 async function networkFirstNavigation(req) {
   const cache = await caches.open(SHELL_CACHE);
   try {
-    const response = await fetch(req);
+    // A plain fetch(req) may be satisfied by Chromium's HTTP cache even when
+    // the device is offline, which replays a server-hydration document and
+    // prevents the verified SPA fallback from being selected.
+    const response = await fetch(new Request(req, { cache: "no-store" }));
     if (!response.ok) throw new Error(`Navigation failed: ${response.status}`);
     await Promise.all([
       cache.put(req, response.clone()),
