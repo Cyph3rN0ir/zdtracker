@@ -11,7 +11,6 @@ node_modules
 dist
 dist-ssr
 dist-spa
-public/offline-app
 .output
 .vinxi
 .tanstack/**

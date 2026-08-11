@@ -82,6 +82,9 @@ function tanstackStartSpaStubsPlugin(): Plugin {
 }
 
 export default defineConfig({
+  // Public assets are copied explicitly by build:spa. This also lets us emit
+  // the dedicated web offline shell beneath public/offline-app safely.
+  publicDir: false,
   plugins: [
     tanstackStartSpaStubsPlugin(),
     react(),

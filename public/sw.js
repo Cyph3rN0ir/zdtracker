@@ -2,8 +2,8 @@
 // Registered only in production from src/lib/pwa-register.ts.
 
 const OFFLINE_URL = "/offline.html";
-const SHELL_CACHE = "zs-shell-v5";
-const ASSET_CACHE = "zs-assets-v5";
+const SHELL_CACHE = "zs-shell-v6";
+const ASSET_CACHE = "zs-assets-v6";
 const APP_SHELL_KEY = "/__zerosync_app_shell__";
 const OWNED_CACHES = [SHELL_CACHE, ASSET_CACHE];
 

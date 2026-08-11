@@ -1,6 +1,7 @@
-const SHELL_CACHE = "zs-shell-v5";
-const ASSET_CACHE = "zs-assets-v5";
+const SHELL_CACHE = "zs-shell-v6";
+const ASSET_CACHE = "zs-assets-v6";
 const APP_SHELL_KEY = "/__zerosync_app_shell__";
+const SPA_SHELL_URL = "/offline-app/index.spa.html";
 
 /** Save a validated authenticated document for Android/PWA cold launches. */
 export async function saveAuthenticatedAppShell(): Promise<void> {
@@ -8,14 +9,16 @@ export async function saveAuthenticatedAppShell(): Promise<void> {
     throw new Error("Offline app storage is not available in this environment");
   }
 
-  const response = await fetch(new URL("/", window.location.origin), {
+  // Use the client-only document for cold boots. The normal TanStack Start
+  // document requires live server hydration metadata and is not replay-safe.
+  const response = await fetch(new URL(SPA_SHELL_URL, window.location.origin), {
     credentials: "include",
     cache: "reload",
   });
   if (!response.ok) throw new Error(`Could not save the offline app (${response.status})`);
 
   const html = await response.clone().text();
-  if (!html.includes("<html") || !html.includes("ZeroSync")) {
+  if (!html.includes("<html") || !html.includes('id="root"') || !html.includes("ZeroSync")) {
     throw new Error("The downloaded offline app document was incomplete");
   }
 
