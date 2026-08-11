@@ -60,8 +60,12 @@ async function networkFirstNavigation(req) {
     return response;
   } catch {
     return (
-      (await cache.match(req, { ignoreSearch: true })) ||
       (await cache.match(APP_SHELL_KEY)) ||
+      // Route-specific entries can include an ordinary fetch response that
+      // lacks TanStack Start's navigation hydration state. The explicit app
+      // shell is refreshed through a real hidden navigation, so it is the
+      // authoritative cold-boot document for every offline route.
+      (await cache.match(req, { ignoreSearch: true })) ||
       (await cache.match(OFFLINE_URL)) ||
       new Response("Offline", { status: 503 })
     );
