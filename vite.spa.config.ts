@@ -82,10 +82,6 @@ function tanstackStartSpaStubsPlugin(): Plugin {
 }
 
 export default defineConfig({
-  // Public assets are copied explicitly by build:spa. Disabling Vite's own
-  // copy also lets the same config safely emit the web offline shell beneath
-  // public/offline-app without recursively copying public into itself.
-  publicDir: false,
   plugins: [
     tanstackStartSpaStubsPlugin(),
     react(),

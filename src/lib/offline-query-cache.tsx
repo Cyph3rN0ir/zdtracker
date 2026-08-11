@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider, onlineManager } from "@tanstack/react
 import { useSyncExternalStore, type ReactNode } from "react";
 import { OfflineStatusProvider, useOfflineStatus } from "@/lib/offline-status";
 import { getFailedQueueSize, getQueueSize, subscribeQueue } from "@/lib/offline-queue";
+import { restoreQuerySnapshot } from "@/lib/query-snapshot";
 
 /**
  * Top-level offline provider:
@@ -21,6 +22,14 @@ export function OfflineQueryProvider({
   queryClient: QueryClient;
   children: ReactNode;
 }) {
+  // TanStack Start completes its document hydration after getRouter() is
+  // created. On a cold service-worker boot that hydration can replace the
+  // queries restored during router construction. Re-apply the synchronous,
+  // user-scoped checkpoint here, immediately before route components read
+  // their queries. React Query's hydrate() keeps newer in-memory data, so
+  // this is also safe during an ordinary online boot.
+  restoreQuerySnapshot(queryClient);
+
   return (
     <OfflineStatusProvider>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
