@@ -42,6 +42,21 @@ import {
 import { OFFLINE_BOUNDS } from "@/lib/offline-manifest";
 import { persistQueryCacheNow } from "@/lib/query-persister";
 const FIVE_MIN = OFFLINE_BOUNDS.STALE_TIME_MS;
+const DOWNLOAD_PHASES = 6;
+
+export type OfflineDownloadProgress = {
+  phase: string;
+  completed: number;
+  total: number;
+};
+
+export type OfflineDownloadResult = {
+  queryCount: number;
+  businesses: number;
+  profiles: number;
+  conversations: number;
+  savedAt: number;
+};
 
 function localToday(): string {
   const d = new Date();
@@ -62,71 +77,165 @@ function startOfWeekISO(): string {
 }
 
 async function safe<T>(p: Promise<T>): Promise<T | null> {
-  try { return await p; } catch { return null; }
+  try {
+    return await p;
+  } catch {
+    return null;
+  }
 }
 
 let warmupInFlight: Promise<void> | null = null;
 
 export function runOfflineWarmup(qc: QueryClient): Promise<void> {
   if (warmupInFlight) return warmupInFlight;
-  warmupInFlight = doWarmup(qc).finally(() => { warmupInFlight = null; });
+  warmupInFlight = doWarmup(qc).finally(() => {
+    warmupInFlight = null;
+  });
   return warmupInFlight;
 }
 
-async function doWarmup(qc: QueryClient): Promise<void> {
+export async function downloadOfflineData(
+  qc: QueryClient,
+  onProgress?: (progress: OfflineDownloadProgress) => void,
+): Promise<OfflineDownloadResult> {
+  if (!onlineManager.isOnline()) throw new Error("Connect to the internet before downloading");
+  if (warmupInFlight) await warmupInFlight;
+  await qc.invalidateQueries({ refetchType: "none" });
+  await doWarmup(qc, onProgress);
+
+  const requiredKeys = [
+    ["businesses"],
+    ["my-tasks"],
+    ["personal"],
+    ["notebook", "lists"],
+    ["chat", "conversations"],
+  ];
+  const missing = requiredKeys.filter((key) => qc.getQueryData(key) === undefined);
+  if (missing.length > 0) {
+    throw new Error(
+      `Could not download ${missing.length} core data section${missing.length === 1 ? "" : "s"}`,
+    );
+  }
+
+  return {
+    queryCount: qc
+      .getQueryCache()
+      .getAll()
+      .filter((query) => query.state.status === "success").length,
+    businesses: ((qc.getQueryData(["businesses"]) as unknown[]) ?? []).length,
+    profiles: ((qc.getQueryData(["personal"]) as unknown[]) ?? []).length,
+    conversations: ((qc.getQueryData(["chat", "conversations"]) as unknown[]) ?? []).length,
+    savedAt: Date.now(),
+  };
+}
+
+async function doWarmup(
+  qc: QueryClient,
+  onProgress?: (progress: OfflineDownloadProgress) => void,
+): Promise<void> {
   if (!onlineManager.isOnline()) return;
+  const report = (phase: string, completed: number) =>
+    onProgress?.({ phase, completed, total: DOWNLOAD_PHASES });
 
   const today = localToday();
   const weekStart = startOfWeekISO();
 
   // Top-level core set — fan out in parallel.
+  report("Downloading core lists", 0);
   await Promise.all([
-    safe(qc.prefetchQuery({ queryKey: ["businesses"], queryFn: () => listBusinessesFn(), staleTime: FIVE_MIN })),
-    safe(qc.prefetchQuery({ queryKey: ["my-tasks"], queryFn: () => myTasksFn(), staleTime: FIVE_MIN })),
-    safe(qc.prefetchQuery({ queryKey: ["notebook", "lists"], queryFn: () => listListsFn(), staleTime: FIVE_MIN })),
-    safe(qc.prefetchQuery({ queryKey: ["personal"], queryFn: () => listPersonalProfilesFn(), staleTime: FIVE_MIN })),
-    safe(qc.prefetchQuery({
-      queryKey: ["notebook", "today", today],
-      queryFn: () => listTodosFn({ data: { from: today, to: today, includeOverdue: true, includeUnscheduled: true } }),
-      staleTime: FIVE_MIN,
-    })),
-    safe(qc.prefetchQuery({ queryKey: ["chat", "unread-total"], queryFn: () => unreadTotalFn(), staleTime: FIVE_MIN })),
-    safe(qc.prefetchQuery({ queryKey: ["chat", "conversations"], queryFn: () => listConversationsFn(), staleTime: FIVE_MIN })),
+    safe(
+      qc.prefetchQuery({
+        queryKey: ["businesses"],
+        queryFn: () => listBusinessesFn(),
+        staleTime: FIVE_MIN,
+      }),
+    ),
+    safe(
+      qc.prefetchQuery({ queryKey: ["my-tasks"], queryFn: () => myTasksFn(), staleTime: FIVE_MIN }),
+    ),
+    safe(
+      qc.prefetchQuery({
+        queryKey: ["notebook", "lists"],
+        queryFn: () => listListsFn(),
+        staleTime: FIVE_MIN,
+      }),
+    ),
+    safe(
+      qc.prefetchQuery({
+        queryKey: ["personal"],
+        queryFn: () => listPersonalProfilesFn(),
+        staleTime: FIVE_MIN,
+      }),
+    ),
+    safe(
+      qc.prefetchQuery({
+        queryKey: ["notebook", "today", today],
+        queryFn: () =>
+          listTodosFn({
+            data: { from: today, to: today, includeOverdue: true, includeUnscheduled: true },
+          }),
+        staleTime: FIVE_MIN,
+      }),
+    ),
+    safe(
+      qc.prefetchQuery({
+        queryKey: ["chat", "unread-total"],
+        queryFn: () => unreadTotalFn(),
+        staleTime: FIVE_MIN,
+      }),
+    ),
+    safe(
+      qc.prefetchQuery({
+        queryKey: ["chat", "conversations"],
+        queryFn: () => listConversationsFn(),
+        staleTime: FIVE_MIN,
+      }),
+    ),
   ]);
 
+  report("Downloading recent conversations", 1);
   const conversations =
     (qc.getQueryData(["chat", "conversations"]) as Array<{ id: string }> | undefined) ?? [];
   await Promise.all(
     conversations.slice(0, OFFLINE_BOUNDS.MAX_CONVERSATIONS).flatMap((conversation) => [
-      safe(qc.prefetchQuery({
-        queryKey: ["chat", "conv", conversation.id],
-        queryFn: () => getConversationFn({ data: { conversationId: conversation.id } }),
-        staleTime: FIVE_MIN,
-      })),
-      safe(qc.prefetchQuery({
-        queryKey: ["chat", "messages", conversation.id],
-        queryFn: () =>
-          listMessagesFn({ data: { conversationId: conversation.id, limit: 100 } }),
-        staleTime: FIVE_MIN,
-      })),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["chat", "conv", conversation.id],
+          queryFn: () => getConversationFn({ data: { conversationId: conversation.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["chat", "messages", conversation.id],
+          queryFn: () => listMessagesFn({ data: { conversationId: conversation.id, limit: 100 } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
     ]),
   );
 
   // Notebook: prefetch notes per list (component key: ["notebook","notes",listId]).
+  report("Downloading notebook", 2);
   const lists = (qc.getQueryData(["notebook", "lists"]) as Array<{ id: string }> | undefined) ?? [];
   await Promise.all(
     lists.slice(0, OFFLINE_BOUNDS.MAX_LISTS).map(async (l) => {
-      await safe(qc.prefetchQuery({
-        queryKey: ["notebook", "notes", l.id],
-        queryFn: () => listNotesFn({ data: { listId: l.id } }),
-        staleTime: FIVE_MIN,
-      }));
-      await safe(qc.prefetchQuery({
-        queryKey: ["notebook", "list-todos", l.id],
-        queryFn: () => listTodosFn({ data: { listId: l.id, includeUnscheduled: true } }),
-        staleTime: FIVE_MIN,
-      }));
-      const notes = (qc.getQueryData(["notebook", "notes", l.id]) as Array<{ id: string }> | undefined) ?? [];
+      await safe(
+        qc.prefetchQuery({
+          queryKey: ["notebook", "notes", l.id],
+          queryFn: () => listNotesFn({ data: { listId: l.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      );
+      await safe(
+        qc.prefetchQuery({
+          queryKey: ["notebook", "list-todos", l.id],
+          queryFn: () => listTodosFn({ data: { listId: l.id, includeUnscheduled: true } }),
+          staleTime: FIVE_MIN,
+        }),
+      );
+      const notes =
+        (qc.getQueryData(["notebook", "notes", l.id]) as Array<{ id: string }> | undefined) ?? [];
       notes.forEach((note) => qc.setQueryData(["notebook", "note", note.id], note));
     }),
   );
@@ -137,39 +246,52 @@ async function doWarmup(qc: QueryClient): Promise<void> {
   //   members  -> ["members", id]
   //   tasks    -> ["tasks", id, weekStart]
   //   tx       -> ["btx", id]
+  report("Downloading businesses", 3);
   const biz = (qc.getQueryData(["businesses"]) as Array<{ id: string }> | undefined) ?? [];
   await Promise.all(
     biz.slice(0, OFFLINE_BOUNDS.MAX_BUSINESSES).flatMap((b) => [
-      safe(qc.prefetchQuery({
-        queryKey: ["business", b.id],
-        queryFn: () => getBusinessFn({ data: { id: b.id } }),
-        staleTime: FIVE_MIN,
-      })),
-      safe(qc.prefetchQuery({
-        queryKey: ["members", b.id],
-        queryFn: () => listMembersFn({ data: { businessId: b.id } }),
-        staleTime: FIVE_MIN,
-      })),
-      safe(qc.prefetchQuery({
-        queryKey: ["tasks", b.id, weekStart],
-        queryFn: () => listBusinessTasksFn({ data: { businessId: b.id, weekStart } }),
-        staleTime: FIVE_MIN,
-      })),
-      safe(qc.prefetchQuery({
-        queryKey: ["btx", b.id],
-        queryFn: () => listTransactionsFn({ data: { businessId: b.id } }),
-        staleTime: FIVE_MIN,
-      })),
-      safe(qc.prefetchQuery({
-        queryKey: ["baccountsList", b.id],
-        queryFn: () => listBusinessAccountsFn({ data: { businessId: b.id } }),
-        staleTime: FIVE_MIN,
-      })),
-      safe(qc.prefetchQuery({
-        queryKey: ["baccounts", b.id],
-        queryFn: () => businessAccountBalancesFn({ data: { businessId: b.id } }),
-        staleTime: FIVE_MIN,
-      })),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["business", b.id],
+          queryFn: () => getBusinessFn({ data: { id: b.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["members", b.id],
+          queryFn: () => listMembersFn({ data: { businessId: b.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["tasks", b.id, weekStart],
+          queryFn: () => listBusinessTasksFn({ data: { businessId: b.id, weekStart } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["btx", b.id],
+          queryFn: () => listTransactionsFn({ data: { businessId: b.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["baccountsList", b.id],
+          queryFn: () => listBusinessAccountsFn({ data: { businessId: b.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["baccounts", b.id],
+          queryFn: () => businessAccountBalancesFn({ data: { businessId: b.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
     ]),
   );
 
@@ -182,18 +304,63 @@ async function doWarmup(qc: QueryClient): Promise<void> {
   //   cps       -> ["personal-cps", id]
   //   loans     -> ["personal-loans", id]
   //   budgets   -> ["personal-budgets", id]
+  report("Downloading personal finances", 4);
   const profs = (qc.getQueryData(["personal"]) as Array<{ id: string }> | undefined) ?? [];
   await Promise.all(
     profs.slice(0, OFFLINE_BOUNDS.MAX_PERSONAL_PROFILES).flatMap((p) => [
-      safe(qc.prefetchQuery({ queryKey: ["personal", p.id], queryFn: () => getPersonalProfileFn({ data: { id: p.id } }), staleTime: FIVE_MIN })),
-      safe(qc.prefetchQuery({ queryKey: ["personal-tx", p.id], queryFn: () => listPersonalTxExFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
-      safe(qc.prefetchQuery({ queryKey: ["personal-accts", p.id], queryFn: () => listPersonalAccountsFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
-      safe(qc.prefetchQuery({ queryKey: ["personal-cats", p.id], queryFn: () => listPersonalCategoriesFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
-      safe(qc.prefetchQuery({ queryKey: ["personal-cps", p.id], queryFn: () => listPersonalCounterpartiesFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
-      safe(qc.prefetchQuery({ queryKey: ["personal-loans", p.id], queryFn: () => listPersonalLoansFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
-      safe(qc.prefetchQuery({ queryKey: ["personal-budgets", p.id], queryFn: () => listPersonalBudgetsFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["personal", p.id],
+          queryFn: () => getPersonalProfileFn({ data: { id: p.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["personal-tx", p.id],
+          queryFn: () => listPersonalTxExFn({ data: { profileId: p.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["personal-accts", p.id],
+          queryFn: () => listPersonalAccountsFn({ data: { profileId: p.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["personal-cats", p.id],
+          queryFn: () => listPersonalCategoriesFn({ data: { profileId: p.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["personal-cps", p.id],
+          queryFn: () => listPersonalCounterpartiesFn({ data: { profileId: p.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["personal-loans", p.id],
+          queryFn: () => listPersonalLoansFn({ data: { profileId: p.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
+      safe(
+        qc.prefetchQuery({
+          queryKey: ["personal-budgets", p.id],
+          queryFn: () => listPersonalBudgetsFn({ data: { profileId: p.id } }),
+          staleTime: FIVE_MIN,
+        }),
+      ),
     ]),
   );
 
+  report("Saving on this device", 5);
   await persistQueryCacheNow(qc);
+  report("Available offline", 6);
 }

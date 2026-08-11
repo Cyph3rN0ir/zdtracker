@@ -9,6 +9,7 @@ import { persistQueryClientSave } from "@tanstack/react-query-persist-client";
 import type { QueryClient } from "@tanstack/react-query";
 import { get as idbGet, set as idbSet, del as idbDel } from "idb-keyval";
 import { purgeQuerySnapshot, saveQuerySnapshot } from "@/lib/query-snapshot";
+import { purgeOfflineDatabases, saveOfflineDatabase } from "@/lib/offline-database";
 
 // Bump when the shape of persisted query data changes in a breaking way.
 export const QUERY_CACHE_KEY = "zs:query-cache:v2";
@@ -17,9 +18,7 @@ export const QUERY_CACHE_KEY = "zs:query-cache:v2";
 export const QUERY_CACHE_MAX_AGE = 1000 * 60 * 60 * 24 * 30;
 
 // Build-tagged so a new deploy invalidates stale cache shapes automatically.
-export const QUERY_CACHE_BUSTER = String(
-  (import.meta as any).env?.VITE_BUILD_ID ?? "1",
-);
+export const QUERY_CACHE_BUSTER = String(import.meta.env?.VITE_BUILD_ID ?? "1");
 
 export function createQueryPersister() {
   return createAsyncStoragePersister({
@@ -38,6 +37,7 @@ export function createQueryPersister() {
 // the core data set has finished loading.
 export async function persistQueryCacheNow(queryClient: QueryClient): Promise<void> {
   const snapshotSaved = saveQuerySnapshot(queryClient);
+  const databaseQueryCount = await saveOfflineDatabase(queryClient);
   type PersistQueryClient = Parameters<typeof persistQueryClientSave>[0]["queryClient"];
   try {
     await persistQueryClientSave({
@@ -55,8 +55,8 @@ export async function persistQueryCacheNow(queryClient: QueryClient): Promise<vo
     // deliberately sufficient by itself on Android WebViews where IDB restore
     // has proven unreliable.
   }
-  if (!snapshotSaved) {
-    throw new Error("Offline data snapshot could not be saved");
+  if (!snapshotSaved && databaseQueryCount === 0) {
+    throw new Error("Offline data could not be saved on this device");
   }
   try {
     window.localStorage.setItem("zs:offline-data-ready:v1", String(Date.now()));
@@ -68,6 +68,7 @@ export async function persistQueryCacheNow(queryClient: QueryClient): Promise<vo
 // Hard-purge the persisted cache. Safe to call on sign-out / user switch.
 export async function purgePersistedQueryCache(): Promise<void> {
   purgeQuerySnapshot();
+  await purgeOfflineDatabases();
   try {
     await idbDel(QUERY_CACHE_KEY);
   } catch {

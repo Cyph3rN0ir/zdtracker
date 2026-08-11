@@ -27,10 +27,15 @@ import {
   type CachedAppUser,
 } from "@/lib/cached-session";
 import { toast } from "sonner";
+import { restoreOfflineDatabase } from "@/lib/offline-database";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
-  beforeLoad: async () => {
+  beforeLoad: async ({ context }) => {
+    // Restore the explicit offline download before any child query decides
+    // whether its collection is empty. This is awaited by the route itself,
+    // avoiding the late provider-restoration race seen on Android WebView.
+    await restoreOfflineDatabase(context.queryClient);
     const cached = readCachedMe();
     if (typeof navigator !== "undefined" && !navigator.onLine && cached) {
       onlineManager.setOnline(false);

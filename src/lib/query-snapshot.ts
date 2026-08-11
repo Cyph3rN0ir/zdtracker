@@ -64,6 +64,15 @@ function trimState(state: DehydratedState): DehydratedState {
   };
 }
 
+export function dehydrateOfflineQueries(queryClient: QueryClient): DehydratedState {
+  return trimState(
+    dehydrate(queryClient, {
+      shouldDehydrateQuery: (query) =>
+        query.state.status === "success" && isOfflineQuery(query.queryKey),
+    }),
+  );
+}
+
 export function restoreQuerySnapshot(queryClient: QueryClient): boolean {
   if (typeof window === "undefined") return false;
   const me = readCachedMe();
@@ -87,12 +96,7 @@ export function saveQuerySnapshot(queryClient: QueryClient): boolean {
   const me = readCachedMe();
   if (!me) return false;
   try {
-    const state = trimState(
-      dehydrate(queryClient, {
-        shouldDehydrateQuery: (query) =>
-          query.state.status === "success" && isOfflineQuery(query.queryKey),
-      }),
-    );
+    const state = dehydrateOfflineQueries(queryClient);
     const payload: StoredSnapshot = {
       version: SNAPSHOT_VERSION,
       userId: me.userId,
