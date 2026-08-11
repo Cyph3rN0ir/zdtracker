@@ -112,6 +112,16 @@ function AppLayout() {
   offlineLoadersRef.current = offlineLoaders;
   const { setSyncing, setSyncFailed } = useOfflineStatus();
   useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem("zs:offline-download-complete:v1")) {
+        window.sessionStorage.removeItem("zs:offline-download-complete:v1");
+        toast.success("Offline data downloaded");
+      }
+    } catch {
+      // Session storage is optional; the completed checkpoint is unaffected.
+    }
+  }, []);
+  useEffect(() => {
     if (!me?.userId) return;
 
     const unregisterRunners = registerCoreOfflineRunners();

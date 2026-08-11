@@ -34,7 +34,11 @@ function SettingsPage() {
     try {
       const result = await downloadOfflineData(queryClient, offlineLoaders, setProgress);
       setLastDownload(result);
-      toast.success("Offline data downloaded");
+      // TanStack Start's offline document must come from a real top-level
+      // navigation (fetch/iframe responses omit required hydration metadata).
+      // The service worker checkpoints this navigation before it is shown.
+      window.sessionStorage.setItem("zs:offline-download-complete:v1", "1");
+      window.location.assign(`/?offline_ready=${Date.now()}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Offline download failed");
     } finally {
