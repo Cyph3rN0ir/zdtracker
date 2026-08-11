@@ -96,7 +96,29 @@ export function saveQuerySnapshot(queryClient: QueryClient): boolean {
   const me = readCachedMe();
   if (!me) return false;
   try {
-    const state = dehydrateOfflineQueries(queryClient);
+    const current = dehydrateOfflineQueries(queryClient);
+    let state = current;
+    const previousRaw = window.localStorage.getItem(snapshotKey(me.userId));
+    if (previousRaw) {
+      const previous = JSON.parse(previousRaw) as StoredSnapshot;
+      if (
+        previous.version === SNAPSHOT_VERSION &&
+        previous.userId === me.userId &&
+        previous.state?.queries
+      ) {
+        // Mobile route transitions can temporarily leave only the active
+        // query in memory. Merge checkpoints by hash so a reactive save never
+        // erases sections that were explicitly downloaded moments earlier.
+        const queriesByHash = new Map(
+          previous.state.queries.map((query) => [query.queryHash, query]),
+        );
+        current.queries.forEach((query) => queriesByHash.set(query.queryHash, query));
+        state = trimState({
+          mutations: current.mutations,
+          queries: Array.from(queriesByHash.values()),
+        });
+      }
+    }
     const payload: StoredSnapshot = {
       version: SNAPSHOT_VERSION,
       userId: me.userId,

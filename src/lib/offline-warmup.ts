@@ -208,14 +208,11 @@ export async function downloadOfflineData(
   }
 
   report("Saving on this device", 5);
-  await persistQueryCacheNow(qc);
+  const savedQueryCount = await persistQueryCacheNow(qc);
   report("Available offline", 6);
 
   return {
-    queryCount: qc
-      .getQueryCache()
-      .getAll()
-      .filter((query) => query.state.status === "success").length,
+    queryCount: savedQueryCount,
     businesses: businesses.length,
     profiles: profiles.length,
     conversations: conversations.length,

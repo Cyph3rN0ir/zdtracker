@@ -6,14 +6,19 @@
 
 import type { QueryClient } from "@tanstack/react-query";
 import { del as idbDel } from "idb-keyval";
-import { purgeQuerySnapshot, saveQuerySnapshot } from "@/lib/query-snapshot";
+import {
+  dehydrateOfflineQueries,
+  purgeQuerySnapshot,
+  saveQuerySnapshot,
+} from "@/lib/query-snapshot";
 import { purgeOfflineDatabases, saveOfflineDatabase } from "@/lib/offline-database";
 
 // Bump when the shape of persisted query data changes in a breaking way.
 export const QUERY_CACHE_KEY = "zs:query-cache:v2";
 
 // 30 days — long enough for "I open the app once a month" usage.
-export async function persistQueryCacheNow(queryClient: QueryClient): Promise<void> {
+export async function persistQueryCacheNow(queryClient: QueryClient): Promise<number> {
+  const checkpointQueryCount = dehydrateOfflineQueries(queryClient).queries.length;
   const snapshotSaved = saveQuerySnapshot(queryClient);
   const databaseQueryCount = await saveOfflineDatabase(queryClient);
   if (!snapshotSaved && databaseQueryCount === 0) {
@@ -24,6 +29,7 @@ export async function persistQueryCacheNow(queryClient: QueryClient): Promise<vo
   } catch {
     // The snapshot itself is authoritative; this legacy marker is optional.
   }
+  return Math.max(databaseQueryCount, snapshotSaved ? checkpointQueryCount : 0);
 }
 
 // Hard-purge the persisted cache. Safe to call on sign-out / user switch.
