@@ -2,6 +2,10 @@ import { QueryClient, keepPreviousData } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { RouteSkeleton } from "./components/RouteSkeleton";
+import {
+  installQuerySnapshotPersistence,
+  restoreQuerySnapshot,
+} from "./lib/query-snapshot";
 
 export const getRouter = () => {
   const queryClient = new QueryClient({
@@ -34,6 +38,12 @@ export const getRouter = () => {
       },
     },
   });
+
+  // Android needs cached data before route components mount. IndexedDB
+  // restoration remains the larger secondary cache, while this bounded
+  // local snapshot hydrates synchronously during router construction.
+  restoreQuerySnapshot(queryClient);
+  installQuerySnapshotPersistence(queryClient);
 
 
   const router = createRouter({

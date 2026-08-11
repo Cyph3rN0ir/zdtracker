@@ -33,6 +33,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { useQueryClient } from "@tanstack/react-query";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
+import { OfflineDataUnavailable } from "@/components/OfflineDataUnavailable";
 
 function formatRelative(iso: string | null): string {
   if (!iso) return "";
@@ -56,7 +57,7 @@ function formatRelative(iso: string | null): string {
 function ConversationListPanel() {
   const list = useServerFn(listConversationsFn);
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, fetchStatus } = useQuery({
     queryKey: ["chat", "conversations"],
     queryFn: () => list(),
     // Realtime channels deliver updates; this poll is a 2-min safety net
@@ -100,7 +101,11 @@ function ConversationListPanel() {
         <EnablePushButton />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {isLoading ? (
+        {data === undefined && fetchStatus === "paused" ? (
+          <div className="p-4">
+            <OfflineDataUnavailable label="conversation list" />
+          </div>
+        ) : isLoading ? (
           <ul className="divide-y divide-border">
             {[0, 1, 2, 3].map((i) => (
               <li key={i} className="flex items-center gap-3 px-4 py-3">

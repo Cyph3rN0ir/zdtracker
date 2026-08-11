@@ -32,7 +32,12 @@ import {
   businessAccountBalancesFn,
 } from "@/lib/zt.functions";
 import { listListsFn, listNotesFn, listTodosFn } from "@/lib/notebook.functions";
-import { unreadTotalFn } from "@/lib/chat.functions";
+import {
+  getConversationFn,
+  listConversationsFn,
+  listMessagesFn,
+  unreadTotalFn,
+} from "@/lib/chat.functions";
 
 import { OFFLINE_BOUNDS } from "@/lib/offline-manifest";
 import { persistQueryCacheNow } from "@/lib/query-persister";
@@ -86,7 +91,26 @@ async function doWarmup(qc: QueryClient): Promise<void> {
       staleTime: FIVE_MIN,
     })),
     safe(qc.prefetchQuery({ queryKey: ["chat", "unread-total"], queryFn: () => unreadTotalFn(), staleTime: FIVE_MIN })),
+    safe(qc.prefetchQuery({ queryKey: ["chat", "conversations"], queryFn: () => listConversationsFn(), staleTime: FIVE_MIN })),
   ]);
+
+  const conversations =
+    (qc.getQueryData(["chat", "conversations"]) as Array<{ id: string }> | undefined) ?? [];
+  await Promise.all(
+    conversations.slice(0, OFFLINE_BOUNDS.MAX_CONVERSATIONS).flatMap((conversation) => [
+      safe(qc.prefetchQuery({
+        queryKey: ["chat", "conv", conversation.id],
+        queryFn: () => getConversationFn({ data: { conversationId: conversation.id } }),
+        staleTime: FIVE_MIN,
+      })),
+      safe(qc.prefetchQuery({
+        queryKey: ["chat", "messages", conversation.id],
+        queryFn: () =>
+          listMessagesFn({ data: { conversationId: conversation.id, limit: 100 } }),
+        staleTime: FIVE_MIN,
+      })),
+    ]),
+  );
 
   // Notebook: prefetch notes per list (component key: ["notebook","notes",listId]).
   const lists = (qc.getQueryData(["notebook", "lists"]) as Array<{ id: string }> | undefined) ?? [];

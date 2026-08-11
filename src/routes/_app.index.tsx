@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { OfflineDataUnavailable } from "@/components/OfflineDataUnavailable";
 import { ErrorBox } from "@/components/ErrorBox";
 import {
   AlertDialog,
@@ -127,7 +128,9 @@ function Dashboard() {
             <Building2 className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {q.isLoading ? (
+            {q.fetchStatus === "paused" && q.data === undefined ? (
+              <OfflineDataUnavailable label="business list" />
+            ) : q.isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-9 w-full" />
                 <Skeleton className="h-9 w-full" />

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { myTasksFn, toggleTaskFn, deleteTaskFn, setTaskRemarkFn } from "@/lib/zt.functions";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { OfflineDataUnavailable } from "@/components/OfflineDataUnavailable";
 import { ErrorBox } from "@/components/ErrorBox";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -119,7 +120,9 @@ function MyTasks() {
   return (
     <div className="space-y-6">
       <PageHeader title="My tasks" subtitle="Your assignments for the next 14 days." />
-      {q.isLoading ? (
+      {q.fetchStatus === "paused" && q.data === undefined ? (
+        <OfflineDataUnavailable label="task list" />
+      ) : q.isLoading ? (
         <div className="text-xs text-muted-foreground">Loading…</div>
       ) : q.isError && !q.data && !q.isFetching ? (
         <ErrorBox error={q.error} />

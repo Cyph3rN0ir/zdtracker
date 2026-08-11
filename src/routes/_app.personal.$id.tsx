@@ -13,6 +13,7 @@ import {
 } from "@/lib/zt.functions";
 import { PageHeader } from "@/components/PageHeader";
 import { ErrorBox } from "@/components/ErrorBox";
+import { OfflineDataUnavailable } from "@/components/OfflineDataUnavailable";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,6 +127,10 @@ function PersonalDetail() {
       : budgets.isError && !budgets.data ? budgets.error
       : null)
     : null;
+
+  if (queries.some((query) => query.fetchStatus === "paused" && query.data === undefined)) {
+    return <OfflineDataUnavailable label="personal profile" />;
+  }
 
   return (
     <div className="space-y-6">

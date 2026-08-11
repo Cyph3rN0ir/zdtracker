@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { deleteBusinessFn, getBusinessFn, renameBusinessFn } from "@/lib/zt.functions";
 import { Button } from "@/components/ui/button";
+import { OfflineDataUnavailable } from "@/components/OfflineDataUnavailable";
 import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
 import {
@@ -104,6 +105,10 @@ function BusinessLayout() {
     TABS.slice()
       .reverse()
       .find((t) => pathname.startsWith(t.to.replace("$id", id)))?.key ?? "overview";
+
+  if (q.fetchStatus === "paused" && q.data === undefined) {
+    return <OfflineDataUnavailable label="business workspace" />;
+  }
 
   return (
     <div className="space-y-6">

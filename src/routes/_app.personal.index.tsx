@@ -10,6 +10,7 @@ import {
 } from "@/lib/zt.functions";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { OfflineDataUnavailable } from "@/components/OfflineDataUnavailable";
 import { ErrorBox } from "@/components/ErrorBox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -129,7 +130,9 @@ function PersonalList() {
             <User className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {q.isLoading ? (
+            {q.fetchStatus === "paused" && q.data === undefined ? (
+              <OfflineDataUnavailable label="profile list" />
+            ) : q.isLoading ? (
               <Skeleton className="h-9 w-full" />
             ) : q.isError && !q.data && !q.isFetching ? (
               <ErrorBox error={q.error} />

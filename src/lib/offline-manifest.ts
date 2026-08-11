@@ -18,6 +18,7 @@ export const OFFLINE_BOUNDS = {
   MAX_BUSINESSES: 20,
   MAX_LISTS: 20,
   MAX_PERSONAL_PROFILES: 20,
+  MAX_CONVERSATIONS: 10,
   // Notebook "today" window — only today is prefetched; other days load on
   // demand when online and stay cached after.
   TODAY_WINDOW_DAYS: 1,
@@ -49,10 +50,10 @@ export const OFFLINE_ROUTES: ReadonlyArray<OfflineRoute> = [
   { route: "/businesses/$id/profit",     keyPrefix: ["btx"],                         bounded: `first ${OFFLINE_BOUNDS.MAX_BUSINESSES}`, fallback: "must visit while online once" },
   { route: "/personal",                  keyPrefix: ["personal"],                    bounded: "all profiles",                    fallback: "empty state" },
   { route: "/personal/$id",              keyPrefix: ["personal-tx", "personal-accts", "personal-cats", "personal-cps", "personal-loans", "personal-budgets"], bounded: `first ${OFFLINE_BOUNDS.MAX_PERSONAL_PROFILES}`, fallback: "must visit while online once" },
-  { route: "/chat",                      keyPrefix: ["chat", "unread-total"],        bounded: "unread badge only",               fallback: "messages require network" },
+  { route: "/chat",                      keyPrefix: ["chat", "conversations"],       bounded: `first ${OFFLINE_BOUNDS.MAX_CONVERSATIONS} conversations`, fallback: "empty state if not warmed" },
+  { route: "/chat/$conversationId",      keyPrefix: ["chat", "messages"],            bounded: "latest 100 messages",              fallback: "must sync online once" },
 ];
 
 // Routes NOT offline-supported (require network on every visit):
-//   /chat/$conversationId — messages are realtime, not warmed.
 //   /admin/users          — admin-only privileged data, not persisted client-side.
-export const OFFLINE_EXCLUDED = ["/chat/$conversationId", "/admin/users"] as const;
+export const OFFLINE_EXCLUDED = ["/admin/users"] as const;
