@@ -51,10 +51,14 @@ self.addEventListener("fetch", (event) => {
 async function networkFirstNavigation(req) {
   const cache = await caches.open(SHELL_CACHE);
   try {
-    // A plain fetch(req) may be satisfied by Chromium's HTTP cache even when
-    // the device is offline, which replays a server-hydration document and
-    // prevents the verified SPA fallback from being selected.
-    const response = await fetch(new Request(req, { cache: "no-store" }));
+    // Chromium may satisfy the navigation itself from its HTTP cache while
+    // disconnected. Decide connectivity with a unique uncached HEAD first;
+    // only ask for the server document when that real network probe succeeds.
+    const probeUrl = new URL("/favicon.ico", self.location.origin);
+    probeUrl.searchParams.set("_sw_probe", String(Date.now()));
+    const probe = await fetch(probeUrl, { method: "HEAD", cache: "no-store" });
+    if (!probe.ok && probe.status >= 500) throw new Error(`Probe failed: ${probe.status}`);
+    const response = await fetch(req);
     if (!response.ok) throw new Error(`Navigation failed: ${response.status}`);
     await Promise.all([
       cache.put(req, response.clone()),
