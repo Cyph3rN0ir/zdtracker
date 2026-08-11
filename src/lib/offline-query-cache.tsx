@@ -1,18 +1,13 @@
 import { QueryClient, QueryClientProvider, onlineManager } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { shouldDisablePwaFeatures } from "@/lib/pwa-host-guard";
 import {
   createQueryPersister,
-  purgePersistedQueryCache,
   QUERY_CACHE_MAX_AGE,
   QUERY_CACHE_BUSTER,
 } from "@/lib/query-persister";
-import {
-  OfflineStatusProvider,
-  useOfflineStatus,
-} from "@/lib/offline-status";
+import { OfflineStatusProvider, useOfflineStatus } from "@/lib/offline-status";
 import { getFailedQueueSize, getQueueSize, subscribeQueue } from "@/lib/offline-queue";
 
 /**
@@ -47,17 +42,6 @@ export function OfflineQueryProvider({
       },
     };
   }, [skip]);
-
-  useEffect(() => {
-    if (skip) return;
-    const { data: sub } = getSupabaseBrowser().auth.onAuthStateChange((event: string) => {
-      if (event === "SIGNED_OUT") {
-        queryClient.clear();
-        purgePersistedQueryCache();
-      }
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [skip, queryClient]);
 
   if (!persistOptions) {
     return (
@@ -140,10 +124,10 @@ export function OfflineBanner() {
     failed > 0
       ? "bg-rose-400"
       : status === "offline"
-      ? "bg-amber-400"
-      : status === "sync-failed"
-        ? "bg-rose-400"
-        : "bg-emerald-400"; // syncing / back online
+        ? "bg-amber-400"
+        : status === "sync-failed"
+          ? "bg-rose-400"
+          : "bg-emerald-400"; // syncing / back online
 
   const pulse = status === "syncing" || status === "sync-failed" || failed > 0 ? false : true;
   const spin = status === "syncing";
@@ -152,23 +136,23 @@ export function OfflineBanner() {
     failed > 0
       ? "Sync needs attention"
       : status === "offline"
-      ? "Offline"
-      : status === "syncing"
-        ? "Syncing…"
-        : status === "sync-failed"
-          ? "Sync failed"
-          : "Back online";
+        ? "Offline"
+        : status === "syncing"
+          ? "Syncing…"
+          : status === "sync-failed"
+            ? "Sync failed"
+            : "Back online";
 
   const sub =
     failed > 0
       ? "Will retry automatically"
       : status === "offline"
-      ? "Showing last synced data"
-      : status === "syncing"
-        ? "Updating in background"
-        : status === "sync-failed"
-          ? "Will retry automatically"
-          : "Catching up";
+        ? "Showing last synced data"
+        : status === "syncing"
+          ? "Updating in background"
+          : status === "sync-failed"
+            ? "Will retry automatically"
+            : "Catching up";
 
   return (
     <div
@@ -182,8 +166,7 @@ export function OfflineBanner() {
         {pulse && (
           <span
             className={
-              "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 " +
-              dot
+              "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 " + dot
             }
           />
         )}

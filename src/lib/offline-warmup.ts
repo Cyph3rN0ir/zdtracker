@@ -186,6 +186,27 @@ export async function downloadOfflineData(
     }),
   );
 
+  // A delayed provider/auth event must not be able to turn a completed
+  // download into a partial checkpoint. Re-assert the authoritative core
+  // results immediately before persistence and verify every required key.
+  qc.setQueryData(["businesses"], businessValue);
+  qc.setQueryData(["my-tasks"], taskValue);
+  qc.setQueryData(["personal"], profileValue);
+  qc.setQueryData(["notebook", "lists"], listValue);
+  qc.setQueryData(["notebook", "today", today], todayValue);
+  qc.setQueryData(["chat", "unread-total"], unreadValue);
+  qc.setQueryData(["chat", "conversations"], chatValue);
+  const requiredKeys = [
+    ["businesses"],
+    ["my-tasks"],
+    ["personal"],
+    ["notebook", "lists"],
+    ["chat", "conversations"],
+  ];
+  if (requiredKeys.some((key) => qc.getQueryData(key) === undefined)) {
+    throw new Error("Offline checkpoint lost core data before it could be saved");
+  }
+
   report("Saving on this device", 5);
   await persistQueryCacheNow(qc);
   report("Available offline", 6);
