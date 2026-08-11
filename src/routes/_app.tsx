@@ -42,7 +42,8 @@ export const Route = createFileRoute("/_app")({
     // Some Android WebViews report navigator.onLine=true while disconnected;
     // making an RPC here would blank the shell before connectivity probing.
     if (cached && hasDownloadedOfflineData(cached.userId)) {
-      return { me: cached, offline: !navigator.onLine };
+      onlineManager.setOnline(false);
+      return { me: cached, offline: true };
     }
     if (typeof navigator !== "undefined" && !navigator.onLine && cached) {
       onlineManager.setOnline(false);

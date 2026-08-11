@@ -72,7 +72,10 @@ export function OfflineStatusProvider({ children }: { children: ReactNode }) {
     const onOffline = () => onlineManager.setOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
-    if (typeof navigator !== "undefined" && navigator.onLine === false) probe();
+    // A downloaded app intentionally boots offline-first even when WebView's
+    // navigator.onLine is stale. This uncached request is the authority that
+    // promotes it back online and starts background synchronization.
+    probe();
     const onVisible = () => {
       if (document.visibilityState === "visible") probe();
     };
