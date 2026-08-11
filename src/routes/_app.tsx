@@ -50,7 +50,11 @@ export const Route = createFileRoute("/_app")({
       // cached app cannot remain behind the route skeleton indefinitely.
       me = await withConnectionTimeout(meFn(), cached ? 1500 : 8000);
     } catch (error) {
-      if (cached && isOfflineLikeError(error)) {
+      // WebView/Chromium can keep navigator.onLine=true and surface a failed
+      // server-function request as a non-Error value. A real signed-out
+      // session returns null rather than throwing, so any transport/server
+      // exception is safe to serve from the previously validated local user.
+      if (cached) {
         onlineManager.setOnline(false);
         return { me: cached, offline: true };
       }

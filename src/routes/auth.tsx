@@ -23,7 +23,7 @@ export const Route = createFileRoute("/auth")({
       const me = await withConnectionTimeout(meFn(), cached ? 1500 : 8000);
       if (me) throw redirect({ to: "/" });
     } catch (error) {
-      if (cached && isOfflineLikeError(error)) throw redirect({ to: "/" });
+      if (cached) throw redirect({ to: "/" });
       if (!isOfflineLikeError(error)) throw error;
       // With no cached session, render sign-in instead of leaving the router
       // skeleton pending forever. A new sign-in still requires connectivity.
