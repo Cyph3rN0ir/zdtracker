@@ -2,6 +2,7 @@ const SHELL_CACHE = "zs-shell-v6";
 const ASSET_CACHE = "zs-assets-v6";
 const APP_SHELL_KEY = "/__zerosync_app_shell__";
 const SPA_SHELL_URL = "/offline-app/";
+const SPA_ASSET_MANIFEST_URL = "/offline-app/asset-manifest.json";
 
 /** Save a validated authenticated document for Android/PWA cold launches. */
 export async function saveAuthenticatedAppShell(): Promise<void> {
@@ -42,9 +43,22 @@ export async function saveAuthenticatedAppShell(): Promise<void> {
         (url.pathname.startsWith("/assets/") ||
           /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname)),
     );
-  const assetUrls = new Map([...criticalUrls, ...discoveredUrls].map((url) => [url.href, url]));
+  const manifestResponse = await fetch(SPA_ASSET_MANIFEST_URL, { cache: "reload" });
+  if (!manifestResponse.ok) throw new Error("Could not load the offline app file list");
+  const manifestPaths = (await manifestResponse.json()) as unknown;
+  if (!Array.isArray(manifestPaths) || manifestPaths.some((path) => typeof path !== "string")) {
+    throw new Error("The offline app file list was invalid");
+  }
+  const offlineBundleUrls = manifestPaths.map(
+    (path) => new URL(path as string, window.location.origin),
+  );
+  const assetUrls = new Map(
+    [...criticalUrls, ...offlineBundleUrls, ...discoveredUrls].map((url) => [url.href, url]),
+  );
   const assetCache = await caches.open(ASSET_CACHE);
-  const failedCritical = new Set(criticalUrls.map((url) => url.href));
+  const failedCritical = new Set(
+    [...criticalUrls, ...offlineBundleUrls].map((url) => url.href),
+  );
   await Promise.all(
     Array.from(assetUrls.values(), async (url) => {
       try {
