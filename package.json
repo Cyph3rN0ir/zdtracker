@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "npm run build:offline-shell && vite build",
+    "build:offline-shell": "vite build --config vite.spa.config.ts --outDir public/offline-app --base /offline-app/",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

@@ -6,8 +6,9 @@
 import { shouldDisablePwaFeatures } from "@/lib/pwa-host-guard";
 
 type UpdateCallback = () => void;
-const SHELL_CACHE = "zs-shell-v5";
+const SHELL_CACHE = "zs-shell-v6";
 const APP_SHELL_KEY = "/__zerosync_app_shell__";
+const SPA_SHELL_URL = "/offline-app/index.spa.html";
 const offlineRouteModules = import.meta.glob("/src/routes/**/*.tsx");
 
 function collectShellUrls(): string[] {
@@ -32,14 +33,13 @@ async function warmAppShell(registration: ServiceWorkerRegistration) {
   // warm it. This removes a message/activation race on Android WebView.
   let shellReady = false;
   try {
-    const response = await fetch(window.location.href, {
+    const response = await fetch(SPA_SHELL_URL, {
       credentials: "include",
       cache: "reload",
     });
     if (response.ok) {
       const cache = await caches.open(SHELL_CACHE);
       await Promise.all([
-        cache.put(window.location.href, response.clone()),
         cache.put(APP_SHELL_KEY, response.clone()),
       ]);
       shellReady = true;

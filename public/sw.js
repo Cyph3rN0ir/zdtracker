@@ -2,8 +2,8 @@
 // Registered only in production from src/lib/pwa-register.ts.
 
 const OFFLINE_URL = "/offline.html";
-const SHELL_CACHE = "zs-shell-v5";
-const ASSET_CACHE = "zs-assets-v5";
+const SHELL_CACHE = "zs-shell-v6";
+const ASSET_CACHE = "zs-assets-v6";
 const APP_SHELL_KEY = "/__zerosync_app_shell__";
 const OWNED_CACHES = [SHELL_CACHE, ASSET_CACHE];
 
@@ -53,15 +53,11 @@ async function networkFirstNavigation(req) {
   try {
     const response = await fetch(req);
     if (!response.ok) throw new Error(`Navigation failed: ${response.status}`);
-    await Promise.all([
-      cache.put(req, response.clone()),
-      cache.put(APP_SHELL_KEY, response.clone()),
-    ]);
     return response;
   } catch {
     return (
-      (await cache.match(req, { ignoreSearch: true })) ||
       (await cache.match(APP_SHELL_KEY)) ||
+      (await cache.match(req, { ignoreSearch: true })) ||
       (await cache.match(OFFLINE_URL)) ||
       new Response("Offline", { status: 503 })
     );
@@ -110,16 +106,6 @@ async function cacheShellUrls(urls) {
     }),
   );
 
-  try {
-    const documentUrl = sameOrigin[0];
-    if (documentUrl) {
-      const response = await fetch(documentUrl, { credentials: "include", cache: "reload" });
-      if (response.ok) {
-        const shell = await caches.open(SHELL_CACHE);
-        await shell.put(APP_SHELL_KEY, response);
-      }
-    }
-  } catch {}
 }
 
 // ---------------- Push ----------------
