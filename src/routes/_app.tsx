@@ -14,6 +14,7 @@ import { useTheme, THEMES, type Theme } from "@/lib/theme";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { runOfflineWarmup } from "@/lib/offline-warmup";
+import { useOfflineLoaders } from "@/lib/offline-loaders";
 import { useOfflineStatus } from "@/lib/offline-status";
 import { flushQueue, getQueueSize, subscribeQueue } from "@/lib/offline-queue";
 import { registerCoreOfflineRunners } from "@/lib/offline-operations";
@@ -88,6 +89,7 @@ function AppLayout() {
   // Phase 2 + 4 — proactive offline warmup, queue flushing, and unified
   // sync-status reporting. Drives the shared OfflineBanner via OfflineStatus.
   const qc = useQueryClient();
+  const offlineLoaders = useOfflineLoaders();
   const { setSyncing, setSyncFailed } = useOfflineStatus();
   useEffect(() => {
     if (!me?.userId) return;
@@ -98,7 +100,7 @@ function AppLayout() {
       setSyncing(true);
       setSyncFailed(false);
       try {
-        await runOfflineWarmup(qc);
+        await runOfflineWarmup(qc, offlineLoaders);
       } catch {
         setSyncFailed(true);
       } finally {
@@ -128,7 +130,7 @@ function AppLayout() {
       // queue changed; nothing to render here — banner reads sync status.
     });
     return () => { unsubOnline(); unsubQueue(); unregisterRunners(); };
-  }, [qc, me?.userId, setSyncing, setSyncFailed]);
+  }, [qc, me?.userId, offlineLoaders, setSyncing, setSyncFailed]);
 
   // Close drawer BEFORE navigating so the sheet and route transition don't
   // animate at the same time (the main cause of mobile lag).

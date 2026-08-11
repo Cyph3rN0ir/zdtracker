@@ -13,33 +13,8 @@
 // parallel cache the components never read. See each call site below.
 
 import { onlineManager, type QueryClient } from "@tanstack/react-query";
-import {
-  listBusinessesFn,
-  myTasksFn,
-  listPersonalProfilesFn,
-  listMembersFn,
-  listBusinessTasksFn,
-  listTransactionsFn,
-  listPersonalAccountsFn,
-  listPersonalCategoriesFn,
-  listPersonalCounterpartiesFn,
-  listPersonalLoansFn,
-  listPersonalBudgetsFn,
-  listPersonalTxExFn,
-  getBusinessFn,
-  getPersonalProfileFn,
-  listBusinessAccountsFn,
-  businessAccountBalancesFn,
-} from "@/lib/zt.functions";
-import { listListsFn, listNotesFn, listTodosFn } from "@/lib/notebook.functions";
-import {
-  getConversationFn,
-  listConversationsFn,
-  listMessagesFn,
-  unreadTotalFn,
-} from "@/lib/chat.functions";
-
 import { OFFLINE_BOUNDS } from "@/lib/offline-manifest";
+import type { OfflineLoaders } from "@/lib/offline-loaders";
 import { persistQueryCacheNow } from "@/lib/query-persister";
 const FIVE_MIN = OFFLINE_BOUNDS.STALE_TIME_MS;
 const DOWNLOAD_PHASES = 6;
@@ -86,9 +61,9 @@ async function safe<T>(p: Promise<T>): Promise<T | null> {
 
 let warmupInFlight: Promise<void> | null = null;
 
-export function runOfflineWarmup(qc: QueryClient): Promise<void> {
+export function runOfflineWarmup(qc: QueryClient, loaders: OfflineLoaders): Promise<void> {
   if (warmupInFlight) return warmupInFlight;
-  warmupInFlight = doWarmup(qc).finally(() => {
+  warmupInFlight = doWarmup(qc, loaders).finally(() => {
     warmupInFlight = null;
   });
   return warmupInFlight;
@@ -96,24 +71,29 @@ export function runOfflineWarmup(qc: QueryClient): Promise<void> {
 
 export async function downloadOfflineData(
   qc: QueryClient,
+  loaders: OfflineLoaders,
   onProgress?: (progress: OfflineDownloadProgress) => void,
 ): Promise<OfflineDownloadResult> {
   if (!onlineManager.isOnline()) throw new Error("Connect to the internet before downloading");
   if (warmupInFlight) await warmupInFlight;
   await qc.invalidateQueries({ refetchType: "none" });
-  await doWarmup(qc, onProgress);
+  await doWarmup(qc, loaders, onProgress);
 
-  const requiredKeys = [
-    ["businesses"],
-    ["my-tasks"],
-    ["personal"],
-    ["notebook", "lists"],
-    ["chat", "conversations"],
+  const requiredSections = [
+    { label: "businesses", key: ["businesses"] },
+    { label: "tasks", key: ["my-tasks"] },
+    { label: "personal profiles", key: ["personal"] },
+    { label: "notebook", key: ["notebook", "lists"] },
+    { label: "conversations", key: ["chat", "conversations"] },
   ];
-  const missing = requiredKeys.filter((key) => qc.getQueryData(key) === undefined);
+  const missing = requiredSections.filter(({ key }) => qc.getQueryData(key) === undefined);
   if (missing.length > 0) {
+    const firstError = missing
+      .map(({ key }) => qc.getQueryState(key)?.error)
+      .find((error): error is Error => error instanceof Error);
+    const sectionNames = missing.map(({ label }) => label).join(", ");
     throw new Error(
-      `Could not download ${missing.length} core data section${missing.length === 1 ? "" : "s"}`,
+      `Could not download: ${sectionNames}${firstError ? `. ${firstError.message}` : ""}`,
     );
   }
 
@@ -131,6 +111,7 @@ export async function downloadOfflineData(
 
 async function doWarmup(
   qc: QueryClient,
+  loaders: OfflineLoaders,
   onProgress?: (progress: OfflineDownloadProgress) => void,
 ): Promise<void> {
   if (!onlineManager.isOnline()) return;
@@ -146,24 +127,28 @@ async function doWarmup(
     safe(
       qc.prefetchQuery({
         queryKey: ["businesses"],
-        queryFn: () => listBusinessesFn(),
+        queryFn: () => loaders.listBusinesses(),
         staleTime: FIVE_MIN,
       }),
     ),
     safe(
-      qc.prefetchQuery({ queryKey: ["my-tasks"], queryFn: () => myTasksFn(), staleTime: FIVE_MIN }),
+      qc.prefetchQuery({
+        queryKey: ["my-tasks"],
+        queryFn: () => loaders.listMyTasks(),
+        staleTime: FIVE_MIN,
+      }),
     ),
     safe(
       qc.prefetchQuery({
         queryKey: ["notebook", "lists"],
-        queryFn: () => listListsFn(),
+        queryFn: () => loaders.listNotebookLists(),
         staleTime: FIVE_MIN,
       }),
     ),
     safe(
       qc.prefetchQuery({
         queryKey: ["personal"],
-        queryFn: () => listPersonalProfilesFn(),
+        queryFn: () => loaders.listPersonalProfiles(),
         staleTime: FIVE_MIN,
       }),
     ),
@@ -171,7 +156,7 @@ async function doWarmup(
       qc.prefetchQuery({
         queryKey: ["notebook", "today", today],
         queryFn: () =>
-          listTodosFn({
+          loaders.listTodos({
             data: { from: today, to: today, includeOverdue: true, includeUnscheduled: true },
           }),
         staleTime: FIVE_MIN,
@@ -180,14 +165,14 @@ async function doWarmup(
     safe(
       qc.prefetchQuery({
         queryKey: ["chat", "unread-total"],
-        queryFn: () => unreadTotalFn(),
+        queryFn: () => loaders.unreadTotal(),
         staleTime: FIVE_MIN,
       }),
     ),
     safe(
       qc.prefetchQuery({
         queryKey: ["chat", "conversations"],
-        queryFn: () => listConversationsFn(),
+        queryFn: () => loaders.listConversations(),
         staleTime: FIVE_MIN,
       }),
     ),
@@ -201,14 +186,15 @@ async function doWarmup(
       safe(
         qc.prefetchQuery({
           queryKey: ["chat", "conv", conversation.id],
-          queryFn: () => getConversationFn({ data: { conversationId: conversation.id } }),
+          queryFn: () => loaders.getConversation({ data: { conversationId: conversation.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["chat", "messages", conversation.id],
-          queryFn: () => listMessagesFn({ data: { conversationId: conversation.id, limit: 100 } }),
+          queryFn: () =>
+            loaders.listMessages({ data: { conversationId: conversation.id, limit: 100 } }),
           staleTime: FIVE_MIN,
         }),
       ),
@@ -223,14 +209,14 @@ async function doWarmup(
       await safe(
         qc.prefetchQuery({
           queryKey: ["notebook", "notes", l.id],
-          queryFn: () => listNotesFn({ data: { listId: l.id } }),
+          queryFn: () => loaders.listNotes({ data: { listId: l.id } }),
           staleTime: FIVE_MIN,
         }),
       );
       await safe(
         qc.prefetchQuery({
           queryKey: ["notebook", "list-todos", l.id],
-          queryFn: () => listTodosFn({ data: { listId: l.id, includeUnscheduled: true } }),
+          queryFn: () => loaders.listTodos({ data: { listId: l.id, includeUnscheduled: true } }),
           staleTime: FIVE_MIN,
         }),
       );
@@ -253,42 +239,42 @@ async function doWarmup(
       safe(
         qc.prefetchQuery({
           queryKey: ["business", b.id],
-          queryFn: () => getBusinessFn({ data: { id: b.id } }),
+          queryFn: () => loaders.getBusiness({ data: { id: b.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["members", b.id],
-          queryFn: () => listMembersFn({ data: { businessId: b.id } }),
+          queryFn: () => loaders.listMembers({ data: { businessId: b.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["tasks", b.id, weekStart],
-          queryFn: () => listBusinessTasksFn({ data: { businessId: b.id, weekStart } }),
+          queryFn: () => loaders.listBusinessTasks({ data: { businessId: b.id, weekStart } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["btx", b.id],
-          queryFn: () => listTransactionsFn({ data: { businessId: b.id } }),
+          queryFn: () => loaders.listTransactions({ data: { businessId: b.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["baccountsList", b.id],
-          queryFn: () => listBusinessAccountsFn({ data: { businessId: b.id } }),
+          queryFn: () => loaders.listBusinessAccounts({ data: { businessId: b.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["baccounts", b.id],
-          queryFn: () => businessAccountBalancesFn({ data: { businessId: b.id } }),
+          queryFn: () => loaders.businessAccountBalances({ data: { businessId: b.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
@@ -311,49 +297,49 @@ async function doWarmup(
       safe(
         qc.prefetchQuery({
           queryKey: ["personal", p.id],
-          queryFn: () => getPersonalProfileFn({ data: { id: p.id } }),
+          queryFn: () => loaders.getPersonalProfile({ data: { id: p.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["personal-tx", p.id],
-          queryFn: () => listPersonalTxExFn({ data: { profileId: p.id } }),
+          queryFn: () => loaders.listPersonalTransactions({ data: { profileId: p.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["personal-accts", p.id],
-          queryFn: () => listPersonalAccountsFn({ data: { profileId: p.id } }),
+          queryFn: () => loaders.listPersonalAccounts({ data: { profileId: p.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["personal-cats", p.id],
-          queryFn: () => listPersonalCategoriesFn({ data: { profileId: p.id } }),
+          queryFn: () => loaders.listPersonalCategories({ data: { profileId: p.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["personal-cps", p.id],
-          queryFn: () => listPersonalCounterpartiesFn({ data: { profileId: p.id } }),
+          queryFn: () => loaders.listPersonalCounterparties({ data: { profileId: p.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["personal-loans", p.id],
-          queryFn: () => listPersonalLoansFn({ data: { profileId: p.id } }),
+          queryFn: () => loaders.listPersonalLoans({ data: { profileId: p.id } }),
           staleTime: FIVE_MIN,
         }),
       ),
       safe(
         qc.prefetchQuery({
           queryKey: ["personal-budgets", p.id],
-          queryFn: () => listPersonalBudgetsFn({ data: { profileId: p.id } }),
+          queryFn: () => loaders.listPersonalBudgets({ data: { profileId: p.id } }),
           staleTime: FIVE_MIN,
         }),
       ),

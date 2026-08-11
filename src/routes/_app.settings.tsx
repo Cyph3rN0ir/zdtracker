@@ -15,6 +15,7 @@ import {
   type OfflineDownloadResult,
 } from "@/lib/offline-warmup";
 import { useOfflineStatus } from "@/lib/offline-status";
+import { useOfflineLoaders } from "@/lib/offline-loaders";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/_app/settings")({
 
 function SettingsPage() {
   const queryClient = useQueryClient();
+  const offlineLoaders = useOfflineLoaders();
   const { isOnline } = useOfflineStatus();
   const [progress, setProgress] = useState<OfflineDownloadProgress | null>(null);
   const [lastDownload, setLastDownload] = useState<OfflineDownloadResult | null>(null);
@@ -30,7 +32,7 @@ function SettingsPage() {
   async function download() {
     setProgress({ phase: "Starting download", completed: 0, total: 6 });
     try {
-      const result = await downloadOfflineData(queryClient, setProgress);
+      const result = await downloadOfflineData(queryClient, offlineLoaders, setProgress);
       setLastDownload(result);
       toast.success("Offline data downloaded");
     } catch (error) {
