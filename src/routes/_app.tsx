@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logoutFn, meFn } from "@/lib/auth.functions";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -90,6 +90,8 @@ function AppLayout() {
   // sync-status reporting. Drives the shared OfflineBanner via OfflineStatus.
   const qc = useQueryClient();
   const offlineLoaders = useOfflineLoaders();
+  const offlineLoadersRef = useRef(offlineLoaders);
+  offlineLoadersRef.current = offlineLoaders;
   const { setSyncing, setSyncFailed } = useOfflineStatus();
   useEffect(() => {
     if (!me?.userId) return;
@@ -100,7 +102,7 @@ function AppLayout() {
       setSyncing(true);
       setSyncFailed(false);
       try {
-        await runOfflineWarmup(qc, offlineLoaders);
+        await runOfflineWarmup(qc, offlineLoadersRef.current);
       } catch {
         setSyncFailed(true);
       } finally {
@@ -130,7 +132,7 @@ function AppLayout() {
       // queue changed; nothing to render here — banner reads sync status.
     });
     return () => { unsubOnline(); unsubQueue(); unregisterRunners(); };
-  }, [qc, me?.userId, offlineLoaders, setSyncing, setSyncFailed]);
+  }, [qc, me?.userId, setSyncing, setSyncFailed]);
 
   // Close drawer BEFORE navigating so the sheet and route transition don't
   // animate at the same time (the main cause of mobile lag).

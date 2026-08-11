@@ -51,6 +51,11 @@ function startOfWeekISO(): string {
   return x.toISOString().slice(0, 10);
 }
 
+function requireRows<T>(value: unknown, label: string): T[] {
+  if (!Array.isArray(value)) throw new Error(`${label} returned an invalid response`);
+  return value as T[];
+}
+
 async function safe<T>(p: Promise<T>): Promise<T | null> {
   try {
     return await p;
@@ -76,35 +81,123 @@ export async function downloadOfflineData(
 ): Promise<OfflineDownloadResult> {
   if (!onlineManager.isOnline()) throw new Error("Connect to the internet before downloading");
   if (warmupInFlight) await warmupInFlight;
-  await qc.invalidateQueries({ refetchType: "none" });
-  await doWarmup(qc, loaders, onProgress);
 
-  const requiredSections = [
-    { label: "businesses", key: ["businesses"] },
-    { label: "tasks", key: ["my-tasks"] },
-    { label: "personal profiles", key: ["personal"] },
-    { label: "notebook", key: ["notebook", "lists"] },
-    { label: "conversations", key: ["chat", "conversations"] },
-  ];
-  const missing = requiredSections.filter(({ key }) => qc.getQueryData(key) === undefined);
-  if (missing.length > 0) {
-    const firstError = missing
-      .map(({ key }) => qc.getQueryState(key)?.error)
-      .find((error): error is Error => error instanceof Error);
-    const sectionNames = missing.map(({ label }) => label).join(", ");
-    throw new Error(
-      `Could not download: ${sectionNames}${firstError ? `. ${firstError.message}` : ""}`,
-    );
-  }
+  const report = (phase: string, completed: number) =>
+    onProgress?.({ phase, completed, total: DOWNLOAD_PHASES });
+  const today = localToday();
+  const weekStart = startOfWeekISO();
+
+  // The explicit download deliberately bypasses prefetchQuery. Mobile drawer
+  // and connectivity state updates can cancel background prefetches; direct
+  // authenticated calls followed by setQueryData form an atomic checkpoint.
+  report("Downloading core lists", 0);
+  const [businessValue, taskValue, profileValue, listValue, todayValue, unreadValue, chatValue] =
+    await Promise.all([
+      loaders.listBusinesses(),
+      loaders.listMyTasks(),
+      loaders.listPersonalProfiles(),
+      loaders.listNotebookLists(),
+      loaders.listTodos({
+        data: { from: today, to: today, includeOverdue: true, includeUnscheduled: true },
+      }),
+      loaders.unreadTotal(),
+      loaders.listConversations(),
+    ]);
+
+  const businesses = requireRows<{ id: string }>(businessValue, "Businesses");
+  const profiles = requireRows<{ id: string }>(profileValue, "Personal profiles");
+  const lists = requireRows<{ id: string }>(listValue, "Notebook lists");
+  const conversations = requireRows<{ id: string }>(chatValue, "Conversations");
+  qc.setQueryData(["businesses"], businessValue);
+  qc.setQueryData(["my-tasks"], taskValue);
+  qc.setQueryData(["personal"], profileValue);
+  qc.setQueryData(["notebook", "lists"], listValue);
+  qc.setQueryData(["notebook", "today", today], todayValue);
+  qc.setQueryData(["chat", "unread-total"], unreadValue);
+  qc.setQueryData(["chat", "conversations"], chatValue);
+
+  report("Downloading recent conversations", 1);
+  await Promise.all(
+    conversations.slice(0, OFFLINE_BOUNDS.MAX_CONVERSATIONS).map(async (conversation) => {
+      const [conversationValue, messageValue] = await Promise.all([
+        loaders.getConversation({ data: { conversationId: conversation.id } }),
+        loaders.listMessages({ data: { conversationId: conversation.id, limit: 100 } }),
+      ]);
+      qc.setQueryData(["chat", "conv", conversation.id], conversationValue);
+      qc.setQueryData(["chat", "messages", conversation.id], messageValue);
+    }),
+  );
+
+  report("Downloading notebook", 2);
+  await Promise.all(
+    lists.slice(0, OFFLINE_BOUNDS.MAX_LISTS).map(async (list) => {
+      const [noteValue, todoValue] = await Promise.all([
+        loaders.listNotes({ data: { listId: list.id } }),
+        loaders.listTodos({ data: { listId: list.id, includeUnscheduled: true } }),
+      ]);
+      qc.setQueryData(["notebook", "notes", list.id], noteValue);
+      qc.setQueryData(["notebook", "list-todos", list.id], todoValue);
+      requireRows<{ id: string }>(noteValue, "Notebook notes").forEach((note) =>
+        qc.setQueryData(["notebook", "note", note.id], note),
+      );
+    }),
+  );
+
+  report("Downloading businesses", 3);
+  await Promise.all(
+    businesses.slice(0, OFFLINE_BOUNDS.MAX_BUSINESSES).map(async (business) => {
+      const [detail, members, tasks, transactions, accountList, balances] = await Promise.all([
+        loaders.getBusiness({ data: { id: business.id } }),
+        loaders.listMembers({ data: { businessId: business.id } }),
+        loaders.listBusinessTasks({ data: { businessId: business.id, weekStart } }),
+        loaders.listTransactions({ data: { businessId: business.id } }),
+        loaders.listBusinessAccounts({ data: { businessId: business.id } }),
+        loaders.businessAccountBalances({ data: { businessId: business.id } }),
+      ]);
+      qc.setQueryData(["business", business.id], detail);
+      qc.setQueryData(["members", business.id], members);
+      qc.setQueryData(["tasks", business.id, weekStart], tasks);
+      qc.setQueryData(["btx", business.id], transactions);
+      qc.setQueryData(["baccountsList", business.id], accountList);
+      qc.setQueryData(["baccounts", business.id], balances);
+    }),
+  );
+
+  report("Downloading personal finances", 4);
+  await Promise.all(
+    profiles.slice(0, OFFLINE_BOUNDS.MAX_PERSONAL_PROFILES).map(async (profile) => {
+      const [detail, transactions, accounts, categories, counterparties, loans, budgets] =
+        await Promise.all([
+          loaders.getPersonalProfile({ data: { id: profile.id } }),
+          loaders.listPersonalTransactions({ data: { profileId: profile.id } }),
+          loaders.listPersonalAccounts({ data: { profileId: profile.id } }),
+          loaders.listPersonalCategories({ data: { profileId: profile.id } }),
+          loaders.listPersonalCounterparties({ data: { profileId: profile.id } }),
+          loaders.listPersonalLoans({ data: { profileId: profile.id } }),
+          loaders.listPersonalBudgets({ data: { profileId: profile.id } }),
+        ]);
+      qc.setQueryData(["personal", profile.id], detail);
+      qc.setQueryData(["personal-tx", profile.id], transactions);
+      qc.setQueryData(["personal-accts", profile.id], accounts);
+      qc.setQueryData(["personal-cats", profile.id], categories);
+      qc.setQueryData(["personal-cps", profile.id], counterparties);
+      qc.setQueryData(["personal-loans", profile.id], loans);
+      qc.setQueryData(["personal-budgets", profile.id], budgets);
+    }),
+  );
+
+  report("Saving on this device", 5);
+  await persistQueryCacheNow(qc);
+  report("Available offline", 6);
 
   return {
     queryCount: qc
       .getQueryCache()
       .getAll()
       .filter((query) => query.state.status === "success").length,
-    businesses: ((qc.getQueryData(["businesses"]) as unknown[]) ?? []).length,
-    profiles: ((qc.getQueryData(["personal"]) as unknown[]) ?? []).length,
-    conversations: ((qc.getQueryData(["chat", "conversations"]) as unknown[]) ?? []).length,
+    businesses: businesses.length,
+    profiles: profiles.length,
+    conversations: conversations.length,
     savedAt: Date.now(),
   };
 }
