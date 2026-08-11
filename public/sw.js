@@ -36,7 +36,11 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET" || url.origin !== self.location.origin) return;
 
   // Connectivity probes and RPC calls must never receive cached responses.
-  if (url.searchParams.has("_probe") || url.pathname.startsWith("/_serverFn/")) return;
+  if (
+    url.searchParams.has("_probe") ||
+    url.searchParams.has("_sw_probe") ||
+    url.pathname.startsWith("/_serverFn/")
+  ) return;
 
   if (req.mode === "navigate") {
     event.respondWith(networkFirstNavigation(req));
@@ -54,9 +58,9 @@ async function networkFirstNavigation(req) {
     // Chromium may satisfy the navigation itself from its HTTP cache while
     // disconnected. Decide connectivity with a unique uncached HEAD first;
     // only ask for the server document when that real network probe succeeds.
-    const probeUrl = new URL("/favicon.ico", self.location.origin);
+    const probeUrl = new URL("/__zerosync_network_probe__", self.location.origin);
     probeUrl.searchParams.set("_sw_probe", String(Date.now()));
-    const probe = await fetch(probeUrl, { method: "HEAD", cache: "no-store" });
+    const probe = await fetch(probeUrl, { method: "GET", cache: "no-store" });
     if (!probe.ok && probe.status >= 500) throw new Error(`Probe failed: ${probe.status}`);
     const response = await fetch(req);
     if (!response.ok) throw new Error(`Navigation failed: ${response.status}`);
