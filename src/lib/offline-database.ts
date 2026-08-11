@@ -54,7 +54,10 @@ export async function restoreOfflineDatabase(queryClient: QueryClient): Promise<
   }
 }
 
-export async function saveOfflineDatabase(queryClient: QueryClient): Promise<number> {
+export async function saveOfflineDatabase(
+  queryClient: QueryClient,
+  markDownloaded = false,
+): Promise<number> {
   if (typeof window === "undefined") return 0;
   const me = readCachedMe();
   if (!me) return 0;
@@ -68,10 +71,15 @@ export async function saveOfflineDatabase(queryClient: QueryClient): Promise<num
   };
   try {
     await idbSet(databaseKey(me.userId), stored);
-    window.localStorage.setItem(
-      `zs:offline-download-meta:v1:${me.userId}`,
-      JSON.stringify({ savedAt: stored.savedAt, queryCount: state.queries.length }),
-    );
+    // Background warmup is best-effort and may contain only part of the
+    // working set. Only an explicit Settings download marks the device as
+    // completely prepared for offline use.
+    if (markDownloaded) {
+      window.localStorage.setItem(
+        `zs:offline-download-meta:v1:${me.userId}`,
+        JSON.stringify({ savedAt: stored.savedAt, queryCount: state.queries.length }),
+      );
+    }
     restoredForClient.set(queryClient, me.userId);
     return state.queries.length;
   } catch {

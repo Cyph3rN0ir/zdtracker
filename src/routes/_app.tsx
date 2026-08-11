@@ -22,13 +22,14 @@ import { purgePersistedQueryCache } from "@/lib/query-persister";
 import {
   clearCachedMe,
   isOfflineLikeError,
+  probeAppConnection,
   readCachedMe,
   withConnectionTimeout,
   writeCachedMe,
   type CachedAppUser,
 } from "@/lib/cached-session";
 import { toast } from "sonner";
-import { hasDownloadedOfflineData, restoreOfflineDatabase } from "@/lib/offline-database";
+import { restoreOfflineDatabase } from "@/lib/offline-database";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
@@ -38,16 +39,22 @@ export const Route = createFileRoute("/_app")({
     // avoiding the late provider-restoration race seen on Android WebView.
     await restoreOfflineDatabase(context.queryClient);
     const cached = readCachedMe();
-    // A completed, user-scoped download is sufficient for immediate boot.
-    // Some Android WebViews report navigator.onLine=true while disconnected;
-    // making an RPC here would blank the shell before connectivity probing.
-    if (cached && hasDownloadedOfflineData(cached.userId)) {
-      onlineManager.setOnline(false);
-      return { me: cached, offline: true };
-    }
     if (typeof navigator !== "undefined" && !navigator.onLine && cached) {
       onlineManager.setOnline(false);
       return { me: cached, offline: true };
+    }
+
+    // Android WebView can report navigator.onLine=true with no usable route.
+    // Probe the uncached origin before making session RPCs. A saved checkpoint
+    // alone must not force an online cold navigation into React Query's paused
+    // state; that previously left the hydrated document empty.
+    if (cached) {
+      const connected = await probeAppConnection();
+      if (!connected) {
+        onlineManager.setOnline(false);
+        return { me: cached, offline: true };
+      }
+      onlineManager.setOnline(true);
     }
 
     let me: CachedAppUser | null = null;

@@ -209,7 +209,7 @@ export async function downloadOfflineData(
   }
 
   report("Saving on this device", 5);
-  const savedQueryCount = await persistQueryCacheNow(qc);
+  const savedQueryCount = await persistQueryCacheNow(qc, true);
   await saveAuthenticatedAppShell();
   report("Available offline", 6);
 

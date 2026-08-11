@@ -79,3 +79,26 @@ export async function withConnectionTimeout<T>(request: Promise<T>, timeoutMs: n
     if (timer) clearTimeout(timer);
   }
 }
+
+/** Verify real origin connectivity without accepting a service-worker cache hit. */
+export async function probeAppConnection(timeoutMs = 2500): Promise<boolean> {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return true;
+  if (!navigator.onLine) return false;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const url = new URL("/favicon.ico", window.location.origin);
+    url.searchParams.set("_probe", String(Date.now()));
+    const response = await fetch(url, {
+      method: "HEAD",
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: controller.signal,
+    });
+    return response.ok || response.status < 500;
+  } catch {
+    return false;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}

@@ -17,10 +17,13 @@ import { purgeOfflineDatabases, saveOfflineDatabase } from "@/lib/offline-databa
 export const QUERY_CACHE_KEY = "zs:query-cache:v2";
 
 // 30 days — long enough for "I open the app once a month" usage.
-export async function persistQueryCacheNow(queryClient: QueryClient): Promise<number> {
+export async function persistQueryCacheNow(
+  queryClient: QueryClient,
+  markDownloaded = false,
+): Promise<number> {
   const checkpointQueryCount = dehydrateOfflineQueries(queryClient).queries.length;
   const snapshotSaved = saveQuerySnapshot(queryClient);
-  const databaseQueryCount = await saveOfflineDatabase(queryClient);
+  const databaseQueryCount = await saveOfflineDatabase(queryClient, markDownloaded);
   if (!snapshotSaved && databaseQueryCount === 0) {
     throw new Error("Offline data could not be saved on this device");
   }
