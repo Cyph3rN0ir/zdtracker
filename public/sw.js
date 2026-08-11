@@ -114,16 +114,9 @@ async function cacheShellUrls(urls) {
     }),
   );
 
-  try {
-    const documentUrl = sameOrigin[0];
-    if (documentUrl) {
-      const response = await fetch(documentUrl, { credentials: "include", cache: "reload" });
-      if (response.ok) {
-        const shell = await caches.open(SHELL_CACHE);
-        await shell.put(APP_SHELL_KEY, response);
-      }
-    }
-  } catch {}
+  // Documents are intentionally excluded here. A regular fetch response does
+  // not carry TanStack Start's navigation hydration state and would overwrite
+  // the verified shell saved by the explicit offline-download workflow.
 }
 
 // ---------------- Push ----------------

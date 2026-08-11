@@ -6,8 +6,6 @@
 import { shouldDisablePwaFeatures } from "@/lib/pwa-host-guard";
 
 type UpdateCallback = () => void;
-const SHELL_CACHE = "zs-shell-v5";
-const APP_SHELL_KEY = "/__zerosync_app_shell__";
 const offlineRouteModules = import.meta.glob("/src/routes/**/*.tsx");
 
 function collectShellUrls(): string[] {
@@ -28,24 +26,6 @@ function collectShellUrls(): string[] {
 }
 
 async function warmAppShell(registration: ServiceWorkerRegistration) {
-  // Write the authenticated document directly as well as asking the worker to
-  // warm it. This removes a message/activation race on Android WebView.
-  let shellReady = false;
-  try {
-    const response = await fetch(window.location.href, {
-      credentials: "include",
-      cache: "reload",
-    });
-    if (response.ok) {
-      const cache = await caches.open(SHELL_CACHE);
-      await Promise.all([
-        cache.put(window.location.href, response.clone()),
-        cache.put(APP_SHELL_KEY, response.clone()),
-      ]);
-      shellReady = true;
-    }
-  } catch {}
-
   // Load every lazy route once while online. Vite resolves these to the same
   // hashed chunks used by the router, and the worker caches their responses.
   // This gives Android all screens without a deployment-time asset manifest.
@@ -53,7 +33,6 @@ async function warmAppShell(registration: ServiceWorkerRegistration) {
 
   const worker = registration.active ?? registration.waiting ?? registration.installing;
   worker?.postMessage({ type: "CACHE_APP_SHELL", urls: collectShellUrls() });
-  if (shellReady) localStorage.setItem("zs:offline-shell-ready:v1", String(Date.now()));
 }
 
 async function unregisterAllAppWorkers() {
