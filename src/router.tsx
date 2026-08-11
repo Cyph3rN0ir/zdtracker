@@ -8,8 +8,9 @@ export const getRouter = () => {
     defaultOptions: {
       queries: {
         gcTime: 1000 * 60 * 60 * 24 * 30,
-        // offlineFirst: when offline, queries serve cached data instead of erroring.
-        networkMode: "offlineFirst",
+        // Server functions are deliberately not service-worker cached. Pause
+        // them while disconnected and render the restored query data instead.
+        networkMode: "online",
         // keepPreviousData: when the queryKey changes (e.g. navigating between
         // /notebook/lists/$listId entries), keep showing the previous result
         // while the next one loads — no "Network Error" flash on slow links

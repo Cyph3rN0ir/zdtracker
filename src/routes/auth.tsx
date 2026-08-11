@@ -7,25 +7,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useI18n } from "@/lib/i18n";
-
-const ME_CACHE_KEY = "zs:me:v1";
-
-function hasCachedMe() {
-  if (typeof window === "undefined") return false;
-  try {
-    return !!window.localStorage.getItem(ME_CACHE_KEY);
-  } catch {
-    return false;
-  }
-}
+import {
+  isOfflineLikeError,
+  readCachedMe,
+  withConnectionTimeout,
+} from "@/lib/cached-session";
 
 export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
-    if (typeof navigator !== "undefined" && !navigator.onLine && hasCachedMe()) {
+    const cached = readCachedMe();
+    if (typeof navigator !== "undefined" && !navigator.onLine && cached) {
       throw redirect({ to: "/" });
     }
-    const me = await meFn();
-    if (me) throw redirect({ to: "/" });
+    try {
+      const me = await withConnectionTimeout(meFn(), cached ? 1500 : 8000);
+      if (me) throw redirect({ to: "/" });
+    } catch (error) {
+      if (cached && isOfflineLikeError(error)) throw redirect({ to: "/" });
+      if (!isOfflineLikeError(error)) throw error;
+      // With no cached session, render sign-in instead of leaving the router
+      // skeleton pending forever. A new sign-in still requires connectivity.
+    }
   },
   component: AuthPage,
   head: () => ({ meta: [{ title: "Sign in — ZeroSync" }] }),

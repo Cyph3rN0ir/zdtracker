@@ -18,71 +18,37 @@ import { useOfflineStatus } from "@/lib/offline-status";
 import { flushQueue, getQueueSize, subscribeQueue } from "@/lib/offline-queue";
 import { registerCoreOfflineRunners } from "@/lib/offline-operations";
 import { purgePersistedQueryCache } from "@/lib/query-persister";
+import {
+  clearCachedMe,
+  isOfflineLikeError,
+  readCachedMe,
+  withConnectionTimeout,
+  writeCachedMe,
+  type CachedAppUser,
+} from "@/lib/cached-session";
 import { toast } from "sonner";
-
-type CachedMe = {
-  userId: string;
-  username: string;
-  displayName: string;
-  role?: "admin" | "owner" | "investor" | "member";
-};
-
-type AppMe = Omit<CachedMe, "role"> & { role: "admin" | "owner" | "investor" | "member" };
-
-const ME_CACHE_KEY = "zs:me:v1";
-
-const ROLES = ["admin", "owner", "investor", "member"] as const;
-
-function readCachedMe(): AppMe | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(ME_CACHE_KEY);
-    if (!raw) return null;
-    const cached = JSON.parse(raw) as CachedMe;
-    // The cached role only decides which controls are *rendered* while we run
-    // on the cached session (offline / meFn unreachable). Every privileged
-    // operation is still authorized server-side, so a tampered cache cannot
-    // grant access — it would only show buttons whose calls then fail.
-    const role = ROLES.includes(cached.role as any) ? (cached.role as AppMe["role"]) : "member";
-    return { userId: cached.userId, username: cached.username, displayName: cached.displayName, role };
-  } catch {
-    return null;
-  }
-}
-
-function writeCachedMe(me: AppMe) {
-  if (typeof window === "undefined") return;
-  try {
-    const cached: CachedMe = {
-      userId: me.userId,
-      username: me.username,
-      displayName: me.displayName,
-      role: me.role,
-    };
-    window.localStorage.setItem(ME_CACHE_KEY, JSON.stringify(cached));
-  } catch {}
-}
-
-
-function isOfflineLikeError(error: unknown) {
-  const msg = String((error as any)?.message ?? error).toLowerCase();
-  return msg.includes("fetch") || msg.includes("network") || msg.includes("offline") || msg.includes("load failed");
-}
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
   beforeLoad: async () => {
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      const cached = readCachedMe();
-      if (cached) return { me: cached, offline: true };
+    const cached = readCachedMe();
+    if (typeof navigator !== "undefined" && !navigator.onLine && cached) {
+      onlineManager.setOnline(false);
+      return { me: cached, offline: true };
     }
 
-    let me: AppMe | null = null;
+    let me: CachedAppUser | null = null;
     try {
-      me = await meFn();
+      // Android WebView can report an available interface while requests have
+      // no usable route to the internet. Bound the session request so the
+      // cached app cannot remain behind the route skeleton indefinitely.
+      me = await withConnectionTimeout(meFn(), cached ? 1500 : 8000);
     } catch (error) {
-      const cached = readCachedMe();
-      if (cached && isOfflineLikeError(error)) return { me: cached, offline: true };
+      if (cached && isOfflineLikeError(error)) {
+        onlineManager.setOnline(false);
+        return { me: cached, offline: true };
+      }
+      if (isOfflineLikeError(error)) throw redirect({ to: "/auth" });
       throw error;
     }
     if (!me) throw redirect({ to: "/auth" });
@@ -166,7 +132,7 @@ function AppLayout() {
   async function doLogout() {
     try { await logout(); } catch {}
     try {
-      window.localStorage.removeItem(ME_CACHE_KEY);
+      clearCachedMe();
       qc.clear();
       await purgePersistedQueryCache();
       navigator.serviceWorker?.controller?.postMessage({ type: "CLEAR_APP_CACHE" });

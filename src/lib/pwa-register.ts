@@ -6,7 +6,7 @@
 import { shouldDisablePwaFeatures } from "@/lib/pwa-host-guard";
 
 type UpdateCallback = () => void;
-const SHELL_CACHE = "zs-shell-v4";
+const SHELL_CACHE = "zs-shell-v5";
 const APP_SHELL_KEY = "/__zerosync_app_shell__";
 const offlineRouteModules = import.meta.glob("/src/routes/**/*.tsx");
 

@@ -12,7 +12,7 @@
 // Query keys MUST match the keys the components use, or warmup writes a
 // parallel cache the components never read. See each call site below.
 
-import type { QueryClient } from "@tanstack/react-query";
+import { onlineManager, type QueryClient } from "@tanstack/react-query";
 import {
   listBusinessesFn,
   myTasksFn,
@@ -35,6 +35,7 @@ import { listListsFn, listNotesFn, listTodosFn } from "@/lib/notebook.functions"
 import { unreadTotalFn } from "@/lib/chat.functions";
 
 import { OFFLINE_BOUNDS } from "@/lib/offline-manifest";
+import { persistQueryCacheNow } from "@/lib/query-persister";
 const FIVE_MIN = OFFLINE_BOUNDS.STALE_TIME_MS;
 
 function localToday(): string {
@@ -68,7 +69,7 @@ export function runOfflineWarmup(qc: QueryClient): Promise<void> {
 }
 
 async function doWarmup(qc: QueryClient): Promise<void> {
-  if (typeof navigator !== "undefined" && !navigator.onLine) return;
+  if (!onlineManager.isOnline()) return;
 
   const today = localToday();
   const weekStart = startOfWeekISO();
@@ -169,4 +170,6 @@ async function doWarmup(qc: QueryClient): Promise<void> {
       safe(qc.prefetchQuery({ queryKey: ["personal-budgets", p.id], queryFn: () => listPersonalBudgetsFn({ data: { profileId: p.id } }), staleTime: FIVE_MIN })),
     ]),
   );
+
+  await persistQueryCacheNow(qc);
 }

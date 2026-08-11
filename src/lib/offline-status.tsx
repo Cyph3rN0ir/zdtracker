@@ -35,7 +35,7 @@ export function useOfflineStatus(): Ctx {
 
 export function OfflineStatusProvider({ children }: { children: ReactNode }) {
   const [isOnline, setOnline] = useState<boolean>(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine !== false,
+    typeof navigator === "undefined" ? true : onlineManager.isOnline(),
   );
   const [isRestoring, setRestoring] = useState(false);
   const [isSyncing, setSyncing] = useState(false);
@@ -46,22 +46,29 @@ export function OfflineStatusProvider({ children }: { children: ReactNode }) {
   const probe = async () => {
     if (probing.current) return;
     probing.current = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 3000);
     try {
       const res = await fetch(`/favicon.ico?_probe=${Date.now()}`, {
         method: "HEAD",
         cache: "no-store",
+        signal: controller.signal,
       });
       if (res.ok || res.status < 500) onlineManager.setOnline(true);
     } catch {
-      // Probe failed → trust the offline signal.
+      onlineManager.setOnline(false);
     } finally {
+      window.clearTimeout(timeout);
       probing.current = false;
     }
   };
 
   useEffect(() => {
     const unsub = onlineManager.subscribe((next) => setOnline(next));
-    const onOnline = () => onlineManager.setOnline(true);
+    const onOnline = () => {
+      onlineManager.setOnline(true);
+      probe();
+    };
     const onOffline = () => onlineManager.setOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
@@ -88,7 +95,10 @@ export function OfflineStatusProvider({ children }: { children: ReactNode }) {
     let disposed = false;
 
     Network.getStatus()
-      .then((status) => onlineManager.setOnline(status.connected))
+      .then((status) => {
+        onlineManager.setOnline(status.connected);
+        if (status.connected) probe();
+      })
       .catch(() => {});
     Network.addListener("networkStatusChange", (status) => {
       onlineManager.setOnline(status.connected);

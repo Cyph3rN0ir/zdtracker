@@ -103,7 +103,7 @@ function PersistGate({
       persistOptions={persistOptions}
       onSuccess={() => {
         setRestoring(false);
-        if (typeof navigator === "undefined" || navigator.onLine) {
+        if (onlineManager.isOnline()) {
           queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
         }
       }}

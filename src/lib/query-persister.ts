@@ -5,6 +5,8 @@
 // by sign-out hygiene, account switching, future cache busters).
 
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { persistQueryClientSave } from "@tanstack/react-query-persist-client";
+import type { QueryClient } from "@tanstack/react-query";
 import { get as idbGet, set as idbSet, del as idbDel } from "idb-keyval";
 
 // Bump when the shape of persisted query data changes in a breaking way.
@@ -28,6 +30,28 @@ export function createQueryPersister() {
     key: QUERY_CACHE_KEY,
     throttleTime: 1000,
   });
+}
+
+// The provider persists reactively, but Android may be backgrounded or killed
+// before its throttled write runs. Warmup calls this explicit checkpoint once
+// the core data set has finished loading.
+export async function persistQueryCacheNow(queryClient: QueryClient): Promise<void> {
+  type PersistQueryClient = Parameters<typeof persistQueryClientSave>[0]["queryClient"];
+  await persistQueryClientSave({
+    // The installed persistence adapter trails React Query by one patch
+    // release; their runtime QueryClient contract is compatible.
+    queryClient: queryClient as unknown as PersistQueryClient,
+    persister: createQueryPersister(),
+    buster: QUERY_CACHE_BUSTER,
+    dehydrateOptions: {
+      shouldDehydrateQuery: (query) => query.state.status === "success",
+    },
+  });
+  try {
+    window.localStorage.setItem("zs:offline-data-ready:v1", String(Date.now()));
+  } catch {
+    // The IndexedDB checkpoint above is authoritative; this marker is optional.
+  }
 }
 
 // Hard-purge the persisted cache. Safe to call on sign-out / user switch.
