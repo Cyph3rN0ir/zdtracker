@@ -16,6 +16,7 @@ import { onlineManager, type QueryClient } from "@tanstack/react-query";
 import { OFFLINE_BOUNDS } from "@/lib/offline-manifest";
 import type { OfflineLoaders } from "@/lib/offline-loaders";
 import { persistQueryCacheNow } from "@/lib/query-persister";
+import { saveAuthenticatedAppShell } from "@/lib/offline-shell";
 const FIVE_MIN = OFFLINE_BOUNDS.STALE_TIME_MS;
 const DOWNLOAD_PHASES = 6;
 
@@ -209,6 +210,7 @@ export async function downloadOfflineData(
 
   report("Saving on this device", 5);
   const savedQueryCount = await persistQueryCacheNow(qc);
+  await saveAuthenticatedAppShell();
   report("Available offline", 6);
 
   return {
