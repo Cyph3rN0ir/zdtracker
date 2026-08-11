@@ -19,6 +19,18 @@ function databaseKey(userId: string): string {
   return `${DATABASE_PREFIX}${userId}`;
 }
 
+export function hasDownloadedOfflineData(userId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.localStorage.getItem(`zs:offline-download-meta:v1:${userId}`);
+    if (!raw) return false;
+    const meta = JSON.parse(raw) as { savedAt?: number; queryCount?: number };
+    return Number(meta.savedAt) > 0 && Number(meta.queryCount) > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function restoreOfflineDatabase(queryClient: QueryClient): Promise<number> {
   if (typeof window === "undefined") return 0;
   const me = readCachedMe();

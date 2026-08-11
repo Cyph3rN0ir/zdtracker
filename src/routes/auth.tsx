@@ -7,15 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useI18n } from "@/lib/i18n";
-import {
-  isOfflineLikeError,
-  readCachedMe,
-  withConnectionTimeout,
-} from "@/lib/cached-session";
+import { isOfflineLikeError, readCachedMe, withConnectionTimeout } from "@/lib/cached-session";
+import { hasDownloadedOfflineData } from "@/lib/offline-database";
 
 export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
     const cached = readCachedMe();
+    if (cached && hasDownloadedOfflineData(cached.userId)) throw redirect({ to: "/" });
     if (typeof navigator !== "undefined" && !navigator.onLine && cached) {
       throw redirect({ to: "/" });
     }
@@ -77,7 +75,6 @@ function AuthPage() {
         }}
       />
       <div className="relative mx-auto w-full max-w-[23rem] animate-fade-in rounded-[1.25rem] border border-border/70 bg-card/70 p-6 backdrop-blur-xl sm:p-7">
-
         {/* Brand row */}
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <div className="flex min-w-0 items-center gap-2">
@@ -113,7 +110,9 @@ function AuthPage() {
         </div>
 
         <form onSubmit={submit} className="mt-8">
-          <h1 className="font-display text-[26px] leading-tight tracking-tight">{t("auth.signIn")}</h1>
+          <h1 className="font-display text-[26px] leading-tight tracking-tight">
+            {t("auth.signIn")}
+          </h1>
           <p className="mt-1 text-[13px] text-muted-foreground">{t("auth.subtitle")}</p>
 
           <div className="mt-8 space-y-5">
@@ -165,4 +164,3 @@ function AuthPage() {
     </div>
   );
 }
-

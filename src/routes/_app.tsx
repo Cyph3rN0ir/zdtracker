@@ -28,7 +28,7 @@ import {
   type CachedAppUser,
 } from "@/lib/cached-session";
 import { toast } from "sonner";
-import { restoreOfflineDatabase } from "@/lib/offline-database";
+import { hasDownloadedOfflineData, restoreOfflineDatabase } from "@/lib/offline-database";
 
 export const Route = createFileRoute("/_app")({
   ssr: false,
@@ -38,6 +38,12 @@ export const Route = createFileRoute("/_app")({
     // avoiding the late provider-restoration race seen on Android WebView.
     await restoreOfflineDatabase(context.queryClient);
     const cached = readCachedMe();
+    // A completed, user-scoped download is sufficient for immediate boot.
+    // Some Android WebViews report navigator.onLine=true while disconnected;
+    // making an RPC here would blank the shell before connectivity probing.
+    if (cached && hasDownloadedOfflineData(cached.userId)) {
+      return { me: cached, offline: !navigator.onLine };
+    }
     if (typeof navigator !== "undefined" && !navigator.onLine && cached) {
       onlineManager.setOnline(false);
       return { me: cached, offline: true };
