@@ -60,7 +60,11 @@ function tanstackStartSpaStubsPlugin(): Plugin {
 
   return {
     name: "tanstack-start-spa-stubs",
+    enforce: "pre",
     resolveId(id) {
+      if (id === "node:async_hooks" || id === "async_hooks") {
+        return VIRTUAL_PREFIX + "async-hooks";
+      }
       // Resolve package imports map (#) specifiers
       if (fileStubMap[id]) {
         return fileStubMap[id];
@@ -72,6 +76,23 @@ function tanstackStartSpaStubsPlugin(): Plugin {
       return null;
     },
     load(id) {
+      if (id === VIRTUAL_PREFIX + "async-hooks") {
+        return `
+          export class AsyncLocalStorage {
+            constructor() { this.store = undefined; }
+            getStore() { return this.store; }
+            enterWith(store) { this.store = store; }
+            disable() { this.store = undefined; }
+            run(store, callback, ...args) {
+              const previous = this.store;
+              this.store = store;
+              try { return callback(...args); }
+              finally { this.store = previous; }
+            }
+          }
+          export default { AsyncLocalStorage };
+        `;
+      }
       if (id.startsWith(VIRTUAL_PREFIX)) {
         // Return an empty module — these are SSR-only and never called client-side
         return "export default {}; export const tsrStartManifest = () => ({ routes: {}, inlineCss: '', clientEntry: '' }); export const injectedHeadScripts = undefined;";
