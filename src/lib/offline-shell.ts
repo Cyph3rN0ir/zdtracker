@@ -1,7 +1,7 @@
 const SHELL_CACHE = "zs-shell-v6";
 const ASSET_CACHE = "zs-assets-v6";
 const APP_SHELL_KEY = "/__zerosync_app_shell__";
-const SPA_SHELL_URL = "/offline-app/index.spa.html";
+const SPA_SHELL_URL = "/offline-app/";
 
 /** Save a validated authenticated document for Android/PWA cold launches. */
 export async function saveAuthenticatedAppShell(): Promise<void> {
