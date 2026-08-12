@@ -50,10 +50,10 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
-    // Preload route code + loader data when a link enters the viewport, so
-    // visible nav items are warm by the time the user taps. Intent (hover/
-    // focus) is implicit fallback for off-screen links.
-    defaultPreload: "viewport",
+    // Preload on interaction intent. Viewport preloading caused every item in
+    // the mobile navigation drawer to start route loaders together, including
+    // while offline, which made ordinary taps contend with unnecessary work.
+    defaultPreload: "intent",
     defaultPreloadDelay: 50,
     // Query owns freshness; let preload always re-check.
     defaultPreloadStaleTime: 0,

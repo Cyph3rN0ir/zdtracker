@@ -138,13 +138,37 @@ export function saveQuerySnapshot(queryClient: QueryClient): boolean {
 export function installQuerySnapshotPersistence(queryClient: QueryClient): () => void {
   if (typeof window === "undefined") return () => {};
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let idleCallback: number | undefined;
   const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
     if (event?.query.state.status !== "success") return;
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => saveQuerySnapshot(queryClient), 250);
+    if (idleCallback !== undefined && "cancelIdleCallback" in window) {
+      window.cancelIdleCallback(idleCallback);
+      idleCallback = undefined;
+    }
+    // Serialising and merging a large downloaded checkpoint is synchronous.
+    // Let page transitions and taps finish first, then persist during an idle
+    // period (with a timeout so recent online data is still captured).
+    timer = setTimeout(() => {
+      timer = undefined;
+      if ("requestIdleCallback" in window) {
+        idleCallback = window.requestIdleCallback(
+          () => {
+            idleCallback = undefined;
+            saveQuerySnapshot(queryClient);
+          },
+          { timeout: 3000 },
+        );
+      } else {
+        saveQuerySnapshot(queryClient);
+      }
+    }, 1200);
   });
   return () => {
     if (timer) clearTimeout(timer);
+    if (idleCallback !== undefined && "cancelIdleCallback" in window) {
+      window.cancelIdleCallback(idleCallback);
+    }
     unsubscribe();
   };
 }

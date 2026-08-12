@@ -1,1 +1,0 @@
-var e=class{constructor(){this.store=void 0}getStore(){return this.store}enterWith(e){this.store=e}disable(){this.store=void 0}run(e,t,...n){let r=this.store;this.store=e;try{return t(...n)}finally{this.store=r}}};export{e as t};

@@ -41,10 +41,14 @@ export function OfflineStatusProvider({ children }: { children: ReactNode }) {
   const [isSyncing, setSyncing] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
   const probing = useRef(false);
+  const lastProbeAt = useRef(0);
 
   // Active same-origin probe — resolves false-negative `navigator.onLine`.
-  const probe = async () => {
+  const probe = async (force = false) => {
     if (probing.current) return;
+    const now = Date.now();
+    if (!force && now - lastProbeAt.current < 5000) return;
+    lastProbeAt.current = now;
     probing.current = true;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 3000);
@@ -67,7 +71,7 @@ export function OfflineStatusProvider({ children }: { children: ReactNode }) {
     const unsub = onlineManager.subscribe((next) => setOnline(next));
     const onOnline = () => {
       onlineManager.setOnline(true);
-      probe();
+      probe(true);
     };
     const onOffline = () => onlineManager.setOnline(false);
     window.addEventListener("online", onOnline);
@@ -75,18 +79,19 @@ export function OfflineStatusProvider({ children }: { children: ReactNode }) {
     // A downloaded app intentionally boots offline-first even when WebView's
     // navigator.onLine is stale. This uncached request is the authority that
     // promotes it back online and starts background synchronization.
-    probe();
+    probe(true);
     const onVisible = () => {
       if (document.visibilityState === "visible") probe();
     };
     document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", probe);
+    const onFocus = () => probe();
+    window.addEventListener("focus", onFocus);
     return () => {
       unsub();
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
       document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", probe);
+      window.removeEventListener("focus", onFocus);
     };
   }, []);
 
@@ -100,12 +105,12 @@ export function OfflineStatusProvider({ children }: { children: ReactNode }) {
     Network.getStatus()
       .then((status) => {
         onlineManager.setOnline(status.connected);
-        if (status.connected) probe();
+        if (status.connected) probe(true);
       })
       .catch(() => {});
     Network.addListener("networkStatusChange", (status) => {
       onlineManager.setOnline(status.connected);
-      if (status.connected) probe();
+      if (status.connected) probe(true);
     })
       .then((handle) => {
         if (disposed) handle.remove();

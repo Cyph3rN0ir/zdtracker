@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "build:spa": "vite build --config vite.spa.config.ts && npx shx cp -r public/. dist-spa/",
+    "build:offline-shell": "vite build --config vite.spa.config.ts && node scripts/publish-offline-shell.mjs",
     "cap:add": "npx cap add android",
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",

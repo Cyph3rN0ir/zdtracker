@@ -6,7 +6,6 @@
 import { shouldDisablePwaFeatures } from "@/lib/pwa-host-guard";
 
 type UpdateCallback = () => void;
-const offlineRouteModules = import.meta.glob("/src/routes/**/*.tsx");
 
 function collectShellUrls(): string[] {
   const urls = new Set<string>([window.location.href]);
@@ -26,11 +25,10 @@ function collectShellUrls(): string[] {
 }
 
 async function warmAppShell(registration: ServiceWorkerRegistration) {
-  // Load every lazy route once while online. Vite resolves these to the same
-  // hashed chunks used by the router, and the worker caches their responses.
-  // This gives Android all screens without a deployment-time asset manifest.
-  await Promise.allSettled(Object.values(offlineRouteModules).map((load) => load()));
-
+  // Keep the resources already used by the current screen warm. The explicit
+  // offline download caches the complete standalone bundle from its manifest;
+  // eagerly importing every application route here made startup and worker
+  // updates noticeably stall on Android.
   const worker = registration.active ?? registration.waiting ?? registration.installing;
   worker?.postMessage({ type: "CACHE_APP_SHELL", urls: collectShellUrls() });
 }

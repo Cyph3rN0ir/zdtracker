@@ -31,6 +31,10 @@ import {
 import { toast } from "sonner";
 import { restoreOfflineDatabase } from "@/lib/offline-database";
 
+const SESSION_RECHECK_MS = 30_000;
+let verifiedSessionUserId: string | undefined;
+let verifiedSessionAt = 0;
+
 export const Route = createFileRoute("/_app")({
   ssr: false,
   beforeLoad: async ({ context }) => {
@@ -39,9 +43,25 @@ export const Route = createFileRoute("/_app")({
     // avoiding the late provider-restoration race seen on Android WebView.
     await restoreOfflineDatabase(context.queryClient);
     const cached = readCachedMe();
-    if (typeof navigator !== "undefined" && !navigator.onLine && cached) {
+    if (
+      cached &&
+      (onlineManager.isOnline() === false ||
+        (typeof navigator !== "undefined" && !navigator.onLine))
+    ) {
       onlineManager.setOnline(false);
       return { me: cached, offline: true };
+    }
+
+    // Parent beforeLoad runs again for child-route transitions. Reuse the
+    // recently verified identity so every mobile tap does not wait for both a
+    // connectivity probe and a session RPC. Cold launch and periodic rechecks
+    // still validate against the server.
+    if (
+      cached &&
+      verifiedSessionUserId === cached.userId &&
+      Date.now() - verifiedSessionAt < SESSION_RECHECK_MS
+    ) {
+      return { me: cached, offline: false };
     }
 
     // Android WebView can report navigator.onLine=true with no usable route.
@@ -77,6 +97,8 @@ export const Route = createFileRoute("/_app")({
     }
     if (!me) throw redirect({ to: "/auth" });
     writeCachedMe(me);
+    verifiedSessionUserId = me.userId;
+    verifiedSessionAt = Date.now();
     return { me, offline: false };
   },
   component: AppLayout,
@@ -159,6 +181,8 @@ function AppLayout() {
   async function doLogout() {
     try { await logout(); } catch {}
     try {
+      verifiedSessionUserId = undefined;
+      verifiedSessionAt = 0;
       clearCachedMe();
       qc.clear();
       await purgePersistedQueryCache();
