@@ -24,6 +24,7 @@ export async function saveAuthenticatedAppShell(): Promise<void> {
   }
 
   const document = new DOMParser().parseFromString(html, "text/html");
+  const shellBaseUrl = new URL(SPA_SHELL_URL, window.location.origin);
   const criticalUrls = Array.from(
     document.querySelectorAll<HTMLScriptElement | HTMLLinkElement>(
       "script[src], link[rel='stylesheet'][href], link[rel='modulepreload'][href]",
@@ -31,7 +32,7 @@ export async function saveAuthenticatedAppShell(): Promise<void> {
     (node) =>
       new URL(
         node.getAttribute(node instanceof HTMLScriptElement ? "src" : "href") ?? "",
-        window.location.origin,
+        shellBaseUrl,
       ),
   ).filter((url) => url.origin === window.location.origin);
   const discoveredUrls = performance

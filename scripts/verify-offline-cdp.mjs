@@ -110,13 +110,15 @@ page.ws.addEventListener("message", ({ data }) => {
 await navigate(page, `https://zerosync.pages.dev/auth?verify=${Date.now()}`);
 if (await evaluate(page, "!!(document.querySelector('#u') && document.querySelector('#p'))")) {
   await evaluate(page, `(() => {
-    const set = (id, value) => { const input = document.querySelector(id); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })); };
-    set('#u', ${JSON.stringify(username)}); set('#p', ${JSON.stringify(password)}); document.querySelector('form').requestSubmit(); return true;
+    const set = (id, value) => { const input = document.querySelector(id); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value); input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value })); input.dispatchEvent(new Event('change', { bubbles: true })); };
+    set('#u', ${JSON.stringify(username)}); set('#p', ${JSON.stringify(password)}); return true;
   })()`);
+  await sleep(150);
+  await evaluate(page, "document.querySelector('form').requestSubmit(); true");
 }
 await waitFor(page, "document.body?.innerText.includes('Businesses')", "online dashboard", 30000);
 
-await navigate(page, `https://zerosync.pages.dev/settings?verify=${Date.now()}`);
+await openMenuAndNavigate(page, "Settings", "Settings");
 await waitFor(page, "document.body?.innerText.includes('Download for offline use')", "download button", 30000);
 if (!(await clickText(page, "button", "Download for offline use"))) throw new Error("Download button not found");
 const downloadStarted = Date.now();
