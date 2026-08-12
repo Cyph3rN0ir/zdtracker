@@ -109,11 +109,11 @@ page.ws.addEventListener("message", ({ data }) => {
 
 await navigate(page, `https://zerosync.pages.dev/auth?verify=${Date.now()}`);
 if (await evaluate(page, "!!(document.querySelector('#u') && document.querySelector('#p'))")) {
-  await evaluate(page, `(() => {
-    const set = (id, value) => { const input = document.querySelector(id); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value); input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value })); input.dispatchEvent(new Event('change', { bubbles: true })); };
-    set('#u', ${JSON.stringify(username)}); set('#p', ${JSON.stringify(password)}); return true;
-  })()`);
-  await sleep(150);
+  await evaluate(page, "document.querySelector('#u').focus(); true");
+  await page.send("Input.insertText", { text: username });
+  await evaluate(page, "document.querySelector('#p').focus(); true");
+  await page.send("Input.insertText", { text: password });
+  await sleep(100);
   await evaluate(page, "document.querySelector('form').requestSubmit(); true");
 }
 await waitFor(page, "document.body?.innerText.includes('Businesses')", "online dashboard", 30000);

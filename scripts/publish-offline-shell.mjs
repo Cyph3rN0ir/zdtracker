@@ -8,8 +8,16 @@ const assetsDir = path.join(outputDir, "assets");
 
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });
-await cp(path.join(spaDir, "index.spa.html"), path.join(outputDir, "index.html"));
 await cp(path.join(spaDir, "assets"), assetsDir, { recursive: true });
+
+// The service worker serves this document for arbitrary root routes during a
+// cold offline launch. Root-relative asset URLs keep those scripts/styles
+// pointed at the downloaded bundle regardless of the requested route.
+const indexSource = await readFile(path.join(spaDir, "index.spa.html"), "utf8");
+await writeFile(
+  path.join(outputDir, "index.html"),
+  indexSource.replaceAll("./assets/", "/offline-app/assets/"),
+);
 
 // Historical translation text contains credential-shaped strings that are not
 // used by the client. Keep generated public bundles free of those values.
