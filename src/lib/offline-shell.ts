@@ -40,8 +40,11 @@ export async function saveAuthenticatedAppShell(): Promise<void> {
     .filter(
       (url) =>
         url.origin === window.location.origin &&
-        (url.pathname.startsWith("/assets/") ||
-          /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname)),
+        // The manifest below is authoritative for the standalone client.
+        // Only keep public media here; hashed /assets entries belong to the
+        // online SSR build and disappear on every Cloudflare deployment.
+        !url.pathname.startsWith("/assets/") &&
+        /\.(?:woff2?|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname),
     );
   const manifestResponse = await fetch(SPA_ASSET_MANIFEST_URL, { cache: "reload" });
   if (!manifestResponse.ok) throw new Error("Could not load the offline app file list");
