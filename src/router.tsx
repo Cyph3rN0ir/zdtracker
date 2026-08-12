@@ -62,9 +62,9 @@ export const getRouter = () => {
     defaultPendingMs: 200,
     defaultPendingMinMs: 0,
     defaultPendingComponent: RouteSkeleton,
-    // Cross-fade route swaps in supporting browsers — masks any remaining
-    // late-paint flash on slower devices. Falls back to no-op elsewhere.
-    defaultViewTransition: true,
+    // Android WebView can retain large old route layers during offline view
+    // transitions. Normal React swaps are faster and avoid those stalls.
+    defaultViewTransition: false,
   });
 
   return router;

@@ -12,7 +12,7 @@ class Cdp {
       this.ws.onopen = resolve;
       this.ws.onerror = reject;
     });
-    this.ws.onmessage = ({ data }) => {
+    this.ws.addEventListener("message", ({ data }) => {
       const message = JSON.parse(data);
       if (!message.id) return;
       const entry = this.pending.get(message.id);
@@ -20,7 +20,7 @@ class Cdp {
       this.pending.delete(message.id);
       if (message.error) entry.reject(new Error(message.error.message));
       else entry.resolve(message.result);
-    };
+    });
   }
   async send(method, params = {}) {
     await this.ready;
@@ -93,6 +93,7 @@ await page.send("Page.enable");
 await page.send("Runtime.enable");
 await page.send("Network.enable");
 await page.send("Log.enable");
+console.log("stage: browser connected");
 
 const errors = [];
 page.ws.addEventListener("message", ({ data }) => {
@@ -108,6 +109,7 @@ page.ws.addEventListener("message", ({ data }) => {
 });
 
 await navigate(page, `https://zerosync.pages.dev/auth?verify=${Date.now()}`);
+console.log("stage: auth loaded");
 if (await evaluate(page, "!!(document.querySelector('#u') && document.querySelector('#p'))")) {
   await evaluate(page, "document.querySelector('#u').focus(); true");
   await page.send("Input.insertText", { text: username });
@@ -117,8 +119,10 @@ if (await evaluate(page, "!!(document.querySelector('#u') && document.querySelec
   await evaluate(page, "document.querySelector('form').requestSubmit(); true");
 }
 await waitFor(page, "document.body?.innerText.includes('Businesses')", "online dashboard", 30000);
+console.log("stage: signed in");
 
 await openMenuAndNavigate(page, "Settings", "Settings");
+console.log("stage: settings opened");
 await waitFor(page, "document.body?.innerText.includes('Download for offline use')", "download button", 30000);
 if (!(await clickText(page, "button", "Download for offline use"))) throw new Error("Download button not found");
 const downloadStarted = Date.now();
@@ -134,6 +138,7 @@ while (Date.now() - downloadStarted < 90000) {
 if (!downloadBody.includes("Available offline on this device")) {
   throw new Error(`Download did not complete. Body: ${downloadBody.slice(0, 900)} Errors: ${errors.join(' | ')}`);
 }
+console.log("stage: download completed");
 
 const downloaded = await evaluate(page, `(async () => {
   const me = JSON.parse(localStorage.getItem('zs:me:v1'));
@@ -152,12 +157,14 @@ await worker.send("Network.enable");
 const offline = { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 };
 await worker.send("Network.emulateNetworkConditions", offline);
 await page.send("Network.emulateNetworkConditions", offline);
+console.log("stage: network disabled");
 
 // Destroy the running document, then cold-navigate through the service worker.
 await navigate(page, "about:blank");
 const coldStarted = Date.now();
 await page.send("Page.navigate", { url: `https://zerosync.pages.dev/?offline=${Date.now()}` });
 await waitFor(page, "document.body?.innerText.includes('Businesses') && document.body?.innerText.includes('Offline')", "cold offline dashboard", 30000);
+console.log("stage: cold launch completed");
 const coldLaunchMs = Date.now() - coldStarted;
 const offlineDashboard = await evaluate(page, "document.body.innerText");
 
@@ -170,3 +177,4 @@ timings.dashboard = await openMenuAndNavigate(page, "Dashboard", "Businesses");
 console.log(JSON.stringify({ downloaded, coldLaunchMs, timings, offlineDashboard: offlineDashboard.slice(0, 500), errors }, null, 2));
 worker.close();
 page.close();
+setTimeout(() => process.exit(0), 100);
