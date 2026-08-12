@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider, onlineManager } from "@tanstack/react-query";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { OfflineStatusProvider, useOfflineStatus } from "@/lib/offline-status";
 import { getFailedQueueSize, getQueueSize, subscribeQueue } from "@/lib/offline-queue";
+import { restoreQuerySnapshot } from "@/lib/query-snapshot";
 
 /**
  * Top-level offline provider:
@@ -21,6 +22,14 @@ export function OfflineQueryProvider({
   queryClient: QueryClient;
   children: ReactNode;
 }) {
+  // Router initialization may replace constructor-time query state. Restore
+  // once after React commits, when QueryClient subscribers are active. This
+  // preserves downloaded entities without mutating the query cache from the
+  // render path (which caused the Android cold-start CPU loop).
+  useEffect(() => {
+    restoreQuerySnapshot(queryClient);
+  }, [queryClient]);
+
   return (
     <OfflineStatusProvider>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

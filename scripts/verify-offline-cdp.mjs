@@ -114,10 +114,12 @@ page.ws.addEventListener("message", ({ data }) => {
 await navigate(page, `https://zerosync.pages.dev/auth?verify=${Date.now()}`);
 console.log("stage: auth loaded");
 if (await evaluate(page, "!!(document.querySelector('#u') && document.querySelector('#p'))")) {
+  await sleep(500);
   await evaluate(page, "document.querySelector('#u').focus(); true");
   await page.send("Input.insertText", { text: username });
   await evaluate(page, "document.querySelector('#p').focus(); true");
   await page.send("Input.insertText", { text: password });
+  await waitFor(page, `document.querySelector('#u').value === ${JSON.stringify(username)} && document.querySelector('#p').value === ${JSON.stringify(password)}`, "filled login fields", 5000);
   await sleep(100);
   await evaluate(page, "document.querySelector('form').requestSubmit(); true");
 }
