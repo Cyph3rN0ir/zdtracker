@@ -20,6 +20,11 @@ import "./styles.css";
 // Build the router (same one used by the SSR app).
 const router = getRouter();
 
+// Route the downloaded client through its lean cold-start layout. The normal
+// TanStack Start document does not set this marker and keeps the full online
+// layout with warmup, push, polling, and pull-to-refresh.
+document.documentElement.dataset.zerosyncShell = "offline";
+
 const root = document.getElementById("root");
 if (!root) throw new Error("No #root element found");
 

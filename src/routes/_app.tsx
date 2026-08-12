@@ -101,8 +101,114 @@ export const Route = createFileRoute("/_app")({
     verifiedSessionAt = Date.now();
     return { me, offline: false };
   },
-  component: AppLayout,
+  component: AppLayoutEntry,
 });
+
+function AppLayoutEntry() {
+  if (typeof document !== "undefined" && document.documentElement.dataset.zerosyncShell === "offline") {
+    return <OfflineAppLayout />;
+  }
+  return <AppLayout />;
+}
+
+/**
+ * Lean layout used only by the downloaded client shell. It deliberately
+ * avoids online warmup, unread polling, push hooks, view transitions, Radix
+ * portals, and pull-to-refresh during cold startup. Route components still
+ * retain their complete cached-data and offline-mutation behaviour.
+ */
+function OfflineAppLayout() {
+  const { me } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => setOpen(false), [pathname]);
+
+  const links = [
+    { to: "/", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { to: "/my/tasks", label: "My tasks", icon: <ListChecks className="h-4 w-4" /> },
+    { to: "/notebook/today", label: "Notebook", icon: <NotebookPen className="h-4 w-4" /> },
+    { to: "/chat", label: "Chat", icon: <MessageSquare className="h-4 w-4" /> },
+    { to: "/personal", label: "Personal", icon: <User className="h-4 w-4" /> },
+    { to: "/settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
+    ...(me.role === "admin"
+      ? [{ to: "/admin/users", label: "Users", icon: <Users className="h-4 w-4" /> }]
+      : []),
+  ];
+
+  const menu = (
+    <>
+      <div className="border-b border-border p-5">
+        <div className="font-display text-sm font-bold tracking-wide">ZeroSync</div>
+        <div className="mt-3 flex items-center gap-2">
+          <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
+            {(me.displayName || me.username).slice(0, 1).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium">{me.displayName || me.username}</div>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{me.role}</div>
+          </div>
+        </div>
+      </div>
+      <nav className="flex flex-col gap-1 p-3">
+        {links.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            activeOptions={{ exact: item.to === "/" }}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground data-[status=active]:bg-accent data-[status=active]:font-medium data-[status=active]:text-accent-foreground"
+            activeProps={{ "data-status": "active" } as any}
+          >
+            {item.icon}
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+    </>
+  );
+
+  return (
+    <div className="min-h-dvh bg-muted/30 md:grid md:grid-cols-[240px_1fr]">
+      <aside className="hidden border-r border-border bg-card md:block">{menu}</aside>
+      <div className="min-w-0">
+        <header
+          className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-card px-3 py-2 md:hidden"
+          style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 0.5rem)" }}
+        >
+          <Button variant="ghost" size="icon" aria-label="Open menu" onClick={() => setOpen(true)}>
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="font-display text-sm font-bold tracking-wide">ZeroSync</div>
+          <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+            {(me.displayName || me.username).slice(0, 1).toUpperCase()}
+          </div>
+        </header>
+
+        {open && (
+          <>
+            <button
+              type="button"
+              aria-label="Close menu"
+              className="fixed inset-0 z-40 bg-black/55 md:hidden"
+              onClick={() => setOpen(false)}
+            />
+            <aside
+              className="fixed inset-y-0 left-0 z-50 w-[min(82vw,280px)] overflow-y-auto border-r border-border bg-card shadow-2xl md:hidden"
+              style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+            >
+              {menu}
+            </aside>
+          </>
+        )}
+
+        <main className={pathname === "/chat" || pathname.startsWith("/chat/") ? "min-h-0" : "p-4 pb-safe sm:p-6 md:p-8"}>
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
 
 function AppLayout() {
   const { me } = Route.useRouteContext();

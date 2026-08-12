@@ -1,6 +1,9 @@
 const port = Number(process.env.CDP_PORT || 9333);
 const username = process.env.ZS_TEST_USERNAME;
 const password = process.env.ZS_TEST_PASSWORD;
+const softOffline = process.env.ZS_SOFT_OFFLINE === "1";
+const clearOfflineData = process.env.ZS_CLEAR_OFFLINE_DATA === "1";
+const standaloneOnline = process.env.ZS_STANDALONE_ONLINE === "1";
 if (!username || !password) throw new Error("Missing ZS_TEST_USERNAME/ZS_TEST_PASSWORD");
 
 class Cdp {
@@ -150,20 +153,44 @@ const downloaded = await evaluate(page, `(async () => {
   for (const name of cacheNames) cacheEntries[name] = (await (await caches.open(name)).keys()).length;
   return { userId: me.userId, meta, queryCount: snapshot.state.queries.length, businessNames: businesses.map(b => b.name), cacheEntries };
 })()`);
+if (clearOfflineData) {
+  await evaluate(page, `(async () => {
+    const me = JSON.parse(localStorage.getItem('zs:me:v1'));
+    localStorage.removeItem('zs:query-snapshot:v1:' + me.userId);
+    await new Promise((resolve) => { const req = indexedDB.deleteDatabase('keyval-store'); req.onsuccess = req.onerror = req.onblocked = resolve; });
+    return true;
+  })()`);
+}
 
-const workerTarget = await waitForTarget("service_worker", 15000);
-const worker = new Cdp(workerTarget.webSocketDebuggerUrl);
-await worker.send("Network.enable");
-const offline = { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 };
-await worker.send("Network.emulateNetworkConditions", offline);
-await page.send("Network.emulateNetworkConditions", offline);
+let worker;
+if (softOffline) {
+  await page.send("Page.addScriptToEvaluateOnNewDocument", { source: `
+    if (location.pathname.startsWith('/offline-app')) history.replaceState(null, '', '/');
+    ${standaloneOnline ? "" : "Object.defineProperty(Navigator.prototype, 'onLine', { configurable: true, get: () => false });"}
+    const nativeFetch = window.fetch.bind(window);
+    ${standaloneOnline ? "" : `
+    window.fetch = (input, init) => {
+      const url = new URL(typeof input === 'string' ? input : input.url, location.origin);
+      if (url.pathname.startsWith('/offline-app/')) return nativeFetch(input, init);
+      return Promise.reject(new TypeError('Soft offline test'));
+    };
+    `}
+  ` });
+} else {
+  const workerTarget = await waitForTarget("service_worker", 15000);
+  worker = new Cdp(workerTarget.webSocketDebuggerUrl);
+  await worker.send("Network.enable");
+  const offline = { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 };
+  await worker.send("Network.emulateNetworkConditions", offline);
+  await page.send("Network.emulateNetworkConditions", offline);
+}
 console.log("stage: network disabled");
 
 // Destroy the running document, then cold-navigate through the service worker.
 await navigate(page, "about:blank");
 const coldStarted = Date.now();
-await page.send("Page.navigate", { url: `https://zerosync.pages.dev/?offline=${Date.now()}` });
-await waitFor(page, "document.body?.innerText.includes('Businesses') && document.body?.innerText.includes('Offline')", "cold offline dashboard", 30000);
+await page.send("Page.navigate", { url: softOffline ? `https://zerosync.pages.dev/offline-app/?offline=${Date.now()}` : `https://zerosync.pages.dev/?offline=${Date.now()}` });
+await waitFor(page, standaloneOnline ? "document.body?.innerText.includes('Businesses')" : "document.body?.innerText.includes('Businesses') && document.body?.innerText.includes('Offline')", "cold offline dashboard", 30000);
 console.log("stage: cold launch completed");
 const coldLaunchMs = Date.now() - coldStarted;
 const offlineDashboard = await evaluate(page, "document.body.innerText");
@@ -175,6 +202,6 @@ timings.chat = await openMenuAndNavigate(page, "Chat", "Conversations");
 timings.dashboard = await openMenuAndNavigate(page, "Dashboard", "Businesses");
 
 console.log(JSON.stringify({ downloaded, coldLaunchMs, timings, offlineDashboard: offlineDashboard.slice(0, 500), errors }, null, 2));
-worker.close();
+worker?.close();
 page.close();
 setTimeout(() => process.exit(0), 100);
